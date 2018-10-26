@@ -1,13 +1,10 @@
+import json
 from threading import Condition
-from pymongo import MongoClient
-from bson.objectid import ObjectId
 from queue import Queue
-from tornado import escape
 from threading import Thread
 import tornado.ioloop
 import tornado.web
 import datetime as dt
-import json
 import random
 import string
 import logging
@@ -15,94 +12,22 @@ import time
 import os
 
 # constants
-LOGS_DIR_NAME = "logs"
-TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
-ID_REGEX = "(?P<id_>[a-f0-9]+)"
-PORT = 8888
-BAD_REQUEST_CODE = 400
-EMPTY_QUEUE_CODE = 412
-HEARTBEAT_INTERVAL = 10
+from bson import ObjectId
+from tornado import escape
+
+from database import DatabaseResolver
+from settings import LOGS_DIR_NAME, ID_REGEX, TIMESTAMP_FORMAT, PORT, HEARTBEAT_INTERVAL, BAD_REQUEST_CODE, \
+    EMPTY_QUEUE_CODE
 
 # globals
 heartbeat_validator_thread = None
 cluster_token = None
 job_queue = Queue()
-client = MongoClient()
-db = client['AG']
 heartbeat = True
 heartbeat_cv = Condition()
 
-# Worker Node:
-#   id (implicit)
-#   last_seen
-#   running_job_ids         None if not executing any job
-worker_nodes_collection = db.worker_nodes
-
-# Grading Run:
-#   id (implicit)
-#   created_at
-#   started_at
-#   finished_at
-#   student_job_ids = [id,...]
-#   postprocessing_job_id = None if no stage else id
-#   student_jobs_left
-grading_runs_collection = db.grading_runs
-
-# Job:
-#   id (implicit)
-#   created_at
-#   queued_at
-#   started_at
-#   finished_at
-#   result
-#   grading_run_id
-#   stages = [stage1, stage2, ...] with all environment variables expanded
-jobs_collection = db.jobs
-
-
-# stage :
-#  {
-#    "image": <image name>,  REQUIRED
-#    "environment":          OPTIONAL
-#      {
-#         <env var name>: <$env var name/value>, ...
-#      }
-#  }
-
-# "student_pipeline":        REQUIRED
-# [
-#   stage1, stage2, ...
-# ]
-
-# "postprocessing_pipeline": OPTIONAL
-# [
-#   stage1, stage2, ...
-# ]
-
-# "environment":             OPTIONAL
-#      {
-#         <env var name>: <value>, ...
-#      }
-
-# "students":                REQUIRED
-# [
-#   { <env var name>: <value>, ...}, ...
-# ]
-
-
 def get_time():
     return dt.datetime.fromtimestamp(time.time()).strftime(TIMESTAMP_FORMAT)
-
-
-def enqueue_job(job_id):
-    cur_job = {}
-    job = jobs_collection.find_one({'_id': ObjectId(job_id)})
-    assert job is not None
-    cur_job['stages'] = job['stages']
-    cur_job['job_id'] = job_id
-    job_queue.put(cur_job, block=False)
-    jobs_collection.update_one({'_id': ObjectId(job_id)}, {"$set": {'queued_at': get_time()}})
-
 
 # TODO
 def handle_lost_worker_node(worker_node):
@@ -110,7 +35,8 @@ def handle_lost_worker_node(worker_node):
                                                                                     worker_node["running_job_ids"]))
 
 
-def heartbeat_validator():
+def heartbeat_validator(db_resolver):
+    worker_nodes_collection = db_resolver.get_workers_node_collection()
     while heartbeat:
         cur_time = dt.datetime.fromtimestamp(time.time())
         for worker_node in worker_nodes_collection.find():
@@ -135,26 +61,6 @@ def get_status(student_job):
         return "Queued"
     else:
         return "Created"
-
-
-def is_valid(args):
-    if "student_pipeline" not in args:
-        return False, "missing argument \'student_pipeline\'"
-
-    for student_pipeline_stage in args["student_pipeline"]:
-        if "image" not in student_pipeline_stage:
-            return False, "missing argument \'image\' in student pipeline stages"
-
-    if "postprocessing_pipeline" in args:
-        for postprocessing_pipeline_stage in args["postprocessing_pipeline"]:
-            if "image" not in postprocessing_pipeline_stage:
-                return False, "missing argument \'image\' in postprocessing pipeline stage"
-
-    if "students" not in args:
-        return False, "missing argument \'students\'"
-
-    return True, None
-
 
 def expand_env_vars(vars_to_fill, global_env_vars, student_env_vars=None):
     if student_env_vars is None:
@@ -189,11 +95,75 @@ def expand_env_vars(vars_to_fill, global_env_vars, student_env_vars=None):
     return res_vars
 
 
-class AddGradingRunHandler(tornado.web.RequestHandler):
+def make_app(db_resolver):
+    return tornado.web.Application([
+        # ---------Client Endpoints---------
+        # POST to add grading run
+        (r"/api/v1/grading_run", AddGradingRunHandler, {"db_object": db_resolver}),
+
+        # POST to start grading run.
+        # GET to get statuses of all jobs
+        (r"/api/v1/grading_run/{}".format(ID_REGEX), GradingRunHandler, {"db_object": db_resolver}),
+        # ----------------------------------
+
+        # -----Worker Node Endpoints--------
+        # GET to register node and get worked ID
+        (r"/api/v1/worker_register", WorkerRegisterHandler, {"db_object": db_resolver}),
+
+        # GET to get a grading job
+        (r"/api/v1/grading_job", GradingJobHandler, {"db_object": db_resolver}),
+
+        # TODO POST to update status of job
+        (r"/api/v1/grading_job/{}".format(ID_REGEX), JobUpdateHandler, {"db_object": db_resolver}),
+
+        # POST to register heartbeat
+        (r"/api/v1/heartbeat", HeartBeatHandler, {"db_object": db_resolver}),
+        # ----------------------------------
+    ])
+
+
+def generate_random_key(length):
+    return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(length))
+
+def enqueue_job(job_id, db_resolver):
+    jobs_collection = db_resolver.get_jobs_collection()
+    cur_job = {}
+    job = jobs_collection.find_one({'_id': ObjectId(job_id)})
+    assert job is not None
+    cur_job['stages'] = job['stages']
+    cur_job['job_id'] = job_id
+    job_queue.put(cur_job, block=False)
+    jobs_collection.update_one({'_id': ObjectId(job_id)}, {"$set": {'queued_at': get_time()}})
+
+
+class RequestHandlerBase(tornado.web.RequestHandler):
+    def initialize(self, db_object: DatabaseResolver):
+        self.db_handler = db_object
+
+
+class AddGradingRunHandler(RequestHandlerBase):
     def bad_request(self, error_message):
         self.clear()
         self.set_status(BAD_REQUEST_CODE)
         self.finish(json.dumps({'error': error_message}))
+
+    def is_valid(self, args):
+        if "student_pipeline" not in args:
+            return False, "missing argument \'student_pipeline\'"
+
+        for student_pipeline_stage in args["student_pipeline"]:
+            if "image" not in student_pipeline_stage:
+                return False, "missing argument \'image\' in student pipeline stages"
+
+        if "postprocessing_pipeline" in args:
+            for postprocessing_pipeline_stage in args["postprocessing_pipeline"]:
+                if "image" not in postprocessing_pipeline_stage:
+                    return False, "missing argument \'image\' in postprocessing pipeline stage"
+
+        if "students" not in args:
+            return False, "missing argument \'students\'"
+
+        return True, None
 
     # adds grading pipeline to DB and returns its ID
     def post(self):
@@ -202,7 +172,7 @@ class AddGradingRunHandler(tornado.web.RequestHandler):
             return
 
         json_payload = json.loads(escape.to_basestring(self.request.arguments['json_payload'][0]))
-        valid, error_message = is_valid(json_payload)
+        valid, error_message = self.is_valid(json_payload)
         if not valid:
             self.bad_request(error_message)
             return
@@ -240,6 +210,8 @@ class AddGradingRunHandler(tornado.web.RequestHandler):
                         return
                 postprocessing_job.append(cur_stage)
 
+        jobs_collection = self.db_handler.get_jobs_collection()
+        grading_runs_collection = self.db_handler.get_grading_run_collection()
         # arguments are valid so feed into DB and return run id
         grading_run = {'created_at': get_time(), 'student_jobs_left': len(student_jobs)}
         grading_run_id = str(grading_runs_collection.insert_one(grading_run).inserted_id)
@@ -261,7 +233,7 @@ class AddGradingRunHandler(tornado.web.RequestHandler):
         self.write(json.dumps({'id': grading_run_id}))
 
 
-class GradingRunHandler(tornado.web.RequestHandler):
+class GradingRunHandler(RequestHandlerBase):
     def bad_request(self, error_message):
         self.clear()
         self.set_status(BAD_REQUEST_CODE)
@@ -269,6 +241,7 @@ class GradingRunHandler(tornado.web.RequestHandler):
 
     # adds grading jobs to queue
     def post(self, id_):
+        grading_runs_collection = self.db_handler.get_grading_run_collection()
         grading_run_id = id_
         grading_run = grading_runs_collection.find_one({'_id': ObjectId(grading_run_id)})
         if grading_run is None:
@@ -288,6 +261,8 @@ class GradingRunHandler(tornado.web.RequestHandler):
     # get statuses of all jobs
     def get(self, id_):
         grading_run_id = id_
+        grading_runs_collection = self.db_handler.get_grading_run_collection()
+        jobs_collection = self.db_handler.get_jobs_collection()
         grading_run = grading_runs_collection.find_one({'_id': ObjectId(grading_run_id)})
         if grading_run is None:
             self.bad_request("Grading Run with id {} does not exist".format(grading_run_id))
@@ -309,7 +284,7 @@ class GradingRunHandler(tornado.web.RequestHandler):
         self.write(json.dumps(res))
 
 
-class GradingJobHandler(tornado.web.RequestHandler):
+class GradingJobHandler(RequestHandlerBase):
     def bad_request(self, error_message):
         self.clear()
         self.set_status(BAD_REQUEST_CODE)
@@ -317,6 +292,8 @@ class GradingJobHandler(tornado.web.RequestHandler):
 
     # get a grading job from the queue
     def get(self):
+        worker_nodes_collection = self.db_handler.get_worker_nodes_collection()
+        jobs_collection = self.db_handler.get_jobs_collection()
         # authenticate this get call with the worker id
         if 'worker_id' not in self.request.arguments:
             self.bad_request('\'worker_id\' field missing in request')
@@ -342,13 +319,16 @@ class GradingJobHandler(tornado.web.RequestHandler):
             self.finish(json.dumps({'error': "The queue is empty"}))
 
 
-class JobUpdateHandler(tornado.web.RequestHandler):
+class JobUpdateHandler(RequestHandlerBase):
     def bad_request(self, error_message):
         self.clear()
         self.set_status(BAD_REQUEST_CODE)
         self.finish(json.dumps({'error': error_message}))
 
     def post(self, id_):
+        worker_nodes_collection = self.db_handler.get_worker_nodes_collection()
+        jobs_collection = self.db_handler.get_jobs_collection()
+        grading_runs_collection = self.db_handler.get_grading_run_collection()
         job_id = id_
         # authenticate this get call with the worker id
         if 'worker_id' not in self.request.arguments:
@@ -413,13 +393,14 @@ class JobUpdateHandler(tornado.web.RequestHandler):
                     enqueue_job(grading_run["postprocessing_job_id"])
 
 
-class WorkerRegisterHandler(tornado.web.RequestHandler):
+class WorkerRegisterHandler(RequestHandlerBase):
     def bad_request(self, error_message):
         self.clear()
         self.set_status(BAD_REQUEST_CODE)
         self.finish(json.dumps({'error': error_message}))
 
     def get(self):
+        worker_nodes_collection = self.db_handler.get_worker_nodes_collection()
         if 'token' not in self.request.arguments:
             self.bad_request('\'token\' field missing in request')
             return
@@ -436,13 +417,15 @@ class WorkerRegisterHandler(tornado.web.RequestHandler):
         self.write(json.dumps({'worker_id': worker_node_id, 'heartbeat': HEARTBEAT_INTERVAL}))
 
 
-class HeartBeatHandler(tornado.web.RequestHandler):
+class HeartBeatHandler(RequestHandlerBase):
     def bad_request(self, error_message):
         self.clear()
         self.set_status(BAD_REQUEST_CODE)
         self.finish(json.dumps({'error': error_message}))
 
     def post(self):
+        worker_nodes_collection = self.db_handler.get_worker_nodes_collection()
+
         if 'worker_id' not in self.request.arguments:
             self.bad_request('\'worker_id\' field missing in request')
             return
@@ -456,37 +439,6 @@ class HeartBeatHandler(tornado.web.RequestHandler):
 
         worker_nodes_collection.update_one({'_id': ObjectId(worker_id)}, {"$set": {'last_seen': get_time()}})
         logging.info("Heartbeat from {}".format(worker_id))
-
-
-def make_app():
-    return tornado.web.Application([
-        # ---------Client Endpoints---------
-        # POST to add grading run
-        (r"/api/v1/grading_run", AddGradingRunHandler),
-
-        # POST to start grading run.
-        # GET to get statuses of all jobs
-        (r"/api/v1/grading_run/{}".format(ID_REGEX), GradingRunHandler),
-        # ----------------------------------
-
-        # -----Worker Node Endpoints--------
-        # GET to register node and get worked ID
-        (r"/api/v1/worker_register", WorkerRegisterHandler),
-
-        # GET to get a grading job
-        (r"/api/v1/grading_job", GradingJobHandler),
-
-        # TODO POST to update status of job
-        (r"/api/v1/grading_job/{}".format(ID_REGEX), JobUpdateHandler),
-
-        # POST to register heartbeat
-        (r"/api/v1/heartbeat", HeartBeatHandler),
-        # ----------------------------------
-    ])
-
-
-def generate_random_key(length):
-    return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(length))
 
 
 if __name__ == "__main__":
@@ -504,7 +456,8 @@ if __name__ == "__main__":
     heartbeat_validator_thread.start()
 
     # start the API
-    app = make_app()
+    db_resolver = DatabaseResolver()
+    app = make_app(db_resolver)
     app.listen(PORT)
 
     try:

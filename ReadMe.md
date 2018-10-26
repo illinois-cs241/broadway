@@ -30,9 +30,9 @@ Grading Run JSON object:
 ```
 {
      'student_pipeline':  [ stage1, stage2, ... ],              REQUIRED
+     'students': [ { <env var name>: <value>, ...}, ... ],       REQUIRED
      'postprocessing_pipeline':  [  stage1, stage2, ... ],      OPTIONAL
      'environment': {  <env var name>: <value>, ...  },         OPTIONAL
-     'students': [ { <env var name>: <value>, ...}, ... ]       REQUIRED
 }
 ```
 Stage object:

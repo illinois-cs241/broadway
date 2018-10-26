@@ -3,10 +3,7 @@ sudo: required
 
 language: python
 python:
-- "2.7"
-- "3.5"
 - "3.6"
-- "3.7"
 
 .mixins:
 - &trusty-mixin
@@ -29,10 +26,10 @@ install:
     - sudo apt-get -y install build-essential checkinstall
     - sudo apt-get -y install libreadline-gplv2-dev libncursesw5-dev libssl-dev libsqlite3-dev tk-dev libgdbm-dev libc6-dev libbz2-dev
     - sudo apt-get -y install mongodb
-    - pip install --upgrade pip
+    - sudo pip install --upgrade pip
     - sudo pip install -r requirements.txt
 before_script:
     - mkdir /tmp/mongo_dir
     - mongod --dbpath /tmp/mongo_dir &
 script:
-    - python3 -m unittest
+    - python -m unittest

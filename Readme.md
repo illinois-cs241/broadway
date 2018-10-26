@@ -1,7 +1,7 @@
 # Broadway API
 
 ## Running API Server
-Start up a [virtual environment](https://virtualenv.pypa.io/en/stable/) and install the required packages specified in [requirements.txt](requirements.txt) by:
+Install the required packages specified in [requirements.txt](requirements.txt) by:
 ```shell
 pip install -r requirements.txt
 ```
@@ -32,14 +32,14 @@ Grading Run JSON object:
      'student_pipeline':  [ stage1, stage2, ... ],              REQUIRED
      'students': [ { <env var name>: <value>, ...}, ... ],       REQUIRED
      'postprocessing_pipeline':  [  stage1, stage2, ... ],      OPTIONAL
-     'environment': {  <env var name>: <value>, ...  },         OPTIONAL
+     'env': {  <env var name>: <value>, ...  },         OPTIONAL
 }
 ```
 Stage object:
 ```
 {
   'image': <image name>,                                        REQUIRED
-  'environment': { <env var name>: <$env var name/value>, ... } OPTIONAL
+  'env': { <env var name>: <$env var name/value>, ... } OPTIONAL
 }
 ```
 Returns JSON string of:
@@ -55,11 +55,11 @@ Returns the statuses of all grading job under the grading run of given id.
 Returns JSON string of:
 ```
 {
-  'student statuses': 
+  'student_statuses': 
     [
       {
         'id': <student job id>, 
-        'student': { <env var name>: <value>, ...},
+        'student': [stage1, stage2, ... ],
         'status': <status of job>
       }, ...
     ], 

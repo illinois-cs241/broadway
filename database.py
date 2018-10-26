@@ -5,7 +5,8 @@ class DatabaseResolver(object):
 
     def __init__(self, db_name='AG'):
         self.client = MongoClient()
-        self.db = self.client[db_name]
+        self.db_name = db_name
+        self.db = self.client[self.db_name]
 
     def get_workers_node_collection(self):
         # Worker Node:
@@ -39,6 +40,9 @@ class DatabaseResolver(object):
         #   stages = [stage1, stage2, ...] with all environment variables expanded
 
         return self.db.jobs
+
+    def clear_db(self):
+        self.client.drop_database(self.db_name)
 
 # stage :
 #  {

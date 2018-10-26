@@ -185,12 +185,14 @@ class AddGradingRunHandler(RequestHandlerBase):
                 cur_stage = {"image": stage["image"]}
                 if "entrypoint" in stage:
                     cur_stage["entrypoint"] = stage["entrypoint"]
-                if "env" in stage:
-                    try:
-                        cur_stage["env"] = expand_env_vars(stage["env"], json_payload["env"], student)
-                    except Exception as error:
-                        self.bad_request("Student Pipeline: {}".format(str(error)))
-                        return
+
+                try:
+                    cur_stage["env"] = expand_env_vars(stage.get("env", {}), 
+                        json_payload.get("env", {}), 
+                        student)
+                except Exception as error:
+                    self.bad_request("Student Pipeline: {}".format(str(error)))
+                    return
                 cur_job.append(cur_stage)
 
             student_jobs.append(cur_job)
@@ -204,7 +206,7 @@ class AddGradingRunHandler(RequestHandlerBase):
                     cur_stage["entrypoint"] = stage["entrypoint"]
                 if "env" in stage:
                     try:
-                        cur_stage["env"] = expand_env_vars(stage["env"], json_payload["env"])
+                        cur_stage["env"] = expand_env_vars(stage.get("env", {}), json_payload.get("env", {}))
                     except Exception as error:
                         self.bad_request("Postprocessing Pipeline: {}".format(str(error)))
                         return
@@ -254,7 +256,7 @@ class GradingRunHandler(RequestHandlerBase):
 
         assert "student_job_ids" in grading_run
         for student_job_id in grading_run['student_job_ids']:
-            enqueue_job(student_job_id)
+            enqueue_job(student_job_id, self.db_handler)
 
         grading_runs_collection.update_one({'_id': ObjectId(grading_run_id)}, {"$set": {'started_at': get_time()}})
 
@@ -268,18 +270,25 @@ class GradingRunHandler(RequestHandlerBase):
             self.bad_request("Grading Run with id {} does not exist".format(grading_run_id))
             return
 
-        res = {'student statuses': []}
+        res = {'student_statuses': []}
+
         for student_job_id in grading_run['student_job_ids']:
             student_job = jobs_collection.find_one({'_id': ObjectId(student_job_id)})
+            stages = []
+            for stage in student_job['stages']:
+                stage_temp = {'image':stage['image']}
+                stage_temp['env'] = dict([env.split("=") for env in stage['env']])
+                stages.append(stage_temp)
             assert student_job is not None
-            res['student statuses'].append(
-                {'job_id': student_job_id, 'status': get_status(student_job)})
+            res['student_statuses'].append(
+                {'job_id': student_job_id, 'status': get_status(student_job), 'stages': stages})
 
         if grading_run['postprocessing_job_id'] is not None:
             postprocessing_job = jobs_collection.find_one({'_id': ObjectId(grading_run['postprocessing_job_id'])})
             assert postprocessing_job is not None
             res['postprocessing status'] = {'job_id': grading_run['postprocessing_job_id'],
-                                            'status': get_status(postprocessing_job)}
+                                            'status': get_status(postprocessing_job),
+                                            }
 
         self.write(json.dumps(res))
 
@@ -390,7 +399,7 @@ class JobUpdateHandler(RequestHandlerBase):
                     grading_runs_collection.update_one({'_id': ObjectId(job["grading_run_id"])},
                                                        {"$set": {"finished_at": get_time()}})
                 else:
-                    enqueue_job(grading_run["postprocessing_job_id"])
+                    enqueue_job(grading_run["postprocessing_job_id"], self.db_handler)
 
 
 class WorkerRegisterHandler(RequestHandlerBase):

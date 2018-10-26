@@ -1,8 +1,25 @@
-dist: trusty
+dist: xenial
 sudo: required
+
 language: python
 python:
-  - "3.6"
+- "2.7"
+- "3.5"
+- "3.6"
+- "3.7"
+
+.mixins:
+- &trusty-mixin
+  dist: trusty
+  sudo:
+jobs:
+  include:
+  - <<: *trusty-mixin
+    python: "3.3"
+  - <<: *trusty-mixin
+    python: "3.4"
+  - <<: *trusty-mixin
+    python: "pypy"
 branches:
     only:
     - /.*/

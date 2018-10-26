@@ -4,7 +4,6 @@ sudo: required
 language: python
 python:
 - "3.6"
-
 .mixins:
 - &trusty-mixin
   dist: trusty
@@ -12,11 +11,7 @@ python:
 jobs:
   include:
   - <<: *trusty-mixin
-    python: "3.3"
-  - <<: *trusty-mixin
-    python: "3.4"
-  - <<: *trusty-mixin
-    python: "pypy"
+    python: "3.6"
 branches:
     only:
     - /.*/

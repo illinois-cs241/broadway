@@ -8,6 +8,10 @@ before_install:
     - sudo apt-get update
 install:
     - sudo apt-get -y install mongodb
+    - pip install --upgrade pip
     - sudo pip install -r requirements.txt
+before_script:
+    - mkdir /tmp/mongo_dir
+    - mongod --dbpath /tmp/mongo_dir &
 script:
     - python3 -m unittest

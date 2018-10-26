@@ -1,7 +1,7 @@
 language: python
 branches:
     only:
-        develop
+    - /.*/
 before_install:
     - sudo apt-get update
 install:

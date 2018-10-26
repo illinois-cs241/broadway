@@ -16,6 +16,6 @@ install:
 before_script:
     - mkdir -p /tmp/mongo/data
     - mkdir -p /tmp/mongo/logs
-    - mongod --dbpath /tmp/mongo/data --fork --logpath /tmp/mongo/logs
+    - mongod --dbpath /tmp/mongo/data &
 script:
     - python -m unittest

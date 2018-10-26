@@ -13,8 +13,8 @@ install:
     - sudo apt-get -y install build-essential checkinstall
     - sudo apt-get -y install libreadline-gplv2-dev libncursesw5-dev libssl-dev libsqlite3-dev tk-dev libgdbm-dev libc6-dev libbz2-dev
     - sudo apt-get -y install mongodb
-    - sudo pip install --upgrade pip
-    - sudo pip install -r requirements.txt
+    - pip install --upgrade pip
+    - pip install -r requirements.txt
 before_script:
     - mkdir /tmp/mongo_dir
     - mongod --dbpath /tmp/mongo_dir &

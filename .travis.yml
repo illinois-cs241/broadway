@@ -4,14 +4,6 @@ sudo: required
 language: python
 python:
 - "3.6"
-.mixins:
-- &trusty-mixin
-  dist: trusty
-  sudo:
-jobs:
-  include:
-  - <<: *trusty-mixin
-    python: "3.6"
 branches:
     only:
     - /.*/

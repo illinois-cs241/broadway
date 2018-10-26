@@ -12,4 +12,3 @@ requests==2.19.1
 six==1.11.0
 tornado==5.1.1
 urllib3==1.23
-bson

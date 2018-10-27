@@ -43,32 +43,3 @@ class DatabaseResolver(object):
 
     def clear_db(self):
         self.client.drop_database(self.db_name)
-
-# stage :
-#  {
-#    "image": <image name>,  REQUIRED
-#    "environment":          OPTIONAL
-#      {
-#         <env var name>: <$env var name/value>, ...
-#      }
-#  }
-
-# "student_pipeline":        REQUIRED
-# [
-#   stage1, stage2, ...
-# ]
-
-# "postprocessing_pipeline": OPTIONAL
-# [
-#   stage1, stage2, ...
-# ]
-
-# "environment":             OPTIONAL
-#      {
-#         <env var name>: <value>, ...
-#      }
-
-# "students":                REQUIRED
-# [
-#   { <env var name>: <value>, ...}, ...
-# ]

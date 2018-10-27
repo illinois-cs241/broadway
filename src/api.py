@@ -109,7 +109,7 @@ def make_app(db_resolver):
         (r"/api/v1/grading_run/{}".format(ID_REGEX), GradingRunHandler),
         # ----------------------------------
 
-        # -----Worker Node Endpoints--------
+        # -----Grader Endpoints--------
         # GET to register node and get worked ID
         (r"/api/v1/worker_register", WorkerRegisterHandler),
 
@@ -166,6 +166,37 @@ class AddGradingRunHandler(RequestHandlerBase):
 
         return True, None
 
+    # stage is defined as:
+    #  {
+    #    "image": <image name>,  REQUIRED
+    #    "environment":          OPTIONAL
+    #      {
+    #         <env var name>: <$env var name/value>, ...
+    #      }
+    #  }
+    #
+    # Json payload is supposed to have the following contents:
+    #
+    # "student_pipeline":        REQUIRED
+    # [
+    #   stage1, stage2, ...
+    # ]
+    #
+    # "students":                REQUIRED
+    # [
+    #   { <env var name>: <value>, ...}, ...
+    # ]
+    #
+    # "postprocessing_pipeline": OPTIONAL
+    # [
+    #   stage1, stage2, ...
+    # ]
+    #
+    # "environment":             OPTIONAL
+    #  {
+    #   <env var name>: <value>, ...
+    #  }
+    #
     # adds grading pipeline to DB and returns its ID
     def post(self):
         if 'json_payload' not in self.request.arguments:
@@ -291,13 +322,14 @@ class GradingRunHandler(RequestHandlerBase):
 class GradingJobHandler(RequestHandlerBase):
     # get a grading job from the queue
     def get(self):
-        db_handler: DatabaseResolver = self.settings['db_object']
-        worker_nodes_collection = db_handler.get_workers_node_collection()
-        jobs_collection = db_handler.get_jobs_collection()
         # authenticate this get call with the worker id
         if 'worker_id' not in self.request.arguments:
             self.bad_request('\'worker_id\' field missing in request')
             return
+
+        db_handler: DatabaseResolver = self.settings['db_object']
+        worker_nodes_collection = db_handler.get_workers_node_collection()
+        jobs_collection = db_handler.get_jobs_collection()
 
         worker_id = escape.to_basestring(self.request.arguments['worker_id'][0])
         worker_node = worker_nodes_collection.find_one({'_id': ObjectId(worker_id)})
@@ -321,16 +353,17 @@ class GradingJobHandler(RequestHandlerBase):
 
 class JobUpdateHandler(RequestHandlerBase):
     def post(self, id_):
-        db_handler: DatabaseResolver = self.settings['db_object']
-        worker_nodes_collection = db_handler.get_workers_node_collection()
-        jobs_collection = db_handler.get_jobs_collection()
-        grading_runs_collection = db_handler.get_grading_run_collection()
-        job_id = id_
         # authenticate this get call with the worker id
         if 'worker_id' not in self.request.arguments:
             self.bad_request('\'worker_id\' field missing in request')
             return
 
+        db_handler: DatabaseResolver = self.settings['db_object']
+        worker_nodes_collection = db_handler.get_workers_node_collection()
+        jobs_collection = db_handler.get_jobs_collection()
+        grading_runs_collection = db_handler.get_grading_run_collection()
+
+        job_id = id_
         worker_id = escape.to_basestring(self.request.arguments['worker_id'][0])
         worker_node = worker_nodes_collection.find_one({'_id': ObjectId(worker_id)})
         if worker_node is None:

@@ -7,50 +7,51 @@ Install the required packages specified in [requirements.txt](requirements.txt) 
 pip install -r requirements.txt
 ```
 
-Run the Mongo Daemon as a background process:
+Set up Mongo DB and start the Mongo Daemon:
 ```shell
-mongod &
-```
-Then start up the server:
-```shell
-python src/api.py
+mkdir -p /tmp/mongo/data
+mongod --dbpath /tmp/mongo/data 2>&1 > /dev/null &
 ```
 
-## Endpoints
+Then start up the server:
+```shell
+python -m src.api
+```
+
+## Client Endpoints
+Clients might be students if we give them the freedom to create their own AG runs at their will through a web app we provide. Clients can be other courses too. (Hopefully other universities too!)
 
 ### POST api/v1/grading_run
 Used to add a grading run. Returns ID of the grading run.
 
-Data body information:
+Arguments:
 ```
-{
-  'json_payload': <JSON string of grading run json object>
-}
+'json_payload': <JSON string of grading run json object>
 ```
 Grading Run JSON object:
 ```
 {
-     'student_pipeline':  [ stage1, stage2, ... ],              REQUIRED
-     'students': [ { <env var name>: <value>, ...}, ... ],       REQUIRED
-     'postprocessing_pipeline':  [  stage1, stage2, ... ],      OPTIONAL
-     'env': {  <env var name>: <value>, ...  },         OPTIONAL
+     'student_pipeline':  [ stage1, stage2, ... ],          REQUIRED
+     'students': [ { <env var name>: <value>, ...}, ... ],  REQUIRED
+     'postprocessing_pipeline':  [  stage1, stage2, ... ],  OPTIONAL
+     'env': {  <env var name>: <value>, ...  },             OPTIONAL
 }
 ```
 Stage object:
 ```
 {
-  'image': <image name>,                                        REQUIRED
-  'env': { <env var name>: <$env var name/value>, ... } OPTIONAL
+  'image': <image name>,                                    REQUIRED
+  'env': { <env var name>: <$env var name/value>, ... }     OPTIONAL
 }
 ```
 Returns JSON string of:
 ```
 {
-  'id': <grading run id as hex string>
+  'id': <grading run id>
 }
 ```
 
-### GET api/v1/grading_run/{id}
+### GET api/v1/grading_run/{grading run id}
 Returns the statuses of all grading job under the grading run of given id.
 
 Returns JSON string of:
@@ -59,49 +60,72 @@ Returns JSON string of:
   'student_statuses': 
     [
       {
-        'id': <student job id>, 
-        'student': [stage1, stage2, ... ],
+        'job_id': <student job id>, 
+        'stages': [stage1, stage2, ... ],
         'status': <status of job>
       }, ...
     ], 
-  'postprocessing status':                                      OPTIONAL
+  'postprocessing_status':                                 OPTIONAL
     { 
-      'id': <post processing job id>, 
+      'job_id': <post processing job id>, 
       'status': <status of job> 
     } 
 }
 ```
 
 ### POST api/v1/grading_run/{id}
-Starts the grading run with the given ID. Queues all the internal student grading jobs.
+Starts the grading run of the given id. Queues all the internal student grading jobs. If the postprocessing job exists, it will be queued after all student jobs have completed.
 
-### GET api/v1/grading_job
-This endpoint is used by the worker nodes (graders). Returns a job from the queue. Error if queue is empty
+## Grader Endpoints
+Worker nodes ([Graders](https://github.com/illinois-cs241/broadway-grader)) join this system using the cluster token the API spits out when it starts. They can only use these endpoints using their worker ids for auth.
 
-Returns JSON string of:
+### GET api/v1/worker_register
+This endpoint is used by workers to register themselves in the system and get their worker id. Needs the cluster token for auth.
+
+Arguments:
+```
+token: <cluster token>
+```
+Returns the JSON string of:
 ```
 {
-  'id': <job id>,
+     'worker_id': <worker id>,
+     'heartbeat': <required heartbeat interval (secs)>
+}
+```
+
+### GET api/v1/grading_job
+Used to poll the queue for a job. If the queue is empty, sets the status code to [this](src/settings.py#L5)
+
+Arguments:
+```
+worker_id: <worker id>
+```
+
+Returns the JSON string if successful in polling the quue:
+```
+{
+  'job_id': <job id>,
   'stages': [ stage1, stage2, ... ]
 }
 ```
 Note that all environment variables which could be expanded have been expanded here. This is all the information the grader needs to grade.
 
-### GET /api/v1/worker_register
-This endpoint is used by the worker nodes to register themselves and get the worker id
+### POST api/v1/grading_job/{job id}
+Used to update the server when grading a job has finished successfully or unsuccessfully. If this update was for the last student job then starts the postprocessing job if available. If last job finished then concludes that grading run.
 
-Data body information:
+Arguments:
 ```
-{
-    'token': <cluster token>
-}
+worker_id: <worker id>
+result: <any string describing the result, error messages, etc>
 ```
 
-Returns JSON string of:
+### POST api/v1/heartbeat
+Used to register a heartbeat.
+
+Arguments:
 ```
-{
-     'id':  <worker id>
-}
+worker_id: <worker id>
 ```
 
 ## Testing

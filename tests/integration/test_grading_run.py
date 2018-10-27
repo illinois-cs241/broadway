@@ -1,8 +1,8 @@
 from tornado.testing import AsyncHTTPTestCase, AsyncHTTPClient, gen_test
 from tornado import gen
 import json
-from api import make_app
-from database import DatabaseResolver
+from src.api import make_app
+from src.database import DatabaseResolver
 import urllib
 
 @gen.coroutine

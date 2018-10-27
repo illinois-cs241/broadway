@@ -15,8 +15,8 @@ import os
 from bson import ObjectId
 from tornado import escape
 
-from database import DatabaseResolver
-from settings import LOGS_DIR_NAME, ID_REGEX, TIMESTAMP_FORMAT, PORT, HEARTBEAT_INTERVAL, BAD_REQUEST_CODE, \
+from src.database import DatabaseResolver
+from src.settings import LOGS_DIR_NAME, ID_REGEX, TIMESTAMP_FORMAT, PORT, HEARTBEAT_INTERVAL, BAD_REQUEST_CODE, \
     EMPTY_QUEUE_CODE
 
 # globals

@@ -1,12 +1,25 @@
+# We need xenial otherwise we will get an ssl error with tornado install
+dist: xenial
+sudo: required
 language: python
+python:
+    - "3.6"
+cache: pip
 branches:
     only:
     - /.*/
 before_install:
     - sudo apt-get update
 install:
-    - sudo apt-get -y install python3 mongod
-    - sudo python3 -m pip install -r requirements.txt
+    - sudo apt-get install -y mongodb
+    - pip install --upgrade pip
+    - pip install -r requirements.txt
+    - pip install -r requirements_test.txt
+before_script:
+    - mkdir -p /tmp/mongo/data
+    - mongod --dbpath /tmp/mongo/data 2>&1 > /dev/null & # We have to do this because --fork just doesn't work
 script:
-    - python3 -m unittest
+    - py.test --cov=src/ tests/ --doctest-modules -v --cov coveralls --cov-report term-missing
+after_success:
+    - coveralls
 

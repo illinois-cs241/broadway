@@ -1,0 +1,3 @@
+python-coveralls
+pytest-cov
+coverage

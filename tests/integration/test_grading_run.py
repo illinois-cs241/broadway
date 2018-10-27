@@ -4,6 +4,7 @@ import json
 from src.api import make_app
 from src.database import DatabaseResolver
 import urllib
+import tornado
 
 @gen.coroutine
 def fetch(url, **kwargs):
@@ -111,3 +112,61 @@ class TestGradingRun(HTTPTestBase):
         self.assertEqual(len(received_responses), 1)
         received_student = received_responses[0]
         self.assertEqual(received_student['status'], 'Queued')
+
+    @gen_test
+    def test_no_pipeline(self):
+        payload = dict(
+            students=[]
+            )
+
+        with self.assertRaises(tornado.httpclient.HTTPError) as context:
+            yield self.send_initial_request(payload)
+
+        self.assertTrue(400 <= context.exception.code <= 499)
+
+    @gen_test
+    def test_no_student(self):
+        payload = dict(
+            student_pipeline=[]
+            )
+
+        with self.assertRaises(tornado.httpclient.HTTPError) as context:
+            yield self.send_initial_request(payload)
+
+        self.assertTrue(400 <= context.exception.code <= 499)
+
+    @gen_test
+    def test_missing_image(self):
+        payload = dict(
+                student_pipeline=[dict(
+                    env=dict(bar='yeet', student=""),
+                    )]
+            )
+
+        with self.assertRaises(tornado.httpclient.HTTPError) as context:
+            yield self.send_initial_request(payload)
+
+        self.assertTrue(400 <= context.exception.code <= 499)
+
+    @gen_test
+    def test_bad_pipeline(self):
+        payload = dict(
+                student_pipeline=[],
+                students=[],
+                postprocessing_pipeline=[dict(
+                    env=dict(bar='yeet', student=""),
+                )]
+            )
+
+
+        with self.assertRaises(tornado.httpclient.HTTPError) as context:
+            yield self.send_initial_request(payload)
+
+        self.assertTrue(400 <= context.exception.code <= 499)
+
+    @gen_test
+    def send_malformed_request(self):
+        with self.assertRaises(tornado.httpclient.HTTPError) as context:
+            yield fetch(self.get_url('/api/v1/grading_run'), method='POST', headers=None, body='')
+
+        self.assertTrue(400 <= context.exception.code <= 499)

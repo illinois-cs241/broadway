@@ -6,11 +6,13 @@ from src.database import DatabaseResolver
 import urllib
 import tornado
 
+
 @gen.coroutine
 def fetch(url, **kwargs):
     http_client = AsyncHTTPClient()
     response = yield http_client.fetch(url, **kwargs)
     raise gen.Return(response)
+
 
 class HTTPTestBase(AsyncHTTPTestCase):
 
@@ -21,7 +23,6 @@ class HTTPTestBase(AsyncHTTPTestCase):
     def tearDown(self):
         super().tearDown()
         self.db_resolver.clear_db()
-
 
 
 class TestGradingRun(HTTPTestBase):
@@ -37,9 +38,9 @@ class TestGradingRun(HTTPTestBase):
     @gen_test
     def test_sanity(self):
         payload = dict(
-                student_pipeline=[],
-                students=[],
-            )
+            student_pipeline=[],
+            students=[],
+        )
 
         json_res = yield self.send_initial_request(payload)
         job_id = json_res['id']
@@ -53,18 +54,18 @@ class TestGradingRun(HTTPTestBase):
     def test_set_get(self):
         test_student_dict = dict(
             student="241grader",
-            )
+        )
         payload = dict(
-                student_pipeline=[
-                    dict(
-                        image='foo',
-                        env=dict(bar='yeet', student=""),
-                        )
-                ],
-                students=[
-                    test_student_dict
-                ],
-            )
+            student_pipeline=[
+                dict(
+                    image='foo',
+                    env=dict(bar='yeet', student=""),
+                )
+            ],
+            students=[
+                test_student_dict
+            ],
+        )
 
         json_res = yield self.send_initial_request(payload)
         job_id = json_res['id']
@@ -81,25 +82,25 @@ class TestGradingRun(HTTPTestBase):
         stages = received_student.get('stages', [])
         self.assertEqual(len(stages), 1)
 
-        expected_stage =  {'image': 'foo', 'env': {'student': '241grader', 'bar': 'yeet'}}
+        expected_stage = {'image': 'foo', 'env': {'student': '241grader', 'bar': 'yeet'}}
         self.assertEqual(stages[0], expected_stage)
 
     @gen_test
     def test_set_start_get(self):
         test_student_dict = dict(
             student="241grader",
-            )
+        )
         payload = dict(
-                student_pipeline=[
-                    dict(
-                        image='foo',
-                        env=dict(bar='yeet', student=""),
-                        )
-                ],
-                students=[
-                    test_student_dict
-                ],
-            )
+            student_pipeline=[
+                dict(
+                    image='foo',
+                    env=dict(bar='yeet', student=""),
+                )
+            ],
+            students=[
+                test_student_dict
+            ],
+        )
 
         json_res = yield self.send_initial_request(payload)
         job_id = json_res['id']
@@ -117,7 +118,7 @@ class TestGradingRun(HTTPTestBase):
     def test_no_pipeline(self):
         payload = dict(
             students=[]
-            )
+        )
 
         with self.assertRaises(tornado.httpclient.HTTPError) as context:
             yield self.send_initial_request(payload)
@@ -128,7 +129,7 @@ class TestGradingRun(HTTPTestBase):
     def test_no_student(self):
         payload = dict(
             student_pipeline=[]
-            )
+        )
 
         with self.assertRaises(tornado.httpclient.HTTPError) as context:
             yield self.send_initial_request(payload)
@@ -138,10 +139,10 @@ class TestGradingRun(HTTPTestBase):
     @gen_test
     def test_missing_image(self):
         payload = dict(
-                student_pipeline=[dict(
-                    env=dict(bar='yeet', student=""),
-                    )]
-            )
+            student_pipeline=[dict(
+                env=dict(bar='yeet', student=""),
+            )]
+        )
 
         with self.assertRaises(tornado.httpclient.HTTPError) as context:
             yield self.send_initial_request(payload)
@@ -151,13 +152,12 @@ class TestGradingRun(HTTPTestBase):
     @gen_test
     def test_bad_pipeline(self):
         payload = dict(
-                student_pipeline=[],
-                students=[],
-                postprocessing_pipeline=[dict(
-                    env=dict(bar='yeet', student=""),
-                )]
-            )
-
+            student_pipeline=[],
+            students=[],
+            postprocessing_pipeline=[dict(
+                env=dict(bar='yeet', student=""),
+            )]
+        )
 
         with self.assertRaises(tornado.httpclient.HTTPError) as context:
             yield self.send_initial_request(payload)

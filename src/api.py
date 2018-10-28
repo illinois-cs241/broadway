@@ -462,8 +462,7 @@ class HeartBeatHandler(RequestHandlerBase):
         worker_nodes_collection.update_one({'_id': ObjectId(worker_id)}, {"$set": {'last_seen': get_time()}})
         logging.info("Heartbeat from {}".format(worker_id))
 
-
-if __name__ == "__main__":
+def api_initialize():
     # set up logger
     if not os.path.exists(LOGS_DIR_NAME):
         os.makedirs(LOGS_DIR_NAME)
@@ -473,7 +472,6 @@ if __name__ == "__main__":
     cluster_token = generate_random_key(30)
     print("Nodes can join the cluster using token: {}".format(cluster_token))
 
-    # start the API
     app = make_app(DatabaseResolver())
     app.listen(PORT)
 
@@ -492,3 +490,9 @@ if __name__ == "__main__":
     heartbeat_cv.notify()
     heartbeat_cv.release()
     heartbeat_validator_thread.join()
+
+    return app, cluster_token
+
+if __name__ == "__main__":
+    # Extracted out to seperate method for possible future testing w/ graders
+    api_initialize()

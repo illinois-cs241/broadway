@@ -13,6 +13,7 @@ import os
 
 # constants
 from bson import ObjectId
+from bson.errors import InvalidId as BsonInvalidIdError
 from tornado import escape
 
 from src.database import DatabaseResolver
@@ -454,7 +455,12 @@ class HeartBeatHandler(RequestHandlerBase):
 
         worker_id = escape.to_basestring(self.request.arguments['worker_id'][0])
 
-        worker_node = worker_nodes_collection.find_one({'_id': ObjectId(worker_id)})
+        try:
+            worker_node = worker_nodes_collection.find_one({'_id': ObjectId(worker_id)})
+        except BsonInvalidIdError:
+            self.bad_request('\'worker_id\' invalid')
+            return
+
         if worker_node is None:
             self.bad_request("Worker node with id {} does not exist".format(worker_id))
             return

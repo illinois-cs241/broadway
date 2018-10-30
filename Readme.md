@@ -129,7 +129,7 @@ worker_id: <worker id>
 ```
 
 ## Testing
-Please run/modify the [tests](test_api.py) each time a change is made to the logic or structure. Run tests by:
+Please run/modify the [tests](tests) each time a change is made to the logic or structure. Mongo deamon needs to be up. Run tests using:
 ```shell
 pytest
 ```

@@ -20,7 +20,6 @@ from src.settings import LOGS_DIR_NAME, ID_REGEX, TIMESTAMP_FORMAT, PORT, HEARTB
     EMPTY_QUEUE_CODE
 
 # globals
-heartbeat_validator_thread = None
 cluster_token = None
 job_queue = Queue()
 heartbeat = True
@@ -132,7 +131,7 @@ def generate_random_key(length):
 def enqueue_job(job_id, db_resolver):
     jobs_collection = db_resolver.get_jobs_collection()
     cur_job = {}
-    job = jobs_collection.find_one({'_id': ObjectId(job_id)})
+    job = db_resolver.get_grading_job(job_id)
     assert job is not None
     cur_job['stages'] = job['stages']
     cur_job['job_id'] = job_id
@@ -245,6 +244,7 @@ class AddGradingRunHandler(RequestHandlerBase):
         db_handler: DatabaseResolver = self.settings['db_object']
         jobs_collection = db_handler.get_jobs_collection()
         grading_runs_collection = db_handler.get_grading_run_collection()
+
         # arguments are valid so feed into DB and return run id
         grading_run = {'created_at': get_time(), 'student_jobs_left': len(student_jobs)}
         grading_run_id = str(grading_runs_collection.insert_one(grading_run).inserted_id)
@@ -272,7 +272,7 @@ class GradingRunHandler(RequestHandlerBase):
         db_handler: DatabaseResolver = self.settings['db_object']
         grading_runs_collection = db_handler.get_grading_run_collection()
         grading_run_id = id_
-        grading_run = grading_runs_collection.find_one({'_id': ObjectId(grading_run_id)})
+        grading_run = db_handler.get_grading_run(grading_run_id)
         if grading_run is None:
             self.bad_request("Grading Run with id {} does not exist".format(grading_run_id))
             return
@@ -291,9 +291,7 @@ class GradingRunHandler(RequestHandlerBase):
     def get(self, id_):
         db_handler: DatabaseResolver = self.settings['db_object']
         grading_run_id = id_
-        grading_runs_collection = db_handler.get_grading_run_collection()
-        jobs_collection = db_handler.get_jobs_collection()
-        grading_run = grading_runs_collection.find_one({'_id': ObjectId(grading_run_id)})
+        grading_run = db_handler.get_grading_run(grading_run_id)
         if grading_run is None:
             self.bad_request("Grading Run with id {} does not exist".format(grading_run_id))
             return
@@ -301,7 +299,7 @@ class GradingRunHandler(RequestHandlerBase):
         res = {'student_statuses': []}
 
         for student_job_id in grading_run['student_job_ids']:
-            student_job = jobs_collection.find_one({'_id': ObjectId(student_job_id)})
+            student_job = db_handler.get_grading_job(student_job_id)
             stages = []
             for stage in student_job['stages']:
                 stage_temp = {'image': stage['image'], 'env': dict([env.split("=") for env in stage['env']])}
@@ -311,7 +309,7 @@ class GradingRunHandler(RequestHandlerBase):
                 {'job_id': student_job_id, 'status': get_status(student_job), 'stages': stages})
 
         if grading_run['postprocessing_job_id'] is not None:
-            postprocessing_job = jobs_collection.find_one({'_id': ObjectId(grading_run['postprocessing_job_id'])})
+            postprocessing_job = db_handler.get_grading_job(grading_run['postprocessing_job_id'])
             assert postprocessing_job is not None
             res['postprocessing_status'] = {'job_id': grading_run['postprocessing_job_id'],
                                             'status': get_status(postprocessing_job)}
@@ -332,7 +330,7 @@ class GradingJobHandler(RequestHandlerBase):
         jobs_collection = db_handler.get_jobs_collection()
 
         worker_id = escape.to_basestring(self.request.arguments['worker_id'][0])
-        worker_node = worker_nodes_collection.find_one({'_id': ObjectId(worker_id)})
+        worker_node = db_handler.get_worker_node(worker_id)
         if worker_node is None:
             self.bad_request("Worker node with id {} does not exist".format(worker_id))
             return
@@ -365,13 +363,13 @@ class JobUpdateHandler(RequestHandlerBase):
 
         job_id = id_
         worker_id = escape.to_basestring(self.request.arguments['worker_id'][0])
-        worker_node = worker_nodes_collection.find_one({'_id': ObjectId(worker_id)})
+        worker_node = db_handler.get_worker_node(worker_id)
         if worker_node is None:
             self.bad_request("Worker node with id {} does not exist".format(worker_id))
             return
 
         # check if the job exists
-        job = jobs_collection.find_one({'_id': ObjectId(job_id)})
+        job = db_handler.get_grading_job(job_id)
         if job is None:
             self.bad_request("Job with id {} does not exist".format(job_id))
             return
@@ -396,7 +394,7 @@ class JobUpdateHandler(RequestHandlerBase):
         # update grading run: if last job finished then update finished_at. Update student_jobs_left if student job.
         # enqueue post processing if all student jobs finished
         assert "grading_run_id" in job
-        grading_run = grading_runs_collection.find_one({'_id': ObjectId(job["grading_run_id"])})
+        grading_run = db_handler.get_grading_run(job["grading_run_id"])
 
         assert "created_at" in grading_run
         assert "started_at" in grading_run
@@ -453,8 +451,7 @@ class HeartBeatHandler(RequestHandlerBase):
             return
 
         worker_id = escape.to_basestring(self.request.arguments['worker_id'][0])
-
-        worker_node = worker_nodes_collection.find_one({'_id': ObjectId(worker_id)})
+        worker_node = db_handler.get_worker_node(worker_id)
         if worker_node is None:
             self.bad_request("Worker node with id {} does not exist".format(worker_id))
             return
@@ -463,17 +460,25 @@ class HeartBeatHandler(RequestHandlerBase):
         logging.info("Heartbeat from {}".format(worker_id))
 
 
-if __name__ == "__main__":
-    # set up logger
+def set_up_logger():
     if not os.path.exists(LOGS_DIR_NAME):
         os.makedirs(LOGS_DIR_NAME)
     logging.basicConfig(filename='{}/{}.log'.format(LOGS_DIR_NAME, get_time()), level=logging.DEBUG)
 
-    # set up cluster token
+
+def initialize_cluster_token():
+    global cluster_token
     cluster_token = generate_random_key(30)
     print("Nodes can join the cluster using token: {}".format(cluster_token))
 
-    # start the API
+
+if __name__ == "__main__":
+    # set up logger
+    set_up_logger()
+
+    # set up cluster token
+    initialize_cluster_token()
+
     app = make_app(DatabaseResolver())
     app.listen(PORT)
 
@@ -481,6 +486,7 @@ if __name__ == "__main__":
     heartbeat_validator_thread = Thread(target=heartbeat_validator, args=[app.settings["db_object"]])
     heartbeat_validator_thread.start()
 
+    # start the API
     try:
         tornado.ioloop.IOLoop.current().start()
     except KeyboardInterrupt:

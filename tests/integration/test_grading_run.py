@@ -2,9 +2,14 @@ from tornado.testing import AsyncHTTPTestCase, AsyncHTTPClient, gen_test
 from tornado import gen
 import json
 from src.api import make_app
+from src.api import initialize_cluster_token
 from src.database import DatabaseResolver
+from src.settings import EMPTY_QUEUE_CODE
 import urllib
 import tornado
+from mock import patch
+
+CLUSTER_TOKEN = "cs241"
 
 
 @gen.coroutine
@@ -15,8 +20,11 @@ def fetch(url, **kwargs):
 
 
 class HTTPTestBase(AsyncHTTPTestCase):
+    @patch('src.api.generate_random_key')
+    def get_app(self, generate_key_func):
+        generate_key_func.return_value = CLUSTER_TOKEN
+        initialize_cluster_token()
 
-    def get_app(self):
         self.db_resolver = DatabaseResolver(db_name='__test')
         return make_app(self.db_resolver)
 
@@ -170,3 +178,103 @@ class TestGradingRun(HTTPTestBase):
             yield fetch(self.get_url('/api/v1/grading_run'), method='POST', headers=None, body='')
 
         self.assertTrue(400 <= context.exception.code <= 499)
+
+    @gen_test
+    def test_invalid_run_get_gr(self):
+        with self.assertRaises(tornado.httpclient.HTTPError) as context:
+            yield fetch(self.get_url('/api/v1/grading_run/-1'), method='GET',
+                        headers=None)
+        self.assertTrue(400 <= context.exception.code <= 499)
+
+    @gen_test
+    def test_missing_run_get_gr(self):
+        with self.assertRaises(tornado.httpclient.HTTPError) as context:
+            yield fetch(self.get_url('/api/v1/grading_run'), method='GET',
+                        headers=None)
+        self.assertTrue(400 <= context.exception.code <= 499)
+
+    @gen_test
+    def test_invalid_worker_register(self):
+        wr_invalid_token = '/api/v1/worker_register?token=ofsomething'
+        with self.assertRaises(tornado.httpclient.HTTPError) as context:
+            yield fetch(self.get_url(wr_invalid_token), method='GET',
+                        headers=None)
+        self.assertTrue(400 <= context.exception.code <= 499)
+
+    @gen_test
+    def test_missing_worker_register(self):
+        wr_missing_token = '/api/v1/worker_register'
+        with self.assertRaises(tornado.httpclient.HTTPError) as context:
+            yield fetch(self.get_url(wr_missing_token), method='GET',
+                        headers=None)
+        self.assertTrue(400 <= context.exception.code <= 499)
+
+    @gen_test
+    def test_invalid_worker_post_gj(self):
+        with self.assertRaises(tornado.httpclient.HTTPError) as context:
+            job_id = -1
+            grading_job_url = '/api/v1/grading_job/{0}'.format(job_id)
+            yield fetch(self.get_url(grading_job_url), method='POST',
+                        headers=None, body='')
+            self.assertTrue(400 <= context.exception.code <= 499)
+
+    @gen_test
+    def test_missing_worker_post_gj(self):
+        with self.assertRaises(tornado.httpclient.HTTPError) as context:
+            grading_job_url = '/api/v1/grading_job/'
+            yield fetch(self.get_url(grading_job_url), method='POST',
+                        headers=None, body='')
+            self.assertTrue(400 <= context.exception.code <= 499)
+
+    @gen_test
+    def test_missing_worker_get_gj(self):
+        with self.assertRaises(tornado.httpclient.HTTPError) as context:
+            grading_job_url = '/api/v1/grading_job/'
+            yield fetch(self.get_url(grading_job_url), method='GET',
+                        headers=None)
+            self.assertTrue(400 <= context.exception.code <= 499)
+
+    @gen_test
+    def test_invalid_worker_get_gj(self):
+        with self.assertRaises(tornado.httpclient.HTTPError) as context:
+            grading_job_url = '/api/v1/grading_job?worker_id=-1'
+            yield fetch(self.get_url(grading_job_url), method='GET',
+                        headers=None)
+            self.assertTrue(400 <= context.exception.code <= 499)
+
+    @gen_test
+    def test_invalid_worker_heartbeat(self):
+        with self.assertRaises(tornado.httpclient.HTTPError) as context:
+            yield fetch(self.get_url('/api/v1/heartbeat?worker_id=-1'), method='POST',
+                        headers=None, body='')
+        self.assertTrue(400 <= context.exception.code <= 499)
+
+    @gen_test
+    def test_missing_worker_heartbeat(self):
+        with self.assertRaises(tornado.httpclient.HTTPError) as context:
+            yield fetch(self.get_url('/api/v1/heartbeat'), method='POST',
+                        headers=None, body='')
+        self.assertTrue(400 <= context.exception.code <= 499)
+
+    @gen_test
+    def test_valid_worker_register(self):
+        res = yield fetch(self.get_url('/api/v1/worker_register?token={}'.format(CLUSTER_TOKEN)),
+                          method='GET', headers=None, body=None)
+        json_response = json.loads(res.body.decode('utf-8'))
+        self.assertTrue("worker_id" in json_response)
+        self.assertTrue("heartbeat" in json_response)
+        self.assertTrue(type(json_response["heartbeat"]) is int)
+
+    @gen_test
+    def test_unique_worker_id(self):
+        worker_ids = set()
+        for _ in range(10):
+            res = yield fetch(self.get_url('/api/v1/worker_register?token={}'.format(CLUSTER_TOKEN)),
+                              method='GET', headers=None, body=None)
+            json_response = json.loads(res.body.decode('utf-8'))
+            self.assertTrue("worker_id" in json_response)
+            self.assertTrue("heartbeat" in json_response)
+            self.assertTrue(type(json_response["heartbeat"]) is int)
+            worker_ids.add(json_response["worker_id"])
+
+        self.assertTrue(len(worker_ids) == 10)

@@ -204,7 +204,13 @@ class AddGradingRunHandler(RequestHandlerBase):
             self.bad_request('\'json_payload\' field missing in request')
             return
 
-        json_payload = json.loads(escape.to_basestring(self.request.arguments['json_payload'][0]))
+        try:
+            json_payload = json.loads(escape.to_basestring(self.request.arguments['json_payload'][0]))
+        except Exception as ex:
+            logging.critical("Decoding exception: {}".format(str(ex)))
+            self.bad_request('\'json_payload\' could not be decoded')
+            return
+
         valid, error_message = self.is_valid(json_payload)
         if not valid:
             self.bad_request(error_message)

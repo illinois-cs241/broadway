@@ -1,5 +1,6 @@
 import json
 from threading import Condition
+from threading import Lock
 from queue import Queue
 from threading import Thread
 import tornado.ioloop
@@ -24,6 +25,7 @@ cluster_token = None
 job_queue = Queue()
 heartbeat = True
 heartbeat_cv = Condition()
+job_update_lock = Lock()
 
 
 def get_time():
@@ -393,12 +395,16 @@ class JobUpdateHandler(RequestHandlerBase):
 
         # update grading run: if last job finished then update finished_at. Update student_jobs_left if student job.
         # enqueue post processing if all student jobs finished
+        job_update_lock.acquire()
+
         assert "grading_run_id" in job
         grading_run = db_handler.get_grading_run(job["grading_run_id"])
 
+        assert grading_run is not None
         assert "created_at" in grading_run
         assert "started_at" in grading_run
         assert "finished_at" not in grading_run
+        assert "student_jobs_left" in grading_run
         assert "postprocessing_job_id" in grading_run
 
         if grading_run["postprocessing_job_id"] == job_id:
@@ -407,10 +413,9 @@ class JobUpdateHandler(RequestHandlerBase):
                                                {"$set": {"finished_at": get_time()}})
         else:
             # this is a student's job
-            assert grading_run is not None
             assert grading_run["student_jobs_left"] > 0
             grading_runs_collection.update_one({'_id': ObjectId(job["grading_run_id"])},
-                                               {"$set": {"student_jobs_left": grading_run["student_jobs_left"] - 1}})
+                                               {"$inc": {"student_jobs_left": -1}})
 
             if grading_run["student_jobs_left"] == 1:
                 # this was the last student job which finished so if post processing exists then schedule it
@@ -419,6 +424,8 @@ class JobUpdateHandler(RequestHandlerBase):
                                                        {"$set": {"finished_at": get_time()}})
                 else:
                     enqueue_job(grading_run["postprocessing_job_id"], db_handler)
+
+        job_update_lock.release()
 
 
 class WorkerRegisterHandler(RequestHandlerBase):

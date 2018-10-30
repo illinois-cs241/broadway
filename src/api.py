@@ -243,7 +243,7 @@ class AddGradingRunHandler(RequestHandlerBase):
                         return
                 postprocessing_job.append(cur_stage)
 
-        db_handler: DatabaseResolver = self.settings['db_object']
+        db_handler = self.settings['db_object']
         jobs_collection = db_handler.get_jobs_collection()
         grading_runs_collection = db_handler.get_grading_run_collection()
 
@@ -291,7 +291,7 @@ class GradingRunHandler(RequestHandlerBase):
 
     # get statuses of all jobs
     def get(self, id_):
-        db_handler: DatabaseResolver = self.settings['db_object']
+        db_handler = self.settings['db_object']
         grading_run_id = id_
         grading_run = db_handler.get_grading_run(grading_run_id)
         if grading_run is None:
@@ -327,7 +327,7 @@ class GradingJobHandler(RequestHandlerBase):
             self.bad_request('\'worker_id\' field missing in request')
             return
 
-        db_handler: DatabaseResolver = self.settings['db_object']
+        db_handler = self.settings['db_object']
         worker_nodes_collection = db_handler.get_workers_node_collection()
         jobs_collection = db_handler.get_jobs_collection()
 
@@ -358,7 +358,7 @@ class JobUpdateHandler(RequestHandlerBase):
             self.bad_request('\'worker_id\' field missing in request')
             return
 
-        db_handler: DatabaseResolver = self.settings['db_object']
+        db_handler = self.settings['db_object']
         worker_nodes_collection = db_handler.get_workers_node_collection()
         jobs_collection = db_handler.get_jobs_collection()
         grading_runs_collection = db_handler.get_grading_run_collection()
@@ -430,7 +430,7 @@ class JobUpdateHandler(RequestHandlerBase):
 
 class WorkerRegisterHandler(RequestHandlerBase):
     def get(self):
-        db_handler: DatabaseResolver = self.settings['db_object']
+        db_handler = self.settings['db_object']
         worker_nodes_collection = db_handler.get_workers_node_collection()
         if 'token' not in self.request.arguments:
             self.bad_request('\'token\' field missing in request')
@@ -450,7 +450,7 @@ class WorkerRegisterHandler(RequestHandlerBase):
 
 class HeartBeatHandler(RequestHandlerBase):
     def post(self):
-        db_handler: DatabaseResolver = self.settings['db_object']
+        db_handler = self.settings['db_object']
         worker_nodes_collection = db_handler.get_workers_node_collection()
 
         if 'worker_id' not in self.request.arguments:

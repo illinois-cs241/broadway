@@ -11,7 +11,7 @@ import requests
 import json
 
 # constants
-SERVER_HOSTNAME = "localhost:8888"
+SERVER_HOSTNAME = "fa18-cs241-437:8888"
 LOGS_DIR_NAME = "logs"
 TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
 SUCCESS_CODE = 200

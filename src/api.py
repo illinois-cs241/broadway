@@ -271,7 +271,7 @@ class AddGradingRunHandler(RequestHandlerBase):
 class GradingRunHandler(RequestHandlerBase):
     # adds grading jobs to queue
     def post(self, id_):
-        db_handler: DatabaseResolver = self.settings['db_object']
+        db_handler = self.settings['db_object']
         grading_runs_collection = db_handler.get_grading_run_collection()
         grading_run_id = id_
         grading_run = db_handler.get_grading_run(grading_run_id)

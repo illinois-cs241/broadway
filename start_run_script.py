@@ -2,7 +2,7 @@ import json
 import requests
 import sys
 
-HOST = "fa18-cs241-437"
+HOST = "fa18-cs241-437.cs.illinois.edu"
 PORT = "8888"
 
 if __name__ == "__main__":
@@ -12,14 +12,14 @@ if __name__ == "__main__":
 
     with open(sys.argv[1]) as f:
         config = json.load(f)
-        r = requests.post("https://{}:{}/api/v1/grading_run".format(HOST, PORT),
+        r = requests.post("http://{}:{}/api/v1/grading_run".format(HOST, PORT),
                           data={'json_payload': json.dumps(config)})
         if r.status_code != 200:
             print("Error in uploading config: {}".format(r.text))
             exit(-1)
 
         id_ = json.loads(r.text)["id"]
-        r = requests.post("https://{}:{}/api/v1/grading_run/{}".format(HOST, PORT, id_))
+        r = requests.post("http://{}:{}/api/v1/grading_run/{}".format(HOST, PORT, id_))
         if r.status_code != 200:
             print("Error in starting run: {}".format(r.text))
             exit(-1)

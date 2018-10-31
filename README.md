@@ -12,7 +12,7 @@ pip install -r requirements.txt
 ```shell
 npm install
 ```
-- Start the [grader](grader.py) by:
+- Make sure `SERVER_HOSTNAME` is pointing to the [API](https://github.com/illinois-cs241/broadway-api). Start the [grader](grader.py) by:
 ```shell
 sudo python grader.py <cluster token>
 ```

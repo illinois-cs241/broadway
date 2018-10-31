@@ -18,6 +18,12 @@ Then start up the server:
 python -m src.api
 ```
 
+## Starting a Grading Run
+Provided a [simple script](start_run_script.py) to start a grading run. Make sure `HOST` and `PORT` are set correctly. Usage:
+```shell
+python start_run_script.py <path to valid pipeline json>
+```
+
 ## Client Endpoints
 Clients might be students if we give them the freedom to create their own AG runs at their will through a web app we provide. Clients can be other courses too. (Hopefully other universities too!)
 

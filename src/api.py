@@ -1,5 +1,6 @@
 import json
 from threading import Condition
+from threading import Lock
 from queue import Queue
 from threading import Thread
 import tornado.ioloop
@@ -24,6 +25,7 @@ cluster_token = None
 job_queue = Queue()
 heartbeat = True
 heartbeat_cv = Condition()
+job_update_lock = Lock()
 
 
 def get_time():
@@ -202,7 +204,13 @@ class AddGradingRunHandler(RequestHandlerBase):
             self.bad_request('\'json_payload\' field missing in request')
             return
 
-        json_payload = json.loads(escape.to_basestring(self.request.arguments['json_payload'][0]))
+        try:
+            json_payload = json.loads(escape.to_basestring(self.request.arguments['json_payload'][0]))
+        except Exception as ex:
+            logging.critical("Decoding exception: {}".format(str(ex)))
+            self.bad_request('\'json_payload\' could not be decoded')
+            return
+
         valid, error_message = self.is_valid(json_payload)
         if not valid:
             self.bad_request(error_message)
@@ -241,7 +249,7 @@ class AddGradingRunHandler(RequestHandlerBase):
                         return
                 postprocessing_job.append(cur_stage)
 
-        db_handler: DatabaseResolver = self.settings['db_object']
+        db_handler = self.settings['db_object']
         jobs_collection = db_handler.get_jobs_collection()
         grading_runs_collection = db_handler.get_grading_run_collection()
 
@@ -269,7 +277,7 @@ class AddGradingRunHandler(RequestHandlerBase):
 class GradingRunHandler(RequestHandlerBase):
     # adds grading jobs to queue
     def post(self, id_):
-        db_handler: DatabaseResolver = self.settings['db_object']
+        db_handler = self.settings['db_object']
         grading_runs_collection = db_handler.get_grading_run_collection()
         grading_run_id = id_
         grading_run = db_handler.get_grading_run(grading_run_id)
@@ -289,7 +297,7 @@ class GradingRunHandler(RequestHandlerBase):
 
     # get statuses of all jobs
     def get(self, id_):
-        db_handler: DatabaseResolver = self.settings['db_object']
+        db_handler = self.settings['db_object']
         grading_run_id = id_
         grading_run = db_handler.get_grading_run(grading_run_id)
         if grading_run is None:
@@ -325,7 +333,7 @@ class GradingJobHandler(RequestHandlerBase):
             self.bad_request('\'worker_id\' field missing in request')
             return
 
-        db_handler: DatabaseResolver = self.settings['db_object']
+        db_handler = self.settings['db_object']
         worker_nodes_collection = db_handler.get_workers_node_collection()
         jobs_collection = db_handler.get_jobs_collection()
 
@@ -356,7 +364,7 @@ class JobUpdateHandler(RequestHandlerBase):
             self.bad_request('\'worker_id\' field missing in request')
             return
 
-        db_handler: DatabaseResolver = self.settings['db_object']
+        db_handler = self.settings['db_object']
         worker_nodes_collection = db_handler.get_workers_node_collection()
         jobs_collection = db_handler.get_jobs_collection()
         grading_runs_collection = db_handler.get_grading_run_collection()
@@ -393,12 +401,16 @@ class JobUpdateHandler(RequestHandlerBase):
 
         # update grading run: if last job finished then update finished_at. Update student_jobs_left if student job.
         # enqueue post processing if all student jobs finished
+        job_update_lock.acquire()
+
         assert "grading_run_id" in job
         grading_run = db_handler.get_grading_run(job["grading_run_id"])
 
+        assert grading_run is not None
         assert "created_at" in grading_run
         assert "started_at" in grading_run
         assert "finished_at" not in grading_run
+        assert "student_jobs_left" in grading_run
         assert "postprocessing_job_id" in grading_run
 
         if grading_run["postprocessing_job_id"] == job_id:
@@ -407,10 +419,9 @@ class JobUpdateHandler(RequestHandlerBase):
                                                {"$set": {"finished_at": get_time()}})
         else:
             # this is a student's job
-            assert grading_run is not None
             assert grading_run["student_jobs_left"] > 0
             grading_runs_collection.update_one({'_id': ObjectId(job["grading_run_id"])},
-                                               {"$set": {"student_jobs_left": grading_run["student_jobs_left"] - 1}})
+                                               {"$inc": {"student_jobs_left": -1}})
 
             if grading_run["student_jobs_left"] == 1:
                 # this was the last student job which finished so if post processing exists then schedule it
@@ -420,10 +431,12 @@ class JobUpdateHandler(RequestHandlerBase):
                 else:
                     enqueue_job(grading_run["postprocessing_job_id"], db_handler)
 
+        job_update_lock.release()
+
 
 class WorkerRegisterHandler(RequestHandlerBase):
     def get(self):
-        db_handler: DatabaseResolver = self.settings['db_object']
+        db_handler = self.settings['db_object']
         worker_nodes_collection = db_handler.get_workers_node_collection()
         if 'token' not in self.request.arguments:
             self.bad_request('\'token\' field missing in request')
@@ -443,7 +456,7 @@ class WorkerRegisterHandler(RequestHandlerBase):
 
 class HeartBeatHandler(RequestHandlerBase):
     def post(self):
-        db_handler: DatabaseResolver = self.settings['db_object']
+        db_handler = self.settings['db_object']
         worker_nodes_collection = db_handler.get_workers_node_collection()
 
         if 'worker_id' not in self.request.arguments:

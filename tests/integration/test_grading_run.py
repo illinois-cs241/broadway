@@ -278,3 +278,19 @@ class TestGradingRun(HTTPTestBase):
             worker_ids.add(json_response["worker_id"])
 
         self.assertTrue(len(worker_ids) == 10)
+
+    @gen_test
+    def test_empty_queue_code(self):
+        res = yield fetch(self.get_url('/api/v1/worker_register?token={}'.format(CLUSTER_TOKEN)),
+                          method='GET', headers=None, body=None)
+        json_response = json.loads(res.body.decode('utf-8'))
+        self.assertTrue("worker_id" in json_response)
+        self.assertTrue("heartbeat" in json_response)
+        self.assertTrue(type(json_response["heartbeat"]) is int)
+
+        worker_id = json_response["worker_id"]
+
+        with self.assertRaises(tornado.httpclient.HTTPError) as context:
+            yield fetch(self.get_url("/api/v1/grading_job?worker_id={}".format(worker_id)),
+                        method='GET', headers=None, body=None)
+        self.assertTrue(context.exception.code == EMPTY_QUEUE_CODE)

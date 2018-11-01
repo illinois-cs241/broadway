@@ -13,7 +13,7 @@
     {
       "image": "alpine:3.5",
       "entrypoint": [
-        "ls"
+        "sleep", "5"
       ]
     }
   ],
@@ -40,6 +40,24 @@
     },
     {
       "NETID": "nwalter2"
+    },
+    {
+      "NETID": "ayushr2"
+    },
+    {
+      "NETID": "lmao"
+    },
+    {
+      "NETID": "lol"
+    },
+    {
+      "NETID": "cs241"
+    },
+    {
+      "NETID": "trump"
+    },
+    {
+      "NETID": "no-idea-what-to-put-here"
     }
   ]
 }

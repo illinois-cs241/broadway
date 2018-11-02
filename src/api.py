@@ -71,6 +71,11 @@ def expand_env_vars(vars_to_fill, global_env_vars, student_env_vars=None):
         student_env_vars = {}
 
     res_vars = []
+
+    if any(global_env_vars):
+        for global_var, global_value in global_env_vars.iteritems():
+            res_vars.append(global_var + "=" + global_value)
+
     for var in vars_to_fill:
         # value is not specified: if the env var is defined anywhere else, replace it
         if len(vars_to_fill[var]) == 0:

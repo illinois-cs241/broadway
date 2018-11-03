@@ -178,7 +178,10 @@ class AddGradingRunHandler(RequestHandlerBase):
     #    "environment":          OPTIONAL
     #      {
     #         <env var name>: <$env var name/value>, ...
-    #      }
+    #      },
+    #    "entrypoint": [command, args...], OPTIONAL
+    #    "enable_networking": true / false(default), OPTIONAL
+    #    "host_name": < hostname of container > OPTIONAL
     #  }
     #
     # Json payload is supposed to have the following contents:
@@ -224,41 +227,17 @@ class AddGradingRunHandler(RequestHandlerBase):
         # create all student jobs
         student_jobs = []
         for student in json_payload["students"]:
-            cur_job = []
-            for stage in json_payload["student_pipeline"]:
-                cur_stage = {"image": stage["image"]}
-                if "entrypoint" in stage:
-                    cur_stage["entrypoint"] = stage["entrypoint"]
-
-                try:
-                    cur_stage["env"] = expand_env_vars(stage.get("env", {}), json_payload.get("env", {}), student)
-                except Exception as error:
-                    self.bad_request("Student Pipeline: {}".format(str(error)))
-                    return
-                cur_job.append(cur_stage)
-
-            student_jobs.append(cur_job)
+            student_jobs.append(self.create_job("student_pipeline", json_payload, student))
 
         # create post processing stage if it exists
-        postprocessing_job = []
-        if "postprocessing_pipeline" in json_payload:
-            for stage in json_payload["postprocessing_pipeline"]:
-                cur_stage = {"image": stage["image"]}
-                if "entrypoint" in stage:
-                    cur_stage["entrypoint"] = stage["entrypoint"]
-                if "env" in stage:
-                    try:
-                        cur_stage["env"] = expand_env_vars(stage.get("env", {}), json_payload.get("env", {}))
-                    except Exception as error:
-                        self.bad_request("Postprocessing Pipeline: {}".format(str(error)))
-                        return
-                postprocessing_job.append(cur_stage)
+        postprocessing_job = self.create_job("postprocessing_pipeline",
+                                             json_payload) if "postprocessing_pipeline" in json_payload else None
 
+        # arguments are valid so feed into DB and return run id
         db_handler = self.settings['db_object']
         jobs_collection = db_handler.get_jobs_collection()
         grading_runs_collection = db_handler.get_grading_run_collection()
 
-        # arguments are valid so feed into DB and return run id
         grading_run = {'created_at': get_time(), 'student_jobs_left': len(student_jobs)}
         grading_run_id = str(grading_runs_collection.insert_one(grading_run).inserted_id)
 
@@ -268,7 +247,7 @@ class AddGradingRunHandler(RequestHandlerBase):
             student_job_ids.append(str(jobs_collection.insert_one(job).inserted_id))
 
         postprocessing_job_id = None
-        if len(postprocessing_job) > 0:
+        if postprocessing_job is not None:
             job = {'created_at': get_time(), 'grading_run_id': grading_run_id, 'stages': postprocessing_job}
             postprocessing_job_id = str(jobs_collection.insert_one(job).inserted_id)
 
@@ -277,6 +256,20 @@ class AddGradingRunHandler(RequestHandlerBase):
 
         # return the run id to user
         self.write(json.dumps({'id': grading_run_id}))
+
+    def create_job(self, pipeline_name, json_payload, job_specific_env=None):
+        cur_job = []
+        for stage in json_payload[pipeline_name]:
+            cur_stage = stage.copy()
+
+            try:
+                cur_stage["env"] = expand_env_vars(stage.get("env", {}), json_payload.get("env", {}), job_specific_env)
+
+            except Exception as error:
+                self.bad_request("{}: {}".format(pipeline_name, str(error)))
+                return
+            cur_job.append(cur_stage)
+        return cur_job
 
 
 class GradingRunHandler(RequestHandlerBase):

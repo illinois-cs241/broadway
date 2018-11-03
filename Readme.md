@@ -47,7 +47,10 @@ Stage object:
 ```
 {
   'image': <image name>,                                    REQUIRED
-  'env': { <env var name>: <$env var name/value>, ... }     OPTIONAL
+  'env': { <env var name>: <$env var name/value>, ... },    OPTIONAL
+  'entrypoint': [command, args...],                         OPTIONAL
+  'enable_networking': true / false(default),               OPTIONAL
+  'host_name': <hostname of container>                      OPTIONAL
 }
 ```
 Returns JSON string of:

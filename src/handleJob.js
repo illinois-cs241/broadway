@@ -7,7 +7,7 @@ const util = require('./util');
 
 const unique = a => a.filter((item, pos) => a.indexOf(item) == pos);
 
-module.exports = async function(job) {
+module.exports = async function (job) {
     const docker = new Docker();
 
     logger.info(job);
@@ -26,7 +26,7 @@ module.exports = async function(job) {
     }, {});
 
     // Create a temp directory for this job
-    const tmpDir = await tmp.dir({ unsafeCleanup: true });
+    const tmpDir = await tmp.dir({unsafeCleanup: true});
     logger.info(`Created tmp directory ${tmpDir.path}`);
 
     // We'll store information about each stage here
@@ -55,6 +55,8 @@ module.exports = async function(job) {
             timeout: stage.timeout,
             environment: stageEnv,
             tmpDir: tmpDir.path,
+            enableNetworking: stage.enable_networking,
+            hostname: stage.host_name,
         };
         const stageResults = await runContainer(docker, options);
         results.push(stageResults);
@@ -97,10 +99,11 @@ async function runContainer(docker, options) {
     const {
         image,
         entrypoint,
-        environment,
         timeout,
-        enableNetworking,
+        environment,
         tmpDir,
+        enableNetworking,
+        hostname,
     } = options;
 
     let results = {
@@ -110,6 +113,7 @@ async function runContainer(docker, options) {
 
     try {
         const container = await docker.createContainer({
+            Hostname: hostname,
             Image: image,
             AttachStdout: true,
             AttachStderr: true,

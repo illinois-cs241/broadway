@@ -24,6 +24,9 @@ Provided a [simple script](start_run_script.py) to start a grading run. Make sur
 python start_run_script.py <path to valid pipeline json>
 ```
 
+## Note
+Almost none of the functions are thread-safe since we have used Tornado's [Asynchronous and non-blocking IO](http://www.tornadoweb.org/en/stable/guide/async.html). Every function which has the `@gen.coroutine` decorator is a [Generator-based coroutine](https://www.tornadoweb.org/en/stable/gen.html). This has been done because Tornado uses a single-threaded event loop. This means that all application code **must** aim to be asynchronous and non-blocking because only one operation can be active at a time. Therefore, please consult the above mentioned guides before injecting a blocking call as that might tamper with the entire distributed system. For instance, it will prevent the API from listening to heartbeats and hence misclassifying worked nodes to be dead.
+
 ## Client Endpoints
 Clients might be students if we give them the freedom to create their own AG runs at their will through a web app we provide. Clients can be other courses too. (Hopefully other universities too!)
 

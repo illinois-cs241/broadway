@@ -4,7 +4,6 @@ from threading import Thread
 import logging
 import os
 import sys
-import signal
 import datetime as dt
 import time
 import requests
@@ -15,24 +14,15 @@ SERVER_HOSTNAME = "fa18-cs241-437:8888"
 LOGS_DIR_NAME = "logs"
 TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
 SUCCESS_CODE = 200
-EMPTY_QUEUE_CODE = 412
 NUM_WORKER_THREADS = 1
 HEARTBEAT_INTERVAL = 10
-WORKER_INTERVAL = 2
 
 # globals
 worker_id = None
 heartbeat_thread = None
 worker_threads = []
-running = True
 heartbeat = True
-worker_cv = Condition()
 heartbeat_cv = Condition()
-
-
-def signal_handler(sig, frame):
-    global running
-    running = False
 
 
 def get_time():
@@ -52,32 +42,17 @@ def heartbeat_routine():
             heartbeat_cv.release()
         else:
             logging.critical("Registration failed!\nStatus Code: {}\nReason: {}".format(r.status_code, r.text))
-            exit(-1)
+            return
 
 
 def worker_routine():
-    global running
-
-    while running:
+    while True:
         # poll from queue
-        while True:
-            r = requests.get("http://{}/api/v1/grading_job".format(SERVER_HOSTNAME), data={'worker_id': worker_id})
-            # if error occurs or if the queue is empty then continue
-            if r.status_code == SUCCESS_CODE:
-                worker_cv.acquire()
-                worker_cv.notify_all()
-                worker_cv.release()
-                break
-            elif r.status_code == EMPTY_QUEUE_CODE:
-                worker_cv.acquire()
-                worker_cv.wait(timeout=WORKER_INTERVAL)
-                worker_cv.release()
-            elif r.status_code != SUCCESS_CODE:
-                logging.critical("Bad server response while trying to poll job. Error: {}".format(r.text))
-                exit(-1)
+        r = requests.get("http://{}/api/v1/grading_job".format(SERVER_HOSTNAME), data={'worker_id': worker_id})
 
-            if not running:
-                return
+        if r.status_code != SUCCESS_CODE:
+            logging.critical("Bad server response while trying to poll job. Error: {}".format(r.text))
+            return
 
         # we successfully polled a job. execute the job
         job = json.loads(r.text)
@@ -95,7 +70,7 @@ def worker_routine():
                           data={'worker_id': worker_id, 'result': res})
         if r.status_code != SUCCESS_CODE:
             logging.critical("Bad server response while updating about job status. Error: {}".format(r.text))
-            exit(-1)
+            return
 
 
 def register_node(cluster_token):
@@ -133,9 +108,6 @@ if __name__ == "__main__":
     if len(sys.argv) != 2:
         print_usage()
         exit(-1)
-
-    # register SIGINT handler
-    signal.signal(signal.SIGINT, signal_handler)
 
     # set up logger
     if not os.path.exists(LOGS_DIR_NAME):

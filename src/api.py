@@ -17,8 +17,7 @@ from bson import ObjectId
 from tornado import escape
 
 from src.database import DatabaseResolver
-from src.settings import LOGS_DIR_NAME, ID_REGEX, TIMESTAMP_FORMAT, PORT, HEARTBEAT_INTERVAL, BAD_REQUEST_CODE, \
-    EMPTY_QUEUE_CODE
+from src.settings import LOGS_DIR_NAME, ID_REGEX, TIMESTAMP_FORMAT, PORT, HEARTBEAT_INTERVAL, BAD_REQUEST_CODE
 
 # globals
 cluster_token = None
@@ -150,6 +149,8 @@ def enqueue_job(job_id, db_resolver):
     jobs_collection.update_one({'_id': ObjectId(job_id)}, {"$set": {'queued_at': get_time()}})
 
 
+# ----------------- Clients -----------------
+
 class RequestHandlerBase(tornado.web.RequestHandler):
     def bad_request(self, error_message):
         self.clear()
@@ -211,7 +212,7 @@ class AddGradingRunHandler(RequestHandlerBase):
     #  }
     #
     # adds grading pipeline to DB and returns its ID
-    def post(self):
+    async def post(self):
         if 'json_payload' not in self.request.arguments:
             self.bad_request('\'json_payload\' field missing in request')
             return
@@ -260,6 +261,7 @@ class AddGradingRunHandler(RequestHandlerBase):
 
         # return the run id to user
         self.write(json.dumps({'id': grading_run_id}))
+        self.flush()
 
     def create_job(self, pipeline_name, json_payload, job_specific_env=None):
         cur_job = []
@@ -278,7 +280,7 @@ class AddGradingRunHandler(RequestHandlerBase):
 
 class GradingRunHandler(RequestHandlerBase):
     # adds grading jobs to queue
-    def post(self, id_):
+    async def post(self, id_):
         db_handler = self.settings['db_object']
         grading_runs_collection = db_handler.get_grading_run_collection()
         grading_run_id = id_
@@ -298,7 +300,7 @@ class GradingRunHandler(RequestHandlerBase):
         grading_runs_collection.update_one({'_id': ObjectId(grading_run_id)}, {"$set": {'started_at': get_time()}})
 
     # get statuses of all jobs
-    def get(self, id_):
+    async def get(self, id_):
         db_handler = self.settings['db_object']
         grading_run_id = id_
         grading_run = db_handler.get_grading_run(grading_run_id)
@@ -325,11 +327,63 @@ class GradingRunHandler(RequestHandlerBase):
                                             'status': get_status(postprocessing_job)}
 
         self.write(json.dumps(res))
+        self.flush()
+
+
+# -------------------------------------------
+
+
+# -------------- Worker Nodes ---------------
+
+class WorkerRegisterHandler(RequestHandlerBase):
+    async def get(self):
+        db_handler = self.settings['db_object']
+        worker_nodes_collection = db_handler.get_workers_node_collection()
+        if 'token' not in self.request.arguments:
+            self.bad_request('\'token\' field missing in request')
+            return
+
+        token = escape.to_basestring(self.request.arguments['token'][0])
+
+        if token != cluster_token:
+            self.bad_request('wrong token')
+            return
+
+        worker_node = {'last_seen': get_time(), 'running_job_ids': []}
+        worker_id = str(worker_nodes_collection.insert_one(worker_node).inserted_id)
+        logging.info("Worker {} joined".format(worker_id))
+
+        try:
+            self.write(json.dumps({'worker_id': worker_id, 'heartbeat': HEARTBEAT_INTERVAL}))
+            await self.flush()
+        except Exception as ex:
+            logging.critical(
+                "Worker Node {} possibly disconnected. Could not write its worker id to it when grader tried to register. Error: {}".format(
+                    worker_id, str(ex)))
+
+
+class HeartBeatHandler(RequestHandlerBase):
+    async def post(self):
+        db_handler = self.settings['db_object']
+        worker_nodes_collection = db_handler.get_workers_node_collection()
+
+        if 'worker_id' not in self.request.arguments:
+            self.bad_request('\'worker_id\' field missing in request')
+            return
+
+        worker_id = escape.to_basestring(self.request.arguments['worker_id'][0])
+        worker_node = db_handler.get_worker_node(worker_id)
+        if worker_node is None:
+            self.bad_request("Worker node with id {} does not exist".format(worker_id))
+            return
+
+        worker_nodes_collection.update_one({'_id': ObjectId(worker_id)}, {"$set": {'last_seen': get_time()}})
+        logging.info("Heartbeat from {}".format(worker_id))
 
 
 class GradingJobHandler(RequestHandlerBase):
     # get a grading job from the queue
-    def get(self):
+    async def get(self):
         # authenticate this get call with the worker id
         if 'worker_id' not in self.request.arguments:
             self.bad_request('\'worker_id\' field missing in request')
@@ -346,21 +400,26 @@ class GradingJobHandler(RequestHandlerBase):
             return
 
         # poll from queue, updated job's start time and update worker node's running_job_ids list
+        # this will block until a job is available. This might take a while so check if the connection is still alive
+        # this is done by self.flush()
+        job = job_queue.get(block=True)
         try:
-            job = job_queue.get_nowait()
+            self.write(json.dumps(job))
+            await self.flush()
             jobs_collection.update_one({'_id': ObjectId(job['job_id'])}, {"$set": {'started_at': get_time()}})
             worker_node["running_job_ids"].append(job['job_id'])
             worker_nodes_collection.update_one({'_id': ObjectId(worker_id)},
                                                {"$set": {"running_job_ids": worker_node["running_job_ids"]}})
-            self.write(json.dumps(job))
-        except:
-            self.clear()
-            self.set_status(EMPTY_QUEUE_CODE)
-            self.finish(json.dumps({'error': "The queue is empty"}))
+        except Exception as ex:
+            # queue the job again if this worker node could not take the job
+            job_queue.put(job)
+            logging.critical(
+                "Worker Node {} possibly disconnected. Could not write polled job to it. Error: {}".format(worker_id,
+                                                                                                           str(ex)))
 
 
 class JobUpdateHandler(RequestHandlerBase):
-    def post(self, id_):
+    async def post(self, id_):
         # authenticate this get call with the worker id
         if 'worker_id' not in self.request.arguments:
             self.bad_request('\'worker_id\' field missing in request')
@@ -436,44 +495,7 @@ class JobUpdateHandler(RequestHandlerBase):
         job_update_lock.release()
 
 
-class WorkerRegisterHandler(RequestHandlerBase):
-    def get(self):
-        db_handler = self.settings['db_object']
-        worker_nodes_collection = db_handler.get_workers_node_collection()
-        if 'token' not in self.request.arguments:
-            self.bad_request('\'token\' field missing in request')
-            return
-
-        token = escape.to_basestring(self.request.arguments['token'][0])
-
-        if token != cluster_token:
-            self.bad_request('wrong token')
-            return
-
-        worker_node = {'last_seen': get_time(), 'running_job_ids': []}
-        worker_node_id = str(worker_nodes_collection.insert_one(worker_node).inserted_id)
-        logging.info("Worker {} joined".format(worker_node_id))
-        self.write(json.dumps({'worker_id': worker_node_id, 'heartbeat': HEARTBEAT_INTERVAL}))
-
-
-class HeartBeatHandler(RequestHandlerBase):
-    def post(self):
-        db_handler = self.settings['db_object']
-        worker_nodes_collection = db_handler.get_workers_node_collection()
-
-        if 'worker_id' not in self.request.arguments:
-            self.bad_request('\'worker_id\' field missing in request')
-            return
-
-        worker_id = escape.to_basestring(self.request.arguments['worker_id'][0])
-        worker_node = db_handler.get_worker_node(worker_id)
-        if worker_node is None:
-            self.bad_request("Worker node with id {} does not exist".format(worker_id))
-            return
-
-        worker_nodes_collection.update_one({'_id': ObjectId(worker_id)}, {"$set": {'last_seen': get_time()}})
-        logging.info("Heartbeat from {}".format(worker_id))
-
+# -------------------------------------------
 
 def set_up_logger():
     if not os.path.exists(LOGS_DIR_NAME):

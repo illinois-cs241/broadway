@@ -1,28 +1,26 @@
-from subprocess import PIPE, Popen
-from threading import Condition
-from threading import Thread
+import asyncio
+import datetime as dt
+import json
 import logging
 import os
 import sys
-import datetime as dt
 import time
-import requests
-import json
+from subprocess import PIPE, Popen
+from tornado import httpclient, gen
 
 # constants
-SERVER_HOSTNAME = "fa18-cs241-437:8888"
+SERVER_HOSTNAME = "127.0.0.1:8888"
 LOGS_DIR_NAME = "logs"
 TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
+headers = {'Content-Type': 'application/json; charset=UTF-8'}
 SUCCESS_CODE = 200
-NUM_WORKER_THREADS = 1
-HEARTBEAT_INTERVAL = 10
+HEARTBEAT_INTERVAL = 2
 
 # globals
 worker_id = None
 heartbeat_thread = None
-worker_threads = []
+worker_thread = None
 heartbeat = True
-heartbeat_cv = Condition()
 
 
 def get_time():
@@ -33,62 +31,90 @@ def print_usage():
     print("Wrong number of arguments provided. Usage:\n\tpython grader.py <cluster token>")
 
 
+@gen.coroutine
 def heartbeat_routine():
     while heartbeat:
-        r = requests.post("http://{}/api/v1/heartbeat".format(SERVER_HOSTNAME), data={'worker_id': worker_id})
-        if r.status_code == SUCCESS_CODE:
-            heartbeat_cv.acquire()
-            heartbeat_cv.wait(timeout=HEARTBEAT_INTERVAL)
-            heartbeat_cv.release()
-        else:
-            logging.critical("Registration failed!\nStatus Code: {}\nReason: {}".format(r.status_code, r.text))
-            return
+        http_client = httpclient.AsyncHTTPClient()
+        heartbeat_request = httpclient.HTTPRequest(
+            "http://{}/api/v1/heartbeat?worker_id={}".format(SERVER_HOSTNAME, worker_id), headers=headers,
+            method="POST", body="")
+        try:
+            yield http_client.fetch(heartbeat_request)
+            yield asyncio.sleep(HEARTBEAT_INTERVAL)
+        except httpclient.HTTPError as e:
+            logging.critical("Heartbeat failed!\nError: {}".format(str(e)))
+
+        http_client.close()
 
 
+@gen.coroutine
 def worker_routine():
     while True:
-        # poll from queue
-        r = requests.get("http://{}/api/v1/grading_job".format(SERVER_HOSTNAME), data={'worker_id': worker_id})
+        http_client = httpclient.AsyncHTTPClient(defaults=dict(request_timeout=180))
+        job_request = httpclient.HTTPRequest(
+            "http://{}/api/v1/grading_job?worker_id={}".format(SERVER_HOSTNAME, worker_id),
+            headers=headers, method="GET")
 
-        if r.status_code != SUCCESS_CODE:
-            logging.critical("Bad server response while trying to poll job. Error: {}".format(r.text))
-            return
+        # poll from queue
+        try:
+            response = yield http_client.fetch(job_request)
+        except httpclient.HTTPError as e:
+            logging.critical("Bad server response while trying to poll job.\nError: {}".format(str(e)))
+            http_client.close()
+            continue
+
+        http_client.close()
 
         # we successfully polled a job. execute the job
-        job = json.loads(r.text)
+        json_payload = response.body.decode('utf-8')
+        if json_payload == "":
+            continue
+
+        job = json.loads(json_payload)
         assert "job_id" in job
 
         logging.info("Starting job {}".format(job["job_id"]))
 
         # execute the job runner with job as json string
-        runner_process = Popen(['node', 'src/jobRunner.js', r.text], stderr=PIPE)
+        runner_process = Popen(['node', 'src/jobRunner.js', json_payload], stderr=PIPE)
         res = runner_process.communicate()[1]  # capture its stderr which holds the results. This blocks.
-
         logging.info("Finished job {}".format(job["job_id"]))
 
-        r = requests.post("http://{}/api/v1/grading_job/{}".format(SERVER_HOSTNAME, job["job_id"]),
-                          data={'worker_id': worker_id, 'result': res})
-        if r.status_code != SUCCESS_CODE:
-            logging.critical("Bad server response while updating about job status. Error: {}".format(r.text))
-            return
+        # send back the results to the server
+        http_client = httpclient.AsyncHTTPClient()
+        req_body = json.dumps({'worker_id': worker_id, 'result': res})
+        update_request = httpclient.HTTPRequest(
+            "http://{}/api/v1/grading_job/{}".format(SERVER_HOSTNAME, job["job_id"]), headers=headers, method="POST",
+            body=req_body)
+
+        try:
+            yield http_client.fetch(update_request)
+        except httpclient.HTTPError as e:
+            logging.critical("Bad server response while updating about job status.\nError: {}".format(str(e)))
+
+        http_client.close()
 
 
+@gen.coroutine
 def register_node(cluster_token):
     global worker_id
     global heartbeat_thread
     global HEARTBEAT_INTERVAL
+    http_client = httpclient.AsyncHTTPClient()
+    req = httpclient.HTTPRequest("http://{}/api/v1/worker_register?token={}".format(SERVER_HOSTNAME, cluster_token),
+                                 headers=headers, method="GET")
 
-    r = requests.get("http://{}/api/v1/worker_register".format(SERVER_HOSTNAME), data={'token': cluster_token})
-    if r.status_code == SUCCESS_CODE:
+    try:
+        response = yield http_client.fetch(req)
         logging.info("Registered to server at {}".format(get_time()))
-        server_response = json.loads(r.text)
+        server_response = json.loads(response.body.decode('utf-8'))
 
         # read worker id
         if 'worker_id' in server_response:
             worker_id = server_response['worker_id']
         else:
             logging.critical("Bad server response on registration. Missing argument \'worker_id\'.")
-            exit(-1)
+            raise Exception("Invalid response")
 
         # read heartbeat
         if 'heartbeat' in server_response and type(server_response['heartbeat']) is int:
@@ -97,10 +123,13 @@ def register_node(cluster_token):
             logging.critical("Bad server response on registration. {}".format(
                 "Missing argument \'heartbeat\'." if 'heartbeat' not in server_response else "Argument \'heartbeat\' "
                                                                                              "is of wrong type."))
-            exit(-1)
-    else:
-        logging.critical("Registration failed!\nStatus Code: {}\nReason: {}".format(r.status_code, r.text))
+            raise Exception("Invalid response")
+    except Exception as e:
+        logging.critical("Registration failed!\nError: {}".format(str(e)))
+        http_client.close()
         exit(-1)
+
+    http_client.close()
 
 
 if __name__ == "__main__":
@@ -115,25 +144,9 @@ if __name__ == "__main__":
     logging.basicConfig(filename='{}/{}.log'.format(LOGS_DIR_NAME, get_time()), level=logging.DEBUG)
 
     # register node to server
-    register_node(sys.argv[1])
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(register_node(sys.argv[1]))
 
-    # start heartbeats
-    heartbeat_thread = Thread(target=heartbeat_routine)
-    heartbeat_thread.start()
-
-    # start worker threads
-    for i in range(NUM_WORKER_THREADS):
-        cur_worker_thread = Thread(target=worker_routine)
-        cur_worker_thread.start()
-        worker_threads.append(cur_worker_thread)
-
-    # this will join when SIGINT is received. Until then the main thread blocks
-    for worker_thread in worker_threads:
-        worker_thread.join()
-
-    # if code reached here we know that we got SIGINT so stop heartbeat now and end program
-    heartbeat = False
-    heartbeat_cv.acquire()
-    heartbeat_cv.notify()
-    heartbeat_cv.release()
-    heartbeat_thread.join()
+    asyncio.ensure_future(heartbeat_routine())
+    asyncio.ensure_future(worker_routine())
+    loop.run_forever()

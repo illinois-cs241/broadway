@@ -146,7 +146,7 @@ def enqueue_job(job_id, db_resolver):
     assert job is not None
     cur_job['stages'] = job['stages']
     cur_job['job_id'] = job_id
-    yield job_queue.put(cur_job, block=False)
+    yield job_queue.put(cur_job)
     jobs_collection.update_one({'_id': ObjectId(job_id)}, {"$set": {'queued_at': get_time()}})
 
 
@@ -409,7 +409,13 @@ class GradingJobHandler(RequestHandlerBase):
         # poll from queue, updated job's start time and update worker node's running_job_ids list
         # this will block until a job is available. This might take a while so check if the connection is still alive
         # this is done by self.flush()
-        job = yield job_queue.get()
+        try:
+            job = yield job_queue.get(block=True, timeout=120)
+        except Exception as e:
+            self.write("")  # signals the grader that the queue is empty
+            self.finish()
+            return
+
         try:
             self.write(json.dumps(job))
             yield self.flush()

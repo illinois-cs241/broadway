@@ -14,7 +14,7 @@ import os
 
 # constants
 from bson import ObjectId
-from tornado import escape
+from tornado import escape, gen
 
 from src.database import DatabaseResolver
 from src.settings import LOGS_DIR_NAME, ID_REGEX, TIMESTAMP_FORMAT, PORT, HEARTBEAT_INTERVAL, BAD_REQUEST_CODE
@@ -138,6 +138,7 @@ def generate_random_key(length):
     return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(length))
 
 
+@gen.coroutine
 def enqueue_job(job_id, db_resolver):
     jobs_collection = db_resolver.get_jobs_collection()
     cur_job = {}
@@ -145,7 +146,7 @@ def enqueue_job(job_id, db_resolver):
     assert job is not None
     cur_job['stages'] = job['stages']
     cur_job['job_id'] = job_id
-    job_queue.put(cur_job, block=False)
+    yield job_queue.put(cur_job, block=False)
     jobs_collection.update_one({'_id': ObjectId(job_id)}, {"$set": {'queued_at': get_time()}})
 
 
@@ -212,7 +213,8 @@ class AddGradingRunHandler(RequestHandlerBase):
     #  }
     #
     # adds grading pipeline to DB and returns its ID
-    async def post(self):
+    @gen.coroutine
+    def post(self):
         if 'json_payload' not in self.request.arguments:
             self.bad_request('\'json_payload\' field missing in request')
             return
@@ -261,7 +263,7 @@ class AddGradingRunHandler(RequestHandlerBase):
 
         # return the run id to user
         self.write(json.dumps({'id': grading_run_id}))
-        self.flush()
+        yield self.flush()
 
     def create_job(self, pipeline_name, json_payload, job_specific_env=None):
         cur_job = []
@@ -280,7 +282,8 @@ class AddGradingRunHandler(RequestHandlerBase):
 
 class GradingRunHandler(RequestHandlerBase):
     # adds grading jobs to queue
-    async def post(self, id_):
+    @gen.coroutine
+    def post(self, id_):
         db_handler = self.settings['db_object']
         grading_runs_collection = db_handler.get_grading_run_collection()
         grading_run_id = id_
@@ -300,7 +303,8 @@ class GradingRunHandler(RequestHandlerBase):
         grading_runs_collection.update_one({'_id': ObjectId(grading_run_id)}, {"$set": {'started_at': get_time()}})
 
     # get statuses of all jobs
-    async def get(self, id_):
+    @gen.coroutine
+    def get(self, id_):
         db_handler = self.settings['db_object']
         grading_run_id = id_
         grading_run = db_handler.get_grading_run(grading_run_id)
@@ -327,7 +331,7 @@ class GradingRunHandler(RequestHandlerBase):
                                             'status': get_status(postprocessing_job)}
 
         self.write(json.dumps(res))
-        self.flush()
+        yield self.flush()
 
 
 # -------------------------------------------
@@ -336,7 +340,8 @@ class GradingRunHandler(RequestHandlerBase):
 # -------------- Worker Nodes ---------------
 
 class WorkerRegisterHandler(RequestHandlerBase):
-    async def get(self):
+    @gen.coroutine
+    def get(self):
         db_handler = self.settings['db_object']
         worker_nodes_collection = db_handler.get_workers_node_collection()
         if 'token' not in self.request.arguments:
@@ -355,15 +360,16 @@ class WorkerRegisterHandler(RequestHandlerBase):
 
         try:
             self.write(json.dumps({'worker_id': worker_id, 'heartbeat': HEARTBEAT_INTERVAL}))
-            await self.flush()
+            yield self.flush()
         except Exception as ex:
             logging.critical(
-                "Worker Node {} possibly disconnected. Could not write its worker id to it when grader tried to register. Error: {}".format(
-                    worker_id, str(ex)))
+                "Worker Node {} possibly disconnected. Could not write its worker id to it when grader tried to "
+                "register. Error: {}".format(worker_id, str(ex)))
 
 
 class HeartBeatHandler(RequestHandlerBase):
-    async def post(self):
+    @gen.coroutine
+    def post(self):
         db_handler = self.settings['db_object']
         worker_nodes_collection = db_handler.get_workers_node_collection()
 
@@ -383,7 +389,8 @@ class HeartBeatHandler(RequestHandlerBase):
 
 class GradingJobHandler(RequestHandlerBase):
     # get a grading job from the queue
-    async def get(self):
+    @gen.coroutine
+    def get(self):
         # authenticate this get call with the worker id
         if 'worker_id' not in self.request.arguments:
             self.bad_request('\'worker_id\' field missing in request')
@@ -402,24 +409,24 @@ class GradingJobHandler(RequestHandlerBase):
         # poll from queue, updated job's start time and update worker node's running_job_ids list
         # this will block until a job is available. This might take a while so check if the connection is still alive
         # this is done by self.flush()
-        job = job_queue.get(block=True)
+        job = yield job_queue.get()
         try:
             self.write(json.dumps(job))
-            await self.flush()
+            yield self.flush()
             jobs_collection.update_one({'_id': ObjectId(job['job_id'])}, {"$set": {'started_at': get_time()}})
             worker_node["running_job_ids"].append(job['job_id'])
             worker_nodes_collection.update_one({'_id': ObjectId(worker_id)},
                                                {"$set": {"running_job_ids": worker_node["running_job_ids"]}})
         except Exception as ex:
             # queue the job again if this worker node could not take the job
-            job_queue.put(job)
+            yield job_queue.put(job)
             logging.critical(
                 "Worker Node {} possibly disconnected. Could not write polled job to it. Error: {}".format(worker_id,
                                                                                                            str(ex)))
 
 
 class JobUpdateHandler(RequestHandlerBase):
-    async def post(self, id_):
+    def post(self, id_):
         # authenticate this get call with the worker id
         if 'worker_id' not in self.request.arguments:
             self.bad_request('\'worker_id\' field missing in request')

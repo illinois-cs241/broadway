@@ -2,8 +2,8 @@ import json
 import requests
 import sys
 
-HOST = "fa18-cs241-437.cs.illinois.edu"
-PORT = "8888"
+HOST = ""
+PORT = ""
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

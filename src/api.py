@@ -385,6 +385,8 @@ class HeartBeatHandler(RequestHandlerBase):
 
         worker_nodes_collection.update_one({'_id': ObjectId(worker_id)}, {"$set": {'last_seen': get_time()}})
         logging.info("Heartbeat from {}".format(worker_id))
+        yield self.flush()
+        self.finish()
 
 
 class GradingJobHandler(RequestHandlerBase):

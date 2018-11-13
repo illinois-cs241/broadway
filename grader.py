@@ -50,7 +50,7 @@ def heartbeat_routine():
 @gen.coroutine
 def worker_routine():
     while True:
-        http_client = httpclient.AsyncHTTPClient(defaults=dict(request_timeout=180), force_instance=True)
+        http_client = httpclient.AsyncHTTPClient()
         job_request = httpclient.HTTPRequest(
             "http://{}/api/v1/grading_job?worker_id={}".format(SERVER_HOSTNAME, worker_id),
             headers=headers, method="GET")

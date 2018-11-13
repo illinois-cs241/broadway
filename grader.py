@@ -6,7 +6,7 @@ import os
 import sys
 import time
 from subprocess import PIPE, Popen
-from tornado import httpclient, gen
+from tornado import httpclient, gen, escape
 
 # constants
 SERVER_HOSTNAME = "127.0.0.1:8888"
@@ -82,7 +82,7 @@ def worker_routine():
 
         # send back the results to the server
         http_client = httpclient.AsyncHTTPClient()
-        req_body = json.dumps({'worker_id': worker_id, 'result': res})
+        req_body = json.dumps({'worker_id': worker_id, 'result': escape.to_basestring(res)})
         update_request = httpclient.HTTPRequest(
             "http://{}/api/v1/grading_job/{}".format(SERVER_HOSTNAME, job["job_id"]), headers=headers, method="POST",
             body=req_body)

@@ -2,7 +2,7 @@
 [![Build Status](https://www.travis-ci.com/illinois-cs241/broadway-api.svg?branch=master)](https://www.travis-ci.com/illinois-cs241/broadway-api)
 [![Coverage Status](https://coveralls.io/repos/github/illinois-cs241/broadway-api/badge.svg?branch=master)](https://coveralls.io/github/illinois-cs241/broadway-api?branch=master)
 ## Running API Server
-Install the required packages specified in [requirements.txt](requirements.txt) by:
+Requires Python 3.5+ Install the required packages specified in [requirements.txt](requirements.txt) by:
 ```shell
 pip install -r requirements.txt
 ```

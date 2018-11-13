@@ -427,7 +427,7 @@ class GradingJobHandler(RequestHandlerBase):
                                                {"$set": {"running_job_ids": worker_node["running_job_ids"]}})
         except Exception as ex:
             # queue the job again if this worker node could not take the job
-            yield job_queue.put(job)
+            yield tornado.ioloop.IOLoop.current().run_in_executor(None, lambda: job_queue.get(block=True, timeout=20))
             logging.critical(
                 "Worker Node {} possibly disconnected. Could not write polled job to it. Error: {}".format(worker_id,
                                                                                                            str(ex)))

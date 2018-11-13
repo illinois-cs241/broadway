@@ -412,7 +412,8 @@ class GradingJobHandler(RequestHandlerBase):
         # this will block until a job is available. This might take a while so check if the connection is still alive
         # this is done by self.flush()
         try:
-            job = yield job_queue.get(block=True, timeout=120)
+            job = yield tornado.ioloop.IOLoop.current().run_in_executor(None,
+                                                                        lambda: job_queue.get(block=True, timeout=18))
         except Exception as e:
             self.write("")  # signals the grader that the queue is empty
             self.finish()
@@ -427,7 +428,7 @@ class GradingJobHandler(RequestHandlerBase):
                                                {"$set": {"running_job_ids": worker_node["running_job_ids"]}})
         except Exception as ex:
             # queue the job again if this worker node could not take the job
-            yield tornado.ioloop.IOLoop.current().run_in_executor(None, lambda: job_queue.get(block=True, timeout=20))
+            yield job_queue.put(job)
             logging.critical(
                 "Worker Node {} possibly disconnected. Could not write polled job to it. Error: {}".format(worker_id,
                                                                                                            str(ex)))

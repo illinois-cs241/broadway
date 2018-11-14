@@ -469,7 +469,8 @@ class GradingJobHandler(RequestHandlerBase):
 class JobUpdateHandler(RequestHandlerBase):
     def post(self, id_):
         # authenticate this get call with the worker id
-        if 'worker_id' not in self.request.arguments:
+        args = json.loads(escape.to_basestring(self.request.body))
+        if 'worker_id' not in args:
             self.bad_request('\'worker_id\' field missing in request')
             return
 
@@ -479,7 +480,7 @@ class JobUpdateHandler(RequestHandlerBase):
         grading_runs_collection = db_handler.get_grading_run_collection()
 
         job_id = id_
-        worker_id = escape.to_basestring(self.request.arguments['worker_id'][0])
+        worker_id = args['worker_id']
         worker_node = db_handler.get_worker_node(worker_id)
         if worker_node is None:
             self.bad_request("Worker node with id {} does not exist".format(worker_id))
@@ -496,11 +497,8 @@ class JobUpdateHandler(RequestHandlerBase):
         assert "queued_at" in job
         assert "started_at" in job
         assert "finished_at" not in job
-        jobs_collection.update_one({'_id': ObjectId(job_id)}, {"$set": {"finished_at": get_time(),
-                                                                        "result": escape.to_basestring(
-                                                                            self.request.arguments['result'][0])
-                                                                        if 'result' in self.request.arguments else None}
-                                                               })
+        jobs_collection.update_one({'_id': ObjectId(job_id)}, {
+            "$set": {"finished_at": get_time(), "result": args['result'] if 'result' in args else None}})
 
         # update worker node: remove this job from its currently running jobs
         assert job_id in worker_node["running_job_ids"]

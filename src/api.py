@@ -31,10 +31,14 @@ def get_time():
     return dt.datetime.fromtimestamp(time.time()).strftime(TIMESTAMP_FORMAT)
 
 
-# TODO
-def handle_lost_worker_node(worker_node):
+# TODO reduce job count from grading run
+def handle_lost_worker_node(worker_node, db_resolver):
     logging.critical("Worker node {} executing {} went offline unexpectedly".format(worker_node["_id"],
                                                                                     worker_node["running_job_ids"]))
+    for job_id in worker_node["running_job_ids"]:
+        job = db_resolver.get_grading_job(job_id)
+        db_resolver.get_grading_run_collection().update_one({'_id': ObjectId(job["grading_run_id"])},
+                                                            {"$inc": {"student_jobs_left": -1}})
 
 
 def heartbeat_validator(db_resolver):
@@ -46,8 +50,8 @@ def heartbeat_validator(db_resolver):
 
             # the worker node dead if it does not send a heartbeat for 2 intervals
             if (cur_time - last_seen_time).total_seconds() >= 2 * HEARTBEAT_INTERVAL:
-                handle_lost_worker_node(worker_node)
-                worker_nodes_collection.delete_one({"_id": worker_node["_id"]})
+                handle_lost_worker_node(worker_node, db_resolver)
+                worker_nodes_collection.delete_one({"_id": ObjectId(worker_node["_id"])})
 
         heartbeat_cv.acquire()
         heartbeat_cv.wait(timeout=HEARTBEAT_INTERVAL)
@@ -173,6 +177,11 @@ class AddGradingRunHandler(RequestHandlerBase):
                 if "image" not in postprocessing_pipeline_stage:
                     return False, "missing argument \'image\' in postprocessing pipeline stage"
 
+        if "preprocessing_pipeline" in args:
+            for preprocessing_pipeline_stage in args["preprocessing_pipeline"]:
+                if "image" not in preprocessing_pipeline_stage:
+                    return False, "missing argument \'image\' in preprocessing pipeline stage"
+
         if "students" not in args:
             return False, "missing argument \'students\'"
 
@@ -203,6 +212,11 @@ class AddGradingRunHandler(RequestHandlerBase):
     # ]
     #
     # "postprocessing_pipeline": OPTIONAL
+    # [
+    #   stage1, stage2, ...
+    # ]
+    #
+    # "preprocessing_pipeline":  OPTIONAL
     # [
     #   stage1, stage2, ...
     # ]
@@ -240,6 +254,10 @@ class AddGradingRunHandler(RequestHandlerBase):
         postprocessing_job = self.create_job("postprocessing_pipeline",
                                              json_payload) if "postprocessing_pipeline" in json_payload else None
 
+        # create pre processing stage if it exists
+        preprocessing_job = self.create_job("preprocessing_pipeline",
+                                            json_payload) if "preprocessing_pipeline" in json_payload else None
+
         # arguments are valid so feed into DB and return run id
         db_handler = self.settings['db_object']
         jobs_collection = db_handler.get_jobs_collection()
@@ -258,8 +276,14 @@ class AddGradingRunHandler(RequestHandlerBase):
             job = {'created_at': get_time(), 'grading_run_id': grading_run_id, 'stages': postprocessing_job}
             postprocessing_job_id = str(jobs_collection.insert_one(job).inserted_id)
 
+        preprocessing_job_id = None
+        if preprocessing_job is not None:
+            job = {'created_at': get_time(), 'grading_run_id': grading_run_id, 'stages': preprocessing_job}
+            preprocessing_job_id = str(jobs_collection.insert_one(job).inserted_id)
+
         grading_runs_collection.update_one({'_id': ObjectId(grading_run_id)}, {
-            "$set": {'student_job_ids': student_job_ids, 'postprocessing_job_id': postprocessing_job_id}})
+            "$set": {'student_job_ids': student_job_ids, 'postprocessing_job_id': postprocessing_job_id,
+                     'preprocessing_job_id': preprocessing_job_id}})
 
         # return the run id to user
         self.write(json.dumps({'id': grading_run_id}))
@@ -296,9 +320,13 @@ class GradingRunHandler(RequestHandlerBase):
             self.bad_request("Grading Run with id {} has already been queued in the past".format(grading_run_id))
             return
 
-        assert "student_job_ids" in grading_run
-        for student_job_id in grading_run['student_job_ids']:
-            enqueue_job(student_job_id, db_handler)
+        assert "preprocessing_job_id" in grading_run
+        if grading_run["preprocessing_job_id"] is None:
+            assert "student_job_ids" in grading_run
+            for student_job_id in grading_run['student_job_ids']:
+                enqueue_job(student_job_id, db_handler)
+        else:
+            enqueue_job(grading_run["preprocessing_job_id"], db_handler)
 
         grading_runs_collection.update_one({'_id': ObjectId(grading_run_id)}, {"$set": {'started_at': get_time()}})
 
@@ -329,6 +357,12 @@ class GradingRunHandler(RequestHandlerBase):
             assert postprocessing_job is not None
             res['postprocessing_status'] = {'job_id': grading_run['postprocessing_job_id'],
                                             'status': get_status(postprocessing_job)}
+
+        if grading_run['preprocessing_job_id'] is not None:
+            preprocessing_job = db_handler.get_grading_job(grading_run['preprocessing_job_id'])
+            assert preprocessing_job is not None
+            res['preprocessing_status'] = {'job_id': grading_run['preprocessing_job_id'],
+                                           'status': get_status(preprocessing_job)}
 
         self.write(json.dumps(res))
         yield self.flush()
@@ -487,10 +521,15 @@ class JobUpdateHandler(RequestHandlerBase):
         assert "created_at" in grading_run
         assert "started_at" in grading_run
         assert "finished_at" not in grading_run
+        assert "student_job_ids" in grading_run
         assert "student_jobs_left" in grading_run
         assert "postprocessing_job_id" in grading_run
+        assert "preprocessing_job_id" in grading_run
 
-        if grading_run["postprocessing_job_id"] == job_id:
+        if grading_run["preprocessing_job_id"] == job_id:
+            for student_job_id in grading_run['student_job_ids']:
+                enqueue_job(student_job_id, db_handler)
+        elif grading_run["postprocessing_job_id"] == job_id:
             assert grading_run["student_jobs_left"] == 0
             grading_runs_collection.update_one({'_id': ObjectId(job["grading_run_id"])},
                                                {"$set": {"finished_at": get_time()}})

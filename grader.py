@@ -83,10 +83,10 @@ def worker_routine():
 
         # send back the results to the server
         http_client = httpclient.AsyncHTTPClient()
-        req_body = json.dumps({'worker_id': worker_id, 'result': escape.to_basestring(res)})
         update_request = httpclient.HTTPRequest(
-            "http://{}/api/v1/grading_job/{}".format(SERVER_HOSTNAME, job["job_id"]), headers=headers, method="POST",
-            body=req_body)
+            "http://{}/api/v1/grading_job/{}?worker_id={}&result={}".format(SERVER_HOSTNAME, job["job_id"], worker_id,
+                                                                            escape.to_basestring(res)), headers=headers,
+            method="POST", body="")
 
         try:
             yield http_client.fetch(update_request)

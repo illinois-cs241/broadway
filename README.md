@@ -1,6 +1,7 @@
 # broadway-grader
 
 ## Starting Grader Instance
+- Requires Python 3.5+
 - Install the required packages specified in [requirements.txt](requirements.txt) by:
 ```shell
 pip install -r requirements.txt

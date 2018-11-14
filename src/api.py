@@ -31,7 +31,6 @@ def get_time():
     return dt.datetime.fromtimestamp(time.time()).strftime(TIMESTAMP_FORMAT)
 
 
-# TODO reduce job count from grading run
 def handle_lost_worker_node(worker_node, db_resolver):
     logging.critical("Worker node {} executing {} went offline unexpectedly".format(worker_node["_id"],
                                                                                     worker_node["running_job_ids"]))
@@ -142,7 +141,6 @@ def generate_random_key(length):
     return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(length))
 
 
-@gen.coroutine
 def enqueue_job(job_id, db_resolver):
     jobs_collection = db_resolver.get_jobs_collection()
     cur_job = {}
@@ -150,7 +148,7 @@ def enqueue_job(job_id, db_resolver):
     assert job is not None
     cur_job['stages'] = job['stages']
     cur_job['job_id'] = job_id
-    yield job_queue.put(cur_job)
+    job_queue.put(cur_job)
     jobs_collection.update_one({'_id': ObjectId(job_id)}, {"$set": {'queued_at': get_time()}})
 
 
@@ -462,7 +460,7 @@ class GradingJobHandler(RequestHandlerBase):
                                                {"$set": {"running_job_ids": worker_node["running_job_ids"]}})
         except Exception as ex:
             # queue the job again if this worker node could not take the job
-            yield job_queue.put(job)
+            job_queue.put(job)
             logging.critical(
                 "Worker Node {} possibly disconnected. Could not write polled job to it. Error: {}".format(worker_id,
                                                                                                            str(ex)))

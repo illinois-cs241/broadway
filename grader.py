@@ -41,8 +41,8 @@ def heartbeat_routine():
         try:
             yield http_client.fetch(heartbeat_request)
             yield asyncio.sleep(HEARTBEAT_INTERVAL)
-        except httpclient.HTTPError as e:
-            logging.critical("Heartbeat failed!\nError: {}".format(str(e)))
+        except httpclient.HTTPClientError as e:
+            logging.critical("Heartbeat failed!\nError: {}".format(str(e.response)))
 
         http_client.close()
 
@@ -58,8 +58,8 @@ def worker_routine():
         # poll from queue
         try:
             response = yield http_client.fetch(job_request)
-        except httpclient.HTTPError as e:
-            logging.critical("Bad server response while trying to poll job.\nError: {}".format(str(e)))
+        except httpclient.HTTPClientError as e:
+            logging.critical("Bad server response while trying to poll job.\nError: {}".format(str(e.response)))
             http_client.close()
             continue
 
@@ -89,8 +89,8 @@ def worker_routine():
 
         try:
             yield http_client.fetch(update_request)
-        except httpclient.HTTPError as e:
-            logging.critical("Bad server response while updating about job status.\nError: {}".format(str(e)))
+        except httpclient.HTTPClientError as e:
+            logging.critical("Bad server response while updating about job status.\nError: {}".format(str(e.response)))
 
         http_client.close()
 

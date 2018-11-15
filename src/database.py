@@ -32,8 +32,10 @@ class DatabaseResolver(object):
         #   created_at
         #   started_at
         #   finished_at
+        #   students
         #   student_job_ids = [id,...]
-        #   postprocessing_job_id = None if no stage else id
+        #   preprocessing_job_id = None if no job else id
+        #   postprocessing_job_id = None if no job else id
         #   student_jobs_left
 
         return self.db.grading_runs

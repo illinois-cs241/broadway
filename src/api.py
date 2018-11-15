@@ -141,13 +141,15 @@ def generate_random_key(length):
     return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(length))
 
 
-def enqueue_job(job_id, db_resolver):
+def enqueue_job(job_id, db_resolver, students=None):
     jobs_collection = db_resolver.get_jobs_collection()
     cur_job = {}
     job = db_resolver.get_grading_job(job_id)
     assert job is not None
     cur_job['stages'] = job['stages']
     cur_job['job_id'] = job_id
+    if students is not None:
+        cur_job['students'] = students
     job_queue.put(cur_job)
     jobs_collection.update_one({'_id': ObjectId(job_id)}, {"$set": {'queued_at': get_time()}})
 
@@ -261,7 +263,8 @@ class AddGradingRunHandler(RequestHandlerBase):
         jobs_collection = db_handler.get_jobs_collection()
         grading_runs_collection = db_handler.get_grading_run_collection()
 
-        grading_run = {'created_at': get_time(), 'student_jobs_left': len(student_jobs)}
+        grading_run = {'created_at': get_time(), 'student_jobs_left': len(student_jobs),
+                       'students': json_payload["students"]}
         grading_run_id = str(grading_runs_collection.insert_one(grading_run).inserted_id)
 
         student_job_ids = []
@@ -324,7 +327,7 @@ class GradingRunHandler(RequestHandlerBase):
             for student_job_id in grading_run['student_job_ids']:
                 enqueue_job(student_job_id, db_handler)
         else:
-            enqueue_job(grading_run["preprocessing_job_id"], db_handler)
+            enqueue_job(grading_run["preprocessing_job_id"], db_handler, grading_run["students"])
 
         grading_runs_collection.update_one({'_id': ObjectId(grading_run_id)}, {"$set": {'started_at': get_time()}})
 
@@ -541,7 +544,7 @@ class JobUpdateHandler(RequestHandlerBase):
                     grading_runs_collection.update_one({'_id': ObjectId(job["grading_run_id"])},
                                                        {"$set": {"finished_at": get_time()}})
                 else:
-                    enqueue_job(grading_run["postprocessing_job_id"], db_handler)
+                    enqueue_job(grading_run["postprocessing_job_id"], db_handler, grading_run["students"])
 
         job_update_lock.release()
 

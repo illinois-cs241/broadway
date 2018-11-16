@@ -29,6 +29,20 @@ module.exports = async function (job) {
     const tmpDir = await tmp.dir({unsafeCleanup: true});
     logger.info(`Created tmp directory ${tmpDir.path}`);
 
+    // We will add the roster if provided
+    if (job.students !== undefined) {
+        const fs = require('fs');
+        const content = JSON.stringify(job.students);
+
+        fs.writeFile(`${tmpDir.path}/roster.json`, content, 'utf8', function (err) {
+            if (err) {
+                return console.log(err);
+            }
+
+            console.log("The roster was saved in the temp directory");
+        });
+    }
+
     // We'll store information about each stage here
     const results = [];
 

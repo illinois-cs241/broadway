@@ -2,7 +2,7 @@
   "student_pipeline": [
     {
       "image": "alpine:3.5",
-      "entrypoint": [
+      "entry_point": [
         "env"
       ],
       "env": {
@@ -12,7 +12,7 @@
     },
     {
       "image": "alpine:3.5",
-      "entrypoint": [
+      "entry_point": [
         "sleep", "5"
       ]
     }
@@ -24,7 +24,7 @@
         "ASSIGNMENT": "$ASSIGNMENT",
         "SEMESTER": "sp18"
       },
-      "entrypoint": [
+      "entry_point": [
         "env"
       ]
     }

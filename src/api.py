@@ -3,11 +3,13 @@ import os
 import uuid
 
 import tornado
+import tornado.ioloop
 import tornado.web
 
-from src.settings import LOGS_DIR, ID_REGEX
-import src.handlers as handlers
+from src.settings import LOGS_DIR, ID_REGEX, PORT
 from utils.utilities import get_formatted_time
+from src.database import DatabaseResolver
+import src.handlers as handlers
 
 # setting up logger
 os.makedirs(LOGS_DIR, exist_ok=True)
@@ -37,10 +39,10 @@ def make_app(token, db_resolver):
         (r"/api/v1/worker_register", handlers.WorkerRegisterHandler),
 
         # GET to get a grading job
-        (r"/api/v1/grading_job", handlers.GradingJobHandler),
+        (r"/api/v1/grading_job", handlers.GetGradingJobHandler),
 
         # POST to update status of job
-        (r"/api/v1/grading_job/{}".format(ID_REGEX), handlers.JobUpdateHandler),
+        (r"/api/v1/grading_job/{}".format(ID_REGEX), handlers.UpdateGradingJobHandler),
 
         # POST to register heartbeat
         (r"/api/v1/heartbeat", handlers.HeartBeatHandler),
@@ -56,3 +58,14 @@ if __name__ == "__main__":
         logger.debug("generating authentication token")
         token = str(uuid.uuid4())
         logger.info("authentication token is {}".format(token))
+
+    logger.debug("initializing application")
+    app = make_app(token=token, db_resolver=DatabaseResolver())
+
+    logger.info("listening on port {}".format(PORT))
+    app.listen(PORT)
+
+    try:
+        tornado.ioloop.IOLoop.instance().start()
+    except KeyboardInterrupt:
+        tornado.ioloop.IOLoop.current().stop()

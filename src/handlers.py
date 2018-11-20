@@ -1,8 +1,12 @@
 import logging
+
+from bson import ObjectId
 from tornado_json import schema
-from tornado_json.exceptions import APIError
 from tornado_json.requesthandlers import APIHandler
-from src.auth import authenticate
+
+from src.auth import authenticate, validate_id
+from src.config import BAD_REQUEST_CODE
+from src.database import DatabaseResolver
 
 logger = logging.getLogger()
 
@@ -27,6 +31,33 @@ class BaseAPIHandler(APIHandler):
         self.set_status(status)
         self.fail(data)
 
+    @validate_id
+    def get_worker_node(self, id_):
+        db_resolver = self.settings.get("db_object")  # type: DatabaseResolver
+        worker_node = db_resolver.get_worker_node_collection().find_one({'_id': ObjectId(id_)})
+        if worker_node is None:
+            self.abort({"message": "Worker node with id {} does not exist".format(id_)}, BAD_REQUEST_CODE)
+        else:
+            return worker_node
+
+    @validate_id
+    def get_grading_run(self, id_):
+        db_resolver = self.settings.get("db_object")  # type: DatabaseResolver
+        grading_run = db_resolver.get_grading_run_collection().find_one({'_id': ObjectId(id_)})
+        if grading_run is None:
+            self.abort({"message": "Grading run with id {} does not exist".format(id_)}, BAD_REQUEST_CODE)
+        else:
+            return grading_run
+
+    @validate_id
+    def get_grading_job(self, id_):
+        db_resolver = self.settings.get("db_object")  # type: DatabaseResolver
+        grading_job = db_resolver.get_grading_job_collection().find_one({'_id': ObjectId(id_)})
+        if grading_job is None:
+            self.abort({"message": "Grading job with id {} does not exist".format(id_)}, BAD_REQUEST_CODE)
+        else:
+            return grading_job
+
 
 class AddGradingRunHandler(BaseAPIHandler):
     @authenticate
@@ -38,7 +69,7 @@ class AddGradingRunHandler(BaseAPIHandler):
 
             "type": "object",
             "properties": {
-                "preprocessing_pipeline": {
+                "pre_processing_pipeline": {
                     "type": "array",
                     "items": {"$ref": "#stage"},
                 },
@@ -47,7 +78,7 @@ class AddGradingRunHandler(BaseAPIHandler):
                     "items": {"$ref": "#stage"},
                     "default": []
                 },
-                "postprocessing_pipeline": {
+                "post_processing_pipeline": {
                     "type": "array",
                     "items": {"$ref": "#stage"},
                 },

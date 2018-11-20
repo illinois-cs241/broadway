@@ -107,7 +107,7 @@ Returns the JSON string of:
 ```
 
 ### GET api/v1/grading_job
-Used to poll the queue for a job. If the queue is empty, sets the status code to [this](src/settings.py#L5)
+Used to poll the queue for a job. If the queue is empty, sets the status code to [this](src/config.py#L5)
 
 Arguments:
 ```

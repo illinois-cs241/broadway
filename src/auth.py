@@ -5,6 +5,7 @@ import uuid
 from bson import ObjectId
 
 from src.config import UNAUTHORIZED_REQUEST_CODE, BAD_REQUEST_CODE
+from src.constants import AUTH_KEY
 import src.handlers
 
 logger = logging.getLogger()
@@ -23,9 +24,9 @@ def initialize_token():
 
 def authenticate(func):
     def wrapper(*args, **kwargs):
-        self = args[0]
+        self = args[0]  # type: src.handlers.BaseAPIHandler
         token = self.settings.get("token")
-        request_token = self.request.headers.get("Authorization")
+        request_token = self.request.headers.get(AUTH_KEY)
 
         if (request_token is None) or (token != request_token):
             self.set_status(UNAUTHORIZED_REQUEST_CODE)

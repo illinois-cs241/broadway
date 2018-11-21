@@ -2,6 +2,11 @@ LOGS_DIR = "logs"
 ID_REGEX = "(?P<id_>[a-f0-9]+)"
 TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
 
+# API KEYS
+AUTH_KEY = "Authorization"
+WORKER_ID_KEY = "worker_id"
+HEARTBEAT_KEY = "heartbeat"
+
 # DATABASE KEYS
 ID_KEY = "_id"
 LAST_SEEN_KEY = "last_seen"

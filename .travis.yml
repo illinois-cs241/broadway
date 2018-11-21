@@ -15,9 +15,6 @@ install:
     - pip install --upgrade pip
     - pip install -r requirements.txt
     - pip install -r requirements_test.txt
-before_script:
-    - mkdir -p /tmp/mongo/data
-    - mongod --dbpath /tmp/mongo/data 2>&1 > /dev/null & # We have to do this because --fork just doesn't work
 script:
     - py.test --cov=src/ tests/ --doctest-modules -v --cov coveralls --cov-report term-missing
 after_success:

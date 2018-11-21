@@ -17,10 +17,10 @@ class DatabaseResolver(object):
         self.db = self.client[self.db_name]
 
         logger.info("starting up Mongo daemon")
-        if not os.path.exists("/tmp/mongo/data"):
+        if not os.path.exists(DB_PATH):
             os.makedirs(DB_PATH)
 
-        self.mongo_daemon = Popen(["mongod", "--dbpath", "/tmp/mongo/data"], stdout=DEVNULL, stderr=DEVNULL)
+        self.mongo_daemon = Popen(["mongod", "--dbpath", DB_PATH], stdout=DEVNULL, stderr=DEVNULL)
 
     # Worker Node:
     #   _id (implicit)

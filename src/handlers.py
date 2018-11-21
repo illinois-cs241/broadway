@@ -1,12 +1,15 @@
 import logging
 
 from bson import ObjectId
+from tornado import gen
 from tornado_json import schema
 from tornado_json.requesthandlers import APIHandler
 
+from utils.utilities import get_string_from_time
 from src.auth import authenticate, validate_id
-from src.config import BAD_REQUEST_CODE
+from src.config import BAD_REQUEST_CODE, HEARTBEAT_INTERVAL
 from src.database import DatabaseResolver
+import src.constants as consts
 
 logger = logging.getLogger()
 
@@ -114,15 +117,22 @@ class WorkerRegisterHandler(BaseAPIHandler):
         output_schema={
             "type": "object",
             "properties": {
-                "worker_id": {"type": "string"},
-                "heartbeat": {"type": "number"}
+                consts.WORKER_ID_KEY: {"type": "string"},
+                consts.HEARTBEAT_KEY: {"type": "number"}
             },
-            "required": ["worker_id"],
+            "required": [consts.WORKER_ID_KEY],
             "additionalProperties": False
         }
     )
     def get(self):
-        pass
+        db_handler = self.settings.get('db_object')  # type: DatabaseResolver
+        worker_nodes_collection = db_handler.get_worker_node_collection()
+
+        worker_node = {consts.LAST_SEEN_KEY: get_string_from_time(), consts.RUNNING_JOBS_KEY: {}}
+        worker_id = str(worker_nodes_collection.insert_one(worker_node).inserted_id)
+        logging.info("Worker {} joined".format(worker_id))
+
+        return {consts.WORKER_ID_KEY: worker_id, consts.HEARTBEAT_KEY: HEARTBEAT_INTERVAL}
 
 
 class GetGradingJobHandler(BaseAPIHandler):

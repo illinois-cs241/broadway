@@ -10,9 +10,10 @@ import src.constants as consts
 import src.handlers as handlers
 from src.auth import initialize_token
 from src.config import PORT, HEARTBEAT_INTERVAL
-from src.constants import LOGS_DIR, ID_REGEX
+from src.constants.constants import LOGS_DIR, ID_REGEX
 from src.database import DatabaseResolver
-from utils.utilities import get_time, get_string_from_time, get_time_from_string
+from src.utilities import get_time, get_string_from_time, get_time_from_string
+from queue import Queue
 
 # setting up logger
 os.makedirs(LOGS_DIR, exist_ok=True)
@@ -89,7 +90,7 @@ def make_app(token, db_object):
         # POST to register heartbeat
         (r"/api/v1/heartbeat", handlers.HeartBeatHandler),
         # ----------------------------------
-    ], token=token, db_object=db_object)
+    ], token=token, db_object=db_object, job_queue=Queue())
 
 
 if __name__ == "__main__":

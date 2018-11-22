@@ -1,15 +1,18 @@
 import logging
+import tornado.ioloop
 
 from bson import ObjectId
+from queue import Queue
 from tornado import gen
 from tornado_json import schema
 from tornado_json.requesthandlers import APIHandler
 
-from utils.utilities import get_string_from_time
-from src.auth import authenticate, validate_id
-from src.config import BAD_REQUEST_CODE, HEARTBEAT_INTERVAL
+import src.constants.api_keys as api_key
+import src.constants.db_keys as db_key
+from src.auth import authenticate, authenticate_worker, validate_id
+from src.config import BAD_REQUEST_CODE, HEARTBEAT_INTERVAL, QUEUE_EMPTY_CODE, JOB_POLL_TIMEOUT
 from src.database import DatabaseResolver
-import src.constants as consts
+from src.utilities import get_string_from_time, get_time
 
 logger = logging.getLogger()
 
@@ -18,13 +21,13 @@ grading_stage_def = {
     "$id": "#stage",
     "type": "object",
     "properties": {
-        "image": {"type": "string"},
-        "env": {"type": "object"},
-        "entry_point": {"type": "string"},
-        "enable_networking": {"type": "boolean"},
-        "host_name": {"type": "string"}
+        api_key.IMAGE: {"type": "string"},
+        api_key.ENV: {"type": "object"},
+        api_key.ENTRY_POINT: {"type": "string"},
+        api_key.NETWORKING: {"type": "boolean"},
+        api_key.HOST_NAME: {"type": "string"}
     },
-    "required": ["image"],
+    "required": [api_key.IMAGE],
     "additionalProperties": False
 }
 
@@ -117,35 +120,29 @@ class WorkerRegisterHandler(BaseAPIHandler):
         output_schema={
             "type": "object",
             "properties": {
-                consts.WORKER_ID_KEY: {"type": "string"},
-                consts.HEARTBEAT_KEY: {"type": "number"}
+                api_key.WORKER_ID: {"type": "string"},
+                api_key.HEARTBEAT: {"type": "number"}
             },
-            "required": [consts.WORKER_ID_KEY],
+            "required": [api_key.WORKER_ID],
             "additionalProperties": False
         }
     )
     def get(self):
-        db_handler = self.settings.get('db_object')  # type: DatabaseResolver
-        worker_nodes_collection = db_handler.get_worker_node_collection()
+        db_resolver = self.settings.get('db_object')  # type: DatabaseResolver
+        worker_nodes_collection = db_resolver.get_worker_node_collection()
 
-        worker_node = {consts.LAST_SEEN_KEY: get_string_from_time(), consts.RUNNING_JOBS_KEY: {}}
+        worker_node = {db_key.LAST_SEEN: get_string_from_time(), db_key.RUNNING_JOBS: {}}
         worker_id = str(worker_nodes_collection.insert_one(worker_node).inserted_id)
         logging.info("Worker {} joined".format(worker_id))
 
-        return {consts.WORKER_ID_KEY: worker_id, consts.HEARTBEAT_KEY: HEARTBEAT_INTERVAL}
+        return {api_key.WORKER_ID: worker_id, api_key.HEARTBEAT: HEARTBEAT_INTERVAL}
 
 
 class GetGradingJobHandler(BaseAPIHandler):
+    @gen.coroutine
     @authenticate
+    @authenticate_worker
     @schema.validate(
-        input_schema={
-            "type": "object",
-            "properties": {
-                "worker_id": {"type": "string"},
-            },
-            "required": ["worker_id"],
-            "additionalProperties": False
-        },
         output_schema={
             "definitions": {
                 "stage": grading_stage_def
@@ -153,26 +150,46 @@ class GetGradingJobHandler(BaseAPIHandler):
 
             "type": "object",
             "properties": {
-                "job_id": {"type": "string"},
-                "stages": {
+                api_key.JOB_ID: {"type": "string"},
+                api_key.STAGE: {
                     "type": "array",
                     "items": {"$ref": "#stage"},
                 },
-                "students": {
+                api_key.STUDENTS: {
                     "type": "array",
                     "items": {"type": "object"},
                 }
             },
-            "required": ["job_id", "stages"],
+            "required": [api_key.JOB_ID, api_key.STAGE],
             "additionalProperties": False
         }
     )
     def get(self):
-        pass
+        db_resolver = self.settings.get('db_object')  # type: DatabaseResolver
+        job_queue = self.settings.get('job_queue')  # type: Queue
+        worker_id = self.request.headers.get(api_key.WORKER_ID)
+
+        try:
+            job = yield tornado.ioloop.IOLoop.current().run_in_executor(None,
+                                                                        lambda: job_queue.get(block=True,
+                                                                                              timeout=JOB_POLL_TIMEOUT))
+            job_id = job.get(api_key.JOB_ID)
+
+            # TODO see if connection is lost
+            db_resolver.get_grading_job_collection().update_one({db_key.ID: ObjectId(job_id)},
+                                                                {"$set": {db_key.STARTED: get_time()}})
+
+            db_resolver.get_worker_node_collection().update_one({db_key.ID: ObjectId(worker_id)}, {
+                "$set": {"{}:{}".format(db_key.RUNNING_JOBS, job_id): True}})
+
+            return job
+        except Exception as e:
+            self.abort({'message': 'The queue is empty'}, QUEUE_EMPTY_CODE)
 
 
 class UpdateGradingJobHandler(BaseAPIHandler):
     @authenticate
+    @authenticate_worker
     @schema.validate(
         input_schema={
             "type": "object",
@@ -191,6 +208,7 @@ class UpdateGradingJobHandler(BaseAPIHandler):
 
 class HeartBeatHandler(BaseAPIHandler):
     @authenticate
+    @authenticate_worker
     @schema.validate(
         input_schema={
             "type": "object",

@@ -5,8 +5,9 @@ import uuid
 from bson import ObjectId
 
 from src.config import UNAUTHORIZED_REQUEST_CODE, BAD_REQUEST_CODE
-from src.constants import AUTH_KEY
+import src.constants.api_keys as api_key
 import src.handlers
+import src.database
 
 logger = logging.getLogger()
 
@@ -26,11 +27,22 @@ def authenticate(func):
     def wrapper(*args, **kwargs):
         self = args[0]  # type: src.handlers.BaseAPIHandler
         token = self.settings.get("token")
-        request_token = self.request.headers.get(AUTH_KEY)
+        request_token = self.request.headers.get(api_key.AUTH)
 
         if (request_token is None) or (token != request_token):
-            self.set_status(UNAUTHORIZED_REQUEST_CODE)
-            self.fail({"message": "Not authorized"})
+            self.abort({"message": "Not authorized"}, UNAUTHORIZED_REQUEST_CODE)
+        else:
+            return func(*args, **kwargs)
+
+    return wrapper
+
+
+def authenticate_worker(func):
+    def wrapper(*args, **kwargs):
+        self = args[0]  # type: src.handlers.BaseAPIHandler
+        worker_id = self.request.headers.get(api_key.WORKER_ID)
+        if self.get_worker_node(worker_id) is None:
+            return
         else:
             return func(*args, **kwargs)
 

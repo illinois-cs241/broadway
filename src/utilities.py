@@ -1,6 +1,6 @@
 import datetime as dt
 import time
-from src.constants import TIMESTAMP_FORMAT
+from src.constants.constants import TIMESTAMP_FORMAT
 
 
 def get_time():

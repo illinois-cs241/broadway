@@ -16,6 +16,6 @@ class BaseTest(AsyncHTTPTestCase):
         return make_app(token=MOCK_TOKEN, db_object=self.db_resolver)
 
     def tearDown(self):
-        super().tearDown()
         self.db_resolver.clear_db()
         self.db_resolver.shutdown()
+        super().tearDown()

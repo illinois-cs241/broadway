@@ -11,15 +11,13 @@ logger = logging.getLogger()
 
 class DatabaseResolver(object):
 
-    def __init__(self, db_name='AG'):
+    def __init__(self, db_name="AG"):
         self.client = MongoClient()
         self.db_name = db_name
         self.db = self.client[self.db_name]
 
         logger.info("starting up Mongo daemon")
-        if not os.path.exists(DB_PATH):
-            os.makedirs(DB_PATH)
-
+        os.makedirs(DB_PATH, exist_ok=True)
         self.mongo_daemon = Popen(["mongod", "--dbpath", DB_PATH], stdout=DEVNULL, stderr=DEVNULL)
 
     # Worker Node:

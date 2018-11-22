@@ -9,10 +9,11 @@ from tornado_json.requesthandlers import APIHandler
 
 import src.constants.api_keys as api_key
 import src.constants.db_keys as db_key
+import src.constants.constants as consts
 from src.auth import authenticate, authenticate_worker, validate_id
 from src.config import BAD_REQUEST_CODE, HEARTBEAT_INTERVAL, QUEUE_EMPTY_CODE, JOB_POLL_TIMEOUT
 from src.database import DatabaseResolver
-from src.utilities import get_string_from_time, get_time
+from src.utilities import get_string_from_time, get_time, resolve_env_vars
 
 logger = logging.getLogger()
 
@@ -39,8 +40,8 @@ class BaseAPIHandler(APIHandler):
 
     @validate_id
     def get_worker_node(self, id_):
-        db_resolver = self.settings.get("db_object")  # type: DatabaseResolver
-        worker_node = db_resolver.get_worker_node_collection().find_one({'_id': ObjectId(id_)})
+        db_resolver = self.settings.get(consts.APP_DB)  # type: DatabaseResolver
+        worker_node = db_resolver.get_worker_node_collection().find_one({db_key.ID: ObjectId(id_)})
         if worker_node is None:
             self.abort({"message": "Worker node with id {} does not exist".format(id_)}, BAD_REQUEST_CODE)
         else:
@@ -48,8 +49,8 @@ class BaseAPIHandler(APIHandler):
 
     @validate_id
     def get_grading_run(self, id_):
-        db_resolver = self.settings.get("db_object")  # type: DatabaseResolver
-        grading_run = db_resolver.get_grading_run_collection().find_one({'_id': ObjectId(id_)})
+        db_resolver = self.settings.get(consts.APP_DB)  # type: DatabaseResolver
+        grading_run = db_resolver.get_grading_run_collection().find_one({db_key.ID: ObjectId(id_)})
         if grading_run is None:
             self.abort({"message": "Grading run with id {} does not exist".format(id_)}, BAD_REQUEST_CODE)
         else:
@@ -57,8 +58,8 @@ class BaseAPIHandler(APIHandler):
 
     @validate_id
     def get_grading_job(self, id_):
-        db_resolver = self.settings.get("db_object")  # type: DatabaseResolver
-        grading_job = db_resolver.get_grading_job_collection().find_one({'_id': ObjectId(id_)})
+        db_resolver = self.settings.get(consts.APP_DB)  # type: DatabaseResolver
+        grading_job = db_resolver.get_grading_job_collection().find_one({db_key.ID: ObjectId(id_)})
         if grading_job is None:
             self.abort({"message": "Grading job with id {} does not exist".format(id_)}, BAD_REQUEST_CODE)
         else:
@@ -66,6 +67,20 @@ class BaseAPIHandler(APIHandler):
 
 
 class AddGradingRunHandler(BaseAPIHandler):
+    def create_job(self, pipeline_name, json_payload, job_specific_env=None):
+        cur_job = []
+        for stage in json_payload[pipeline_name]:
+            cur_stage = stage.copy()
+
+            try:
+                cur_stage["env"] = resolve_env_vars(stage.get("env", {}), json_payload.get("env", {}), job_specific_env)
+
+            except Exception as error:
+                self.bad_request("{}: {}".format(pipeline_name, str(error)))
+                return
+            cur_job.append(cur_stage)
+        return cur_job
+
     @authenticate
     @schema.validate(
         input_schema={
@@ -128,7 +143,7 @@ class WorkerRegisterHandler(BaseAPIHandler):
         }
     )
     def get(self):
-        db_resolver = self.settings.get('db_object')  # type: DatabaseResolver
+        db_resolver = self.settings.get(consts.APP_DB)  # type: DatabaseResolver
         worker_nodes_collection = db_resolver.get_worker_node_collection()
 
         worker_node = {db_key.LAST_SEEN: get_string_from_time(), db_key.RUNNING_JOBS: {}}
@@ -165,8 +180,8 @@ class GetGradingJobHandler(BaseAPIHandler):
         }
     )
     def get(self):
-        db_resolver = self.settings.get('db_object')  # type: DatabaseResolver
-        job_queue = self.settings.get('job_queue')  # type: Queue
+        db_resolver = self.settings.get(consts.APP_DB)  # type: DatabaseResolver
+        job_queue = self.settings.get(consts.APP_QUEUE)  # type: Queue
         worker_id = self.request.headers.get(api_key.WORKER_ID)
 
         try:

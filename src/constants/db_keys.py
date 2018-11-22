@@ -1,3 +1,5 @@
+# The documents stored in the Mongo DB use these keys
+
 ID = "_id"
 LAST_SEEN = "last_seen"
 RUNNING_JOBS = "running_job_ids"

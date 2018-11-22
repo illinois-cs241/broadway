@@ -34,16 +34,16 @@ class DatabaseResolver(object):
     #   started_at
     #   finished_at
     #   students
-    #   student_job_ids = [id,...]
-    #   pre_processing_job_id = None if no job else id
-    #   post_processing_job_id = None if no job else id
     #   student_jobs_left
+    #   student_job_ids = [id,...]
+    #   pre_processing_job_id  (if exists)
+    #   post_processing_job_id  (if exists)
     def get_grading_run_collection(self):
         # type: () -> collection.Collection
         return self.db.grading_runs
 
     # Job:
-    #   id (implicit)
+    #   _id (implicit)
     #   created_at
     #   queued_at
     #   started_at

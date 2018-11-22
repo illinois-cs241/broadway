@@ -83,9 +83,9 @@ def make_app(token, db_object):
         (r"/api/v1/grading_run/{}".format(consts.ID_REGEX), handlers.GradingRunHandler),
         # ----------------------------------
 
-        # -----Grader Endpoints--------
+        # --------Grader Endpoints-----------
         # GET to register node and get worked ID
-        (r"/api/v1/worker_register", handlers.WorkerRegisterHandler),
+        (r"/api/v1/grader_register", handlers.WorkerRegisterHandler),
 
         # GET to get a grading job
         (r"/api/v1/grading_job", handlers.GetGradingJobHandler),

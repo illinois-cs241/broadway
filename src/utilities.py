@@ -85,8 +85,7 @@ def resolve_env_vars(stage_env_vars, global_env_vars, student_env_vars=None):
             elif var_name in student_env_vars:
                 res_vars.append(get_result_format(var_name, student_env_vars[var_name]))
             else:
-                raise Exception(
-                    "No value provided for environment variable {}".format(var_name))
+                res_vars.append(get_result_format(var_name, stage_env_vars[var_name]))
 
         # if the env var is dependent on another, substitute appropriately
         elif stage_env_vars[var_name][0] == '$':
@@ -96,9 +95,7 @@ def resolve_env_vars(stage_env_vars, global_env_vars, student_env_vars=None):
             elif var_to_sub in student_env_vars:
                 res_vars.append(get_result_format(var_name, student_env_vars[var_to_sub]))
             else:
-                raise Exception(
-                    "Could not substitute environment variable {} using student env vars or global env vars".format(
-                        var_to_sub))
+                res_vars.append(get_result_format(var_name, stage_env_vars[var_name]))
 
         # if the value is independent, just copy it over
         else:

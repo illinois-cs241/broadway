@@ -3,6 +3,7 @@ import json
 import src.constants.api_keys as api_key
 import tests.configs
 from src.config import UNAUTHORIZED_REQUEST_CODE, BAD_REQUEST_CODE
+from src.config import GRADING_JOB_ENDPOINT, GRADING_RUN_ENDPOINT, GRADER_REGISTER_ENDPOINT, HEARTBEAT_ENDPOINT
 from tests.base import BaseTest
 
 
@@ -12,7 +13,7 @@ class TestRegisterGrader(BaseTest):
 
     def test_unauthorized(self):
         response = self.fetch(
-            self.get_url(self.register_grader), method='GET', headers=None, body=None
+            self.get_url(GRADER_REGISTER_ENDPOINT), method='GET', headers=None, body=None
         )
         self.assertEqual(response.code, UNAUTHORIZED_REQUEST_CODE)
 
@@ -20,7 +21,7 @@ class TestRegisterGrader(BaseTest):
 class TestPollGradingJob(BaseTest):
     def test_unauthorized(self):
         response = self.fetch(
-            self.get_url(self.grading_job_endpoint), method='GET', headers=None, body=None
+            self.get_url(GRADING_JOB_ENDPOINT), method='GET', headers=None, body=None
         )
         self.assertEqual(response.code, UNAUTHORIZED_REQUEST_CODE)
 
@@ -28,7 +29,7 @@ class TestPollGradingJob(BaseTest):
         headers = {api_key.AUTH: self.token, api_key.WORKER_ID: '-1'}
 
         response = self.fetch(
-            self.get_url(self.grading_job_endpoint), method='GET', headers=headers, body=None
+            self.get_url(GRADING_JOB_ENDPOINT), method='GET', headers=headers, body=None
         )
         self.assertEqual(response.code, BAD_REQUEST_CODE)
 
@@ -36,7 +37,7 @@ class TestPollGradingJob(BaseTest):
         headers = {api_key.AUTH: self.token, api_key.WORKER_ID: '1234'}
 
         response = self.fetch(
-            self.get_url(self.grading_job_endpoint), method='GET', headers=headers, body=None
+            self.get_url(GRADING_JOB_ENDPOINT), method='GET', headers=headers, body=None
         )
         self.assertEqual(response.code, BAD_REQUEST_CODE)
 
@@ -50,7 +51,7 @@ class TestAddGradingRun(BaseTest):
 
         for invalid_config in tests.configs.invalid_configs:
             response = self.fetch(
-                self.get_url(self.grading_run_endpoint), method='POST', headers=headers,
+                self.get_url(GRADING_RUN_ENDPOINT), method='POST', headers=headers,
                 body=json.dumps(invalid_config)
             )
             self.assertEqual(response.code, BAD_REQUEST_CODE)
@@ -78,7 +79,7 @@ class TestJobPollOrder(BaseTest):
             self.assert_equal_job(student_job.get(api_key.STAGES), tests.configs.valid_jobs[i])
             self.post_job_result(worker_id, student_job.get(api_key.JOB_ID))
 
-        # post processing
+        # post processing job
         post_processing_job = self.poll_job(worker_id)
         self.assert_equal_job(post_processing_job.get(api_key.STAGES), tests.configs.valid_jobs[-1])
         self.assertIn(api_key.STUDENTS, post_processing_job)

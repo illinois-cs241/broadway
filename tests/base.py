@@ -5,6 +5,7 @@ from tornado.testing import AsyncHTTPTestCase
 import src.constants.api_keys as api_key
 import tests.configs
 from src.api import make_app
+from src.config import OK_REQUEST_CODE, GRADING_JOB_ENDPOINT, GRADER_REGISTER_ENDPOINT, GRADING_RUN_ENDPOINT
 from src.database import DatabaseResolver
 
 MOCK_TOKEN = "testing"
@@ -13,9 +14,6 @@ MOCK_TOKEN = "testing"
 class BaseTest(AsyncHTTPTestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.register_grader = "/api/v1/grader_register"
-        self.grading_job_endpoint = "/api/v1/grading_job"
-        self.grading_run_endpoint = "/api/v1/grading_run"
         self.token = MOCK_TOKEN
 
     def get_app(self):
@@ -31,8 +29,8 @@ class BaseTest(AsyncHTTPTestCase):
         headers = {api_key.AUTH: self.token}
 
         response = self.fetch(
-            self.get_url(self.register_grader), method='GET', headers=headers, body=None)
-        self.assertEqual(response.code, 200)
+            self.get_url(GRADER_REGISTER_ENDPOINT), method='GET', headers=headers, body=None)
+        self.assertEqual(response.code, OK_REQUEST_CODE)
         response_body = json.loads(response.body)
         self.assertIn(api_key.WORKER_ID, response_body["data"])
         return response_body["data"].get(api_key.WORKER_ID)
@@ -40,10 +38,10 @@ class BaseTest(AsyncHTTPTestCase):
     def add_grading_run(self):
         headers = {api_key.AUTH: self.token}
         response = self.fetch(
-            self.get_url(self.grading_run_endpoint), method='POST', headers=headers,
+            self.get_url(GRADING_RUN_ENDPOINT), method='POST', headers=headers,
             body=json.dumps(tests.configs.valid_config)
         )
-        self.assertEqual(response.code, 200)
+        self.assertEqual(response.code, OK_REQUEST_CODE)
         response_body = json.loads(response.body)
         self.assertIn(api_key.RUN_ID, response_body["data"])
         return response_body["data"].get(api_key.RUN_ID)
@@ -51,21 +49,30 @@ class BaseTest(AsyncHTTPTestCase):
     def start_run(self, run_id):
         headers = {api_key.AUTH: self.token}
         response = self.fetch(
-            self.get_url("{}/{}".format(self.grading_run_endpoint, run_id)), method='POST', headers=headers, body=""
+            self.get_url("{}/{}".format(GRADING_RUN_ENDPOINT, run_id)), method='POST', headers=headers, body=""
         )
-        self.assertEqual(response.code, 200)
+        self.assertEqual(response.code, OK_REQUEST_CODE)
 
     def poll_job(self, worker_id):
         headers = {api_key.AUTH: self.token, api_key.WORKER_ID: worker_id}
 
         response = self.fetch(
-            self.get_url(self.grading_job_endpoint), method='GET', headers=headers, body=None
+            self.get_url(GRADING_JOB_ENDPOINT), method='GET', headers=headers, body=None
         )
-        self.assertEqual(response.code, 200)
+        self.assertEqual(response.code, OK_REQUEST_CODE)
         response_body = json.loads(response.body)
         self.assertIn(api_key.JOB_ID, response_body["data"])
         self.assertIn(api_key.STAGES, response_body["data"])
         return response_body["data"]
+
+    def post_job_result(self, worker_id, job_id):
+        headers = {api_key.AUTH: self.token, api_key.WORKER_ID: worker_id}
+        body = {api_key.SUCCESS: True, api_key.INFO: "lol"}
+        response = self.fetch(
+            self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, job_id)), method='POST', headers=headers,
+            body=json.dumps(body)
+        )
+        self.assertEqual(response.code, OK_REQUEST_CODE)
 
     def assert_equal_job(self, actual_job, expected_job):
         self.assertEqual(type(actual_job), list)
@@ -85,12 +92,3 @@ class BaseTest(AsyncHTTPTestCase):
                 self.assertEqual(sorted(actual_stage.get(key)), sorted(expected_stage.get(key)))
             else:
                 self.assertEqual(actual_stage.get(key), expected_stage.get(key))
-
-    def post_job_result(self, worker_id, job_id):
-        headers = {api_key.AUTH: self.token, api_key.WORKER_ID: worker_id}
-        body = {api_key.SUCCESS: True, api_key.INFO: "lol"}
-        response = self.fetch(
-            self.get_url("{}/{}".format(self.grading_job_endpoint, job_id)), method='POST', headers=headers,
-            body=json.dumps(body)
-        )
-        self.assertEqual(response.code, 200)

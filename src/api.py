@@ -12,6 +12,7 @@ import src.constants.db_keys as db_key
 import src.handlers as handlers
 from src.auth import initialize_token
 from src.config import PORT, HEARTBEAT_INTERVAL
+from src.config import GRADER_REGISTER_ENDPOINT, GRADING_JOB_ENDPOINT, GRADING_RUN_ENDPOINT, HEARTBEAT_ENDPOINT
 from src.database import DatabaseResolver
 from src.utilities import get_time, get_string_from_time
 
@@ -76,25 +77,25 @@ def make_app(token, db_object):
     return tornado.web.Application([
         # ---------Client Endpoints---------
         # POST to add grading run
-        (r"/api/v1/grading_run", handlers.AddGradingRunHandler),
+        (GRADING_RUN_ENDPOINT, handlers.AddGradingRunHandler),
 
         # POST to start grading run.
         # GET to get statuses of all jobs
-        (r"/api/v1/grading_run/{}".format(consts.ID_REGEX), handlers.GradingRunHandler),
+        (r"{}/{}".format(GRADING_RUN_ENDPOINT, consts.ID_REGEX), handlers.GradingRunHandler),
         # ----------------------------------
 
         # --------Grader Endpoints-----------
         # GET to register node and get worked ID
-        (r"/api/v1/grader_register", handlers.WorkerRegisterHandler),
+        (GRADER_REGISTER_ENDPOINT, handlers.WorkerRegisterHandler),
 
         # GET to get a grading job
-        (r"/api/v1/grading_job", handlers.GetGradingJobHandler),
+        (GRADING_JOB_ENDPOINT, handlers.GetGradingJobHandler),
 
         # POST to update status of job
-        (r"/api/v1/grading_job/{}".format(consts.ID_REGEX), handlers.UpdateGradingJobHandler),
+        (r"{}/{}".format(GRADING_JOB_ENDPOINT, consts.ID_REGEX), handlers.UpdateGradingJobHandler),
 
         # POST to register heartbeat
-        (r"/api/v1/heartbeat", handlers.HeartBeatHandler),
+        (HEARTBEAT_ENDPOINT, handlers.HeartBeatHandler),
         # ----------------------------------
     ], **settings)
 

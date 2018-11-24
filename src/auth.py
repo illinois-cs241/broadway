@@ -4,11 +4,10 @@ import uuid
 
 from bson import ObjectId
 
-from src.config import UNAUTHORIZED_REQUEST_CODE, BAD_REQUEST_CODE
 import src.constants.api_keys as api_key
-import src.constants.constants as consts
-import src.handlers
 import src.database
+import src.handlers
+from src.config import UNAUTHORIZED_REQUEST_CODE, BAD_REQUEST_CODE
 
 logger = logging.getLogger()
 

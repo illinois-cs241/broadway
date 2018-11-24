@@ -38,6 +38,7 @@ class DatabaseResolver(object):
     #   student_job_ids = [id,...]
     #   pre_processing_job_id  (if exists)
     #   post_processing_job_id  (if exists)
+    #   success
     def get_grading_run_collection(self):
         # type: () -> collection.Collection
         return self.db.grading_runs
@@ -48,7 +49,8 @@ class DatabaseResolver(object):
     #   queued_at
     #   started_at
     #   finished_at
-    #   result
+    #   info
+    #   success
     #   grading_run_id
     #   stages = [stage1, stage2, ...] with all environment variables expanded
     def get_grading_job_collection(self):

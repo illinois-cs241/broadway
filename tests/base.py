@@ -14,7 +14,7 @@ class BaseTest(AsyncHTTPTestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.register_grader = "/api/v1/grader_register"
-        self.get_job_endpoint = "/api/v1/grading_job"
+        self.grading_job_endpoint = "/api/v1/grading_job"
         self.grading_run_endpoint = "/api/v1/grading_run"
         self.token = MOCK_TOKEN
 
@@ -59,7 +59,7 @@ class BaseTest(AsyncHTTPTestCase):
         headers = {api_key.AUTH: self.token, api_key.WORKER_ID: worker_id}
 
         response = self.fetch(
-            self.get_url(self.get_job_endpoint), method='GET', headers=headers, body=None
+            self.get_url(self.grading_job_endpoint), method='GET', headers=headers, body=None
         )
         self.assertEqual(response.code, 200)
         response_body = json.loads(response.body)
@@ -85,3 +85,12 @@ class BaseTest(AsyncHTTPTestCase):
                 self.assertEqual(sorted(actual_stage.get(key)), sorted(expected_stage.get(key)))
             else:
                 self.assertEqual(actual_stage.get(key), expected_stage.get(key))
+
+    def post_job_result(self, worker_id, job_id):
+        headers = {api_key.AUTH: self.token, api_key.WORKER_ID: worker_id}
+        body = {api_key.SUCCESS: True, api_key.INFO: "lol"}
+        response = self.fetch(
+            self.get_url("{}/{}".format(self.grading_job_endpoint, job_id)), method='POST', headers=headers,
+            body=json.dumps(body)
+        )
+        self.assertEqual(response.code, 200)

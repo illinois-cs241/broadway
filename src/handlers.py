@@ -326,9 +326,10 @@ class UpdateGradingJobHandler(BaseAPIHandler):
         assert db_key.QUEUED in job
         assert db_key.STARTED in job
         assert db_key.FINISHED not in job
+        job_succeeded = self.body.get(api_key.SUCCESS)
         jobs_collection.update_one({db_key.ID: ObjectId(id_)}, {
             "$set": {db_key.FINISHED: get_time(), db_key.INFO: self.body.get(api_key.INFO),
-                     db_key.SUCCESS: self.body.get(api_key.SUCCESS)}})
+                     db_key.SUCCESS: job_succeeded}})
 
         # update worker node: remove this job from its currently running jobs
         worker_id = self.request.headers.get(api_key.WORKER_ID)
@@ -348,12 +349,18 @@ class UpdateGradingJobHandler(BaseAPIHandler):
 
         if grading_run.get(db_key.PRE_PROCESSING, "") == id_:
             # pre processing job finished
-            self.enqueue_student_jobs(grading_run)
+            if job_succeeded:
+                self.enqueue_student_jobs(grading_run)
+            else:
+                grading_run_collection.update_one({db_key.ID: ObjectId(grading_run_id)},
+                                                  {"$set": {db_key.SUCCESS: False, db_key.FINISHED: get_time()}})
+
         elif grading_run.get(db_key.POST_PROCESSING, "") == id_:
             # post processing job finished so the grading run is over
             assert grading_run.get(db_key.STUDENT_JOBS_LEFT) == 0
             grading_run_collection.update_one({db_key.ID: ObjectId(grading_run_id)},
-                                              {"$set": {db_key.FINISHED: get_time()}})
+                                              {"$set": {db_key.SUCCESS: job_succeeded, db_key.FINISHED: get_time()}})
+
         else:
             # a student's job finished
             assert grading_run.get(db_key.STUDENT_JOBS_LEFT) > 0
@@ -363,10 +370,10 @@ class UpdateGradingJobHandler(BaseAPIHandler):
             if grading_run[db_key.STUDENT_JOBS_LEFT] == 1:
                 # this was the last student job which finished so if post processing exists then schedule it
                 if db_key.POST_PROCESSING in grading_run:
-                    grading_run_collection.update_one({db_key.ID: ObjectId(grading_run_id)},
-                                                      {"$set": {db_key.FINISHED: get_time()}})
+                    self.enqueue_job(grading_run.get(db_key.POST_PROCESSING), grading_run.get(db_key.STUDENTS))
                 else:
-                    self.enqueue_job(grading_run.get(db_key.PRE_PROCESSING), grading_run.get(db_key.STUDENTS))
+                    grading_run_collection.update_one({db_key.ID: ObjectId(grading_run_id)},
+                                                      {"$set": {db_key.SUCCESS: True, db_key.FINISHED: get_time()}})
 
         job_update_lock.release()
 

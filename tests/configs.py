@@ -104,14 +104,14 @@ valid_jobs = [
             api_key.IMAGE: "alpine:3.5",
             api_key.HOST_NAME: "step 2",
             api_key.ENV: [
-                "NETID=ayushr2", "extra=stuff", "TEST=testing"
+                "NETID=waf", "extra=stuff", "TEST=testing"
             ]
         },
         {
             api_key.IMAGE: "alpine:3.5",
             api_key.NETWORKING: True,
             api_key.ENV: [
-                "NETID=ayushr2", "extra=stuff", "TEST=testing", "var=val"
+                "NETID=waf", "extra=stuff", "TEST=testing", "var=val"
             ]
         }
     ],

@@ -27,7 +27,7 @@ def initialize_token():
 def authenticate(func):
     def wrapper(*args, **kwargs):
         self = args[0]  # type: src.handlers.BaseAPIHandler
-        token = self.settings.get(consts.APP_TOKEN)
+        token = self.get_cluster_token()
         request_token = self.request.headers.get(api_key.AUTH)
 
         if (request_token is None) or (token != request_token):

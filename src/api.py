@@ -1,6 +1,7 @@
 import logging
 import os
 import signal
+from queue import Queue
 
 import tornado
 import tornado.ioloop
@@ -12,8 +13,7 @@ import src.handlers as handlers
 from src.auth import initialize_token
 from src.config import PORT, HEARTBEAT_INTERVAL
 from src.database import DatabaseResolver
-from src.utilities import get_time, get_string_from_time, get_time_from_string
-from queue import Queue
+from src.utilities import get_time, get_string_from_time
 
 # setting up logger
 os.makedirs(consts.LOGS_DIR, exist_ok=True)
@@ -58,7 +58,7 @@ def heartbeat_validator():
 
     cur_time = get_time()
     for worker_node in worker_nodes_collection.find():  # type: dict
-        last_seen_time = get_time_from_string(worker_node.get(db_key.LAST_SEEN))
+        last_seen_time = worker_node.get(db_key.LAST_SEEN)
 
         # the worker node dead if it does not send a heartbeat for 2 intervals
         if (cur_time - last_seen_time).total_seconds() >= 2 * HEARTBEAT_INTERVAL:
@@ -67,7 +67,7 @@ def heartbeat_validator():
 
 
 def make_app(token, db_object):
-    kwargs = {
+    settings = {
         consts.APP_TOKEN: token,
         consts.APP_DB: db_object,
         consts.APP_QUEUE: Queue()
@@ -96,7 +96,7 @@ def make_app(token, db_object):
         # POST to register heartbeat
         (r"/api/v1/heartbeat", handlers.HeartBeatHandler),
         # ----------------------------------
-    ], **kwargs)
+    ], **settings)
 
 
 if __name__ == "__main__":

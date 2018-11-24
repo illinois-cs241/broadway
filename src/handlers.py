@@ -1,5 +1,6 @@
 import logging
 from queue import Queue
+from threading import Lock
 
 import tornado.ioloop
 from bson import ObjectId
@@ -13,9 +14,10 @@ import src.constants.db_keys as db_key
 from src.auth import authenticate, authenticate_worker, validate_id
 from src.config import BAD_REQUEST_CODE, HEARTBEAT_INTERVAL, QUEUE_EMPTY_CODE, JOB_POLL_TIMEOUT
 from src.database import DatabaseResolver
-from src.utilities import get_string_from_time, get_time, resolve_env_vars
+from src.utilities import get_time, resolve_env_vars
 
 logger = logging.getLogger()
+job_update_lock = Lock()
 
 # constants
 grading_stage_def = {
@@ -32,15 +34,41 @@ grading_stage_def = {
     "additionalProperties": False
 }
 
+job_stage_def = {
+    "type": "object",
+    "properties": {
+        api_key.IMAGE: {"type": "string"},
+        api_key.ENV: {"type": "array", "items": {"type": "string"}},
+        api_key.ENTRY_POINT: {"type": "array", "items": {"type": "string"}},
+        api_key.NETWORKING: {"type": "boolean"},
+        api_key.HOST_NAME: {"type": "string"},
+        api_key.TIMEOUT: {"type": "number"}
+    },
+    "required": [api_key.IMAGE],
+    "additionalProperties": False
+}
+
 
 class BaseAPIHandler(APIHandler):
     def abort(self, data, status):
         self.set_status(status)
         self.fail(data)
 
+    def get_db(self):
+        # type: () -> DatabaseResolver
+        return self.settings.get(consts.APP_DB)
+
+    def get_queue(self):
+        # type: () -> Queue
+        return self.settings.get(consts.APP_QUEUE)
+
+    def get_cluster_token(self):
+        # type: () -> str
+        return self.settings.get(consts.APP_TOKEN)
+
     @validate_id
     def get_worker_node(self, id_):
-        db_resolver = self.settings.get(consts.APP_DB)  # type: DatabaseResolver
+        db_resolver = self.get_db()
         worker_node = db_resolver.get_worker_node_collection().find_one({db_key.ID: ObjectId(id_)})
         if worker_node is None:
             self.abort({"message": "Worker node with id {} does not exist".format(id_)}, BAD_REQUEST_CODE)
@@ -49,7 +77,7 @@ class BaseAPIHandler(APIHandler):
 
     @validate_id
     def get_grading_run(self, id_):
-        db_resolver = self.settings.get(consts.APP_DB)  # type: DatabaseResolver
+        db_resolver = self.get_db()
         grading_run = db_resolver.get_grading_run_collection().find_one({db_key.ID: ObjectId(id_)})
         if grading_run is None:
             self.abort({"message": "Grading run with id {} does not exist".format(id_)}, BAD_REQUEST_CODE)
@@ -58,12 +86,30 @@ class BaseAPIHandler(APIHandler):
 
     @validate_id
     def get_grading_job(self, id_):
-        db_resolver = self.settings.get(consts.APP_DB)  # type: DatabaseResolver
+        db_resolver = self.get_db()
         grading_job = db_resolver.get_grading_job_collection().find_one({db_key.ID: ObjectId(id_)})
         if grading_job is None:
             self.abort({"message": "Grading job with id {} does not exist".format(id_)}, BAD_REQUEST_CODE)
         else:
             return grading_job
+
+    def enqueue_job(self, job_id, students=None):
+        db_resolver = self.get_db()
+        job_queue = self.get_queue()
+
+        jobs_collection = db_resolver.get_grading_job_collection()
+        job = self.get_grading_job(job_id)
+
+        cur_job = {api_key.STAGES: job[db_key.STAGES], api_key.JOB_ID: job_id}
+        if students is not None:
+            cur_job[api_key.STUDENTS] = students
+
+        job_queue.put(cur_job)
+        jobs_collection.update_one({db_key.ID: ObjectId(job_id)}, {"$set": {db_key.QUEUED: get_time()}})
+
+    def enqueue_student_jobs(self, grading_run):
+        for student_job_id in grading_run.get(db_key.STUDENT_JOBS):
+            self.enqueue_job(student_job_id)
 
 
 class AddGradingRunHandler(BaseAPIHandler):
@@ -80,23 +126,19 @@ class AddGradingRunHandler(BaseAPIHandler):
     @authenticate
     @schema.validate(
         input_schema={
-            "definitions": {
-                "stage": grading_stage_def
-            },
-
             "type": "object",
             "properties": {
                 api_key.PRE_PROCESSING_PIPELINE: {
                     "type": "array",
-                    "items": {"$ref": "#/definitions/stage"},
+                    "items": grading_stage_def,
                 },
                 api_key.STUDENT_PIPELINE: {
                     "type": "array",
-                    "items": {"$ref": "#/definitions/stage"},
+                    "items": grading_stage_def,
                 },
                 api_key.POST_PROCESSING_PIPELINE: {
                     "type": "array",
-                    "items": {"$ref": "#/definitions/stage"},
+                    "items": grading_stage_def,
                 },
                 api_key.STUDENTS: {
                     "type": "array",
@@ -118,7 +160,7 @@ class AddGradingRunHandler(BaseAPIHandler):
     )
     def post(self):
         # create grading run in DB
-        db_handler = self.settings.get(consts.APP_DB)  # type: DatabaseResolver
+        db_handler = self.get_db()
         grading_runs_collection = db_handler.get_grading_run_collection()
 
         grading_run = {db_key.CREATED: get_time(), db_key.STUDENTS: self.body.get(api_key.STUDENTS)}
@@ -151,7 +193,7 @@ class AddGradingRunHandler(BaseAPIHandler):
                                    db_key.STAGES: self.create_job(api_key.POST_PROCESSING_PIPELINE)}
             post_processing_job_id = str(jobs_collection.insert_one(post_processing_job).inserted_id)
             grading_runs_collection.update_one({db_key.ID: ObjectId(grading_run_id)},
-                                               {"$set": {db_key.PRE_PROCESSING: post_processing_job_id}})
+                                               {"$set": {db_key.POST_PROCESSING: post_processing_job_id}})
 
         # return the run id to user
         return {api_key.RUN_ID: grading_run_id}
@@ -160,7 +202,24 @@ class AddGradingRunHandler(BaseAPIHandler):
 class GradingRunHandler(BaseAPIHandler):
     @authenticate
     def post(self, id_):
-        pass
+        db_handler = self.get_db()
+        grading_runs_collection = db_handler.get_grading_run_collection()
+        grading_run = self.get_grading_run(id_)
+
+        # check to see if grading run has already started
+        if db_key.STARTED in grading_run:
+            self.abort({"message": "Grading Run with id {} has already been queued in the past".format(id_)},
+                       BAD_REQUEST_CODE)
+            return
+
+        # update grading run that it has started
+        grading_runs_collection.update_one({db_key.ID: ObjectId(id_)}, {"$set": {db_key.STARTED: get_time()}})
+
+        # enqueue jobs
+        if db_key.PRE_PROCESSING in grading_run:
+            self.enqueue_job(grading_run.get(db_key.PRE_PROCESSING), grading_run.get(db_key.STUDENTS))
+        else:
+            self.enqueue_student_jobs(grading_run)
 
     # TODO when building a web app around this
     @authenticate
@@ -182,10 +241,10 @@ class WorkerRegisterHandler(BaseAPIHandler):
         }
     )
     def get(self):
-        db_resolver = self.settings.get(consts.APP_DB)  # type: DatabaseResolver
+        db_resolver = self.get_db()
         worker_nodes_collection = db_resolver.get_worker_node_collection()
 
-        worker_node = {db_key.LAST_SEEN: get_string_from_time(), db_key.RUNNING_JOBS: {}}
+        worker_node = {db_key.LAST_SEEN: get_time(), db_key.RUNNING_JOBS: {}}
         worker_id = str(worker_nodes_collection.insert_one(worker_node).inserted_id)
         logging.info("Worker {} joined".format(worker_id))
 
@@ -193,34 +252,30 @@ class WorkerRegisterHandler(BaseAPIHandler):
 
 
 class GetGradingJobHandler(BaseAPIHandler):
-    @gen.coroutine
     @authenticate
     @authenticate_worker
     @schema.validate(
         output_schema={
-            "definitions": {
-                "stage": grading_stage_def
-            },
-
             "type": "object",
             "properties": {
                 api_key.JOB_ID: {"type": "string"},
-                api_key.STAGE: {
+                api_key.STAGES: {
                     "type": "array",
-                    "items": {"$ref": "#/definitions/stage"},
+                    "items": job_stage_def,
                 },
                 api_key.STUDENTS: {
                     "type": "array",
                     "items": {"type": "object"},
                 }
             },
-            "required": [api_key.JOB_ID, api_key.STAGE],
+            "required": [api_key.JOB_ID, api_key.STAGES],
             "additionalProperties": False
         }
     )
+    @gen.coroutine
     def get(self):
-        db_resolver = self.settings.get(consts.APP_DB)  # type: DatabaseResolver
-        job_queue = self.settings.get(consts.APP_QUEUE)  # type: Queue
+        db_resolver = self.get_db()
+        job_queue = self.get_queue()
         worker_id = self.request.headers.get(api_key.WORKER_ID)
 
         try:
@@ -234,7 +289,7 @@ class GetGradingJobHandler(BaseAPIHandler):
                                                                 {"$set": {db_key.STARTED: get_time()}})
 
             db_resolver.get_worker_node_collection().update_one({db_key.ID: ObjectId(worker_id)}, {
-                "$set": {"{}:{}".format(db_key.RUNNING_JOBS, job_id): True}})
+                "$set": {"{}.{}".format(db_key.RUNNING_JOBS, job_id): True}})
 
             return job
         except Exception as e:
@@ -248,30 +303,81 @@ class UpdateGradingJobHandler(BaseAPIHandler):
         input_schema={
             "type": "object",
             "properties": {
-                "worker_id": {"type": "string"},
-                "success": {"type": "boolean"},
-                "info": {"type": "string"}
+                api_key.SUCCESS: {"type": "boolean"},
+                api_key.INFO: {"type": "string"}
             },
-            "required": ["worker_id", "success", "info"],
+            "required": [api_key.SUCCESS, api_key.INFO],
             "additionalProperties": False
         }
     )
     def post(self, id_):
-        pass
+        db_handler = self.get_db()
+        worker_nodes_collection = db_handler.get_worker_node_collection()
+        jobs_collection = db_handler.get_grading_job_collection()
+        grading_run_collection = db_handler.get_grading_run_collection()
+
+        # check if the job exists
+        job = self.get_grading_job(id_)
+        if job is None:
+            return
+
+        # update job: finished_at and result
+        assert db_key.CREATED in job
+        assert db_key.QUEUED in job
+        assert db_key.STARTED in job
+        assert db_key.FINISHED not in job
+        jobs_collection.update_one({db_key.ID: ObjectId(id_)}, {
+            "$set": {db_key.FINISHED: get_time(), db_key.INFO: self.body.get(api_key.INFO),
+                     db_key.SUCCESS: self.body.get(api_key.SUCCESS)}})
+
+        # update worker node: remove this job from its currently running jobs
+        worker_id = self.request.headers.get(api_key.WORKER_ID)
+        worker_nodes_collection.update_one({db_key.ID: ObjectId(worker_id)},
+                                           {"$unset": {"{}.{}".format(db_key.RUNNING_JOBS, id_): ""}})
+
+        # update grading run: if last job finished then update finished_at. Update student_jobs_left if student job.
+        # enqueue post processing if all student jobs finished
+        job_update_lock.acquire()
+
+        grading_run_id = job.get(db_key.GRADING_RUN)
+        grading_run = self.get_grading_run(grading_run_id)
+        assert grading_run is not None
+        assert db_key.CREATED in grading_run
+        assert db_key.STARTED in grading_run
+        assert db_key.FINISHED not in grading_run
+
+        if grading_run.get(db_key.PRE_PROCESSING, "") == id_:
+            # pre processing job finished
+            self.enqueue_student_jobs(grading_run)
+        elif grading_run.get(db_key.POST_PROCESSING, "") == id_:
+            # post processing job finished so the grading run is over
+            assert grading_run.get(db_key.STUDENT_JOBS_LEFT) == 0
+            grading_run_collection.update_one({db_key.ID: ObjectId(grading_run_id)},
+                                              {"$set": {db_key.FINISHED: get_time()}})
+        else:
+            # a student's job finished
+            assert grading_run.get(db_key.STUDENT_JOBS_LEFT) > 0
+            grading_run_collection.update_one({db_key.ID: ObjectId(grading_run_id)},
+                                              {"$inc": {db_key.STUDENT_JOBS_LEFT: -1}})
+
+            if grading_run[db_key.STUDENT_JOBS_LEFT] == 1:
+                # this was the last student job which finished so if post processing exists then schedule it
+                if db_key.POST_PROCESSING in grading_run:
+                    grading_run_collection.update_one({db_key.ID: ObjectId(grading_run_id)},
+                                                      {"$set": {db_key.FINISHED: get_time()}})
+                else:
+                    self.enqueue_job(grading_run.get(db_key.PRE_PROCESSING), grading_run.get(db_key.STUDENTS))
+
+        job_update_lock.release()
 
 
 class HeartBeatHandler(BaseAPIHandler):
     @authenticate
     @authenticate_worker
-    @schema.validate(
-        input_schema={
-            "type": "object",
-            "properties": {
-                "worker_id": {"type": "string"}
-            },
-            "required": ["worker_id"],
-            "additionalProperties": False
-        }
-    )
     def post(self, id_):
-        pass
+        db_handler = self.get_db()
+        worker_nodes_collection = db_handler.get_worker_node_collection()
+        worker_id = self.request.headers.get(api_key.WORKER_ID)
+
+        worker_nodes_collection.update_one({db_key.ID: ObjectId(worker_id)}, {"$set": {db_key.LAST_SEEN: get_time()}})
+        logging.info("Heartbeat from {}".format(worker_id))

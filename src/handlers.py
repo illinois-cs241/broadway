@@ -93,6 +93,16 @@ class BaseAPIHandler(APIHandler):
         else:
             return grading_job
 
+    def create_job(self, pipeline_name, student_env_vars=None):
+        cur_job = []
+        for stage in self.body.get(pipeline_name):
+            cur_stage = stage.copy()
+            cur_stage[api_key.ENV] = resolve_env_vars(cur_stage.get(api_key.ENV, {}),
+                                                      self.body.get(api_key.ENV, {}), student_env_vars)
+            cur_job.append(cur_stage)
+
+        return cur_job
+
     def enqueue_job(self, job_id, students=None):
         db_resolver = self.get_db()
         job_queue = self.get_queue()
@@ -113,16 +123,6 @@ class BaseAPIHandler(APIHandler):
 
 
 class AddGradingRunHandler(BaseAPIHandler):
-    def create_job(self, pipeline_name, student_env_vars=None):
-        cur_job = []
-        for stage in self.body.get(pipeline_name):
-            cur_stage = stage.copy()
-            cur_stage[api_key.ENV] = resolve_env_vars(cur_stage.get(api_key.ENV, {}),
-                                                      self.body.get(api_key.ENV, {}), student_env_vars)
-            cur_job.append(cur_stage)
-
-        return cur_job
-
     @authenticate
     @schema.validate(
         input_schema={
@@ -381,7 +381,7 @@ class UpdateGradingJobHandler(BaseAPIHandler):
 class HeartBeatHandler(BaseAPIHandler):
     @authenticate
     @authenticate_worker
-    def post(self, id_):
+    def post(self):
         db_handler = self.get_db()
         worker_nodes_collection = db_handler.get_worker_node_collection()
         worker_id = self.request.headers.get(api_key.WORKER_ID)

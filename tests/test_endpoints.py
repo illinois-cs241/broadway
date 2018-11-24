@@ -2,7 +2,7 @@ import json
 
 import src.constants.api_keys as api_key
 import tests.configs
-from src.config import UNAUTHORIZED_REQUEST_CODE, BAD_REQUEST_CODE
+from src.config import UNAUTHORIZED_REQUEST_CODE, BAD_REQUEST_CODE, OK_REQUEST_CODE
 from src.config import GRADING_JOB_ENDPOINT, GRADING_RUN_ENDPOINT, GRADER_REGISTER_ENDPOINT, HEARTBEAT_ENDPOINT
 from tests.base import BaseTest
 
@@ -85,3 +85,11 @@ class TestJobPollOrder(BaseTest):
         self.assertIn(api_key.STUDENTS, post_processing_job)
         self.assertEqual(post_processing_job.get(api_key.STUDENTS), tests.configs.valid_config.get(api_key.STUDENTS))
         self.post_job_result(worker_id, post_processing_job.get(api_key.JOB_ID))
+
+
+class TestHeartBeat(BaseTest):
+    def test_valid_heartbeat(self):
+        worker_id = self.register_worker()
+        headers = {api_key.AUTH: self.token, api_key.WORKER_ID: worker_id}
+        response = self.fetch(self.get_url(HEARTBEAT_ENDPOINT), method='POST', headers=headers, body='')
+        self.assertEqual(response.code, OK_REQUEST_CODE)

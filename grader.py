@@ -5,7 +5,7 @@ import os
 import sys
 from subprocess import PIPE, Popen
 
-from tornado import httpclient, gen
+from tornado import httpclient, gen, escape
 
 import api_keys as api_key
 from config import GRADER_REGISTER_ENDPOINT, HEARTBEAT_ENDPOINT, GRADING_JOB_ENDPOINT
@@ -71,7 +71,8 @@ def worker_routine():
 
         # we successfully polled a job. execute the job
         job = json.loads(response.body.decode('utf-8')).get('data')
-        logger.info("Starting job {}".format(job.get(api_key.JOB_ID)))
+        job_id = job.get(api_key.JOB_ID)
+        logger.info("Starting job {}".format(job_id))
 
         # execute the job runner with job as json string
         runner_process = Popen(['node', 'src/jobRunner.js', json.dumps(job)], stderr=PIPE)
@@ -80,12 +81,11 @@ def worker_routine():
 
         # send back the results to the server
         http_client = httpclient.AsyncHTTPClient()
-        res_obj = json.loads(res)
+        res_obj = json.loads(escape.to_basestring(res))
         assert api_key.INFO in res_obj
         assert api_key.SUCCESS in res_obj
-        update_request = httpclient.HTTPRequest(get_url(GRADING_JOB_ENDPOINT),
-                                                headers=get_header(sys.argv[1], worker_id), method="POST",
-                                                body=res)
+        update_request = httpclient.HTTPRequest("{}/{}".format(get_url(GRADING_JOB_ENDPOINT), job_id),
+                                                headers=get_header(sys.argv[1], worker_id), method="POST", body=res)
 
         try:
             logger.info("Sending job results")

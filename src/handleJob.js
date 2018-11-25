@@ -44,7 +44,7 @@ module.exports = async function (job) {
     }
 
     // We'll store information about each stage here
-    const results = [];
+    const results = {success: true, info: []};
 
     // Now, run stages in sequence
     for (let i = 0; i < job.stages.length; i++) {
@@ -65,16 +65,17 @@ module.exports = async function (job) {
 
         const options = {
             image: stage.image,
-            entrypoint: stage.entrypoint,
+            entryPoint: stage.entry_point,
             timeout: stage.timeout,
             environment: stageEnv,
             tmpDir: tmpDir.path,
             enableNetworking: stage.enable_networking,
-            hostname: stage.host_name,
+            hostName: stage.host_name,
         };
         const stageResults = await runContainer(docker, options);
-        results.push(stageResults);
+        results.info.push(stageResults);
         if (!stageResults.succeeded) {
+            results.success = false;
             logger.error(`Pipeline stage ${i} failed; aborting job.`);
             break;
         }
@@ -112,12 +113,12 @@ async function pullImage(docker, image) {
 async function runContainer(docker, options) {
     const {
         image,
-        entrypoint,
+        entryPoint,
         timeout,
         environment,
         tmpDir,
         enableNetworking,
-        hostname,
+        hostName,
     } = options;
 
     let results = {
@@ -127,7 +128,7 @@ async function runContainer(docker, options) {
 
     try {
         const container = await docker.createContainer({
-            Hostname: hostname,
+            Hostname: hostName,
             Image: image,
             AttachStdout: true,
             AttachStderr: true,
@@ -147,7 +148,7 @@ async function runContainer(docker, options) {
                 PidsLimit: 1024,
             },
             Env: environment,
-            Cmd: entrypoint,
+            Cmd: entryPoint,
         });
         const stream = await container.attach({
             stream: true,

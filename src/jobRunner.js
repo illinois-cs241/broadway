@@ -6,10 +6,14 @@ const handleJob = require('./handleJob');
     const job = JSON.parse(process.argv[2]);
     const results = await handleJob(job);
     logger.info('Finished with results:');
-    const res_string = JSON.stringify(results, null, 2);
+    const res_string = JSON.stringify(results, null, 4);
     logger.info(res_string);
-    console.error(res_string); // workaround to communicate results to caller process
-
+    var fs = require("fs");
+    fs.writeFile("temp_result.json", res_string, (err) => {
+        if (err) {
+            console.error(err);
+        }
+    });
 })().catch((e) => {
     logger.error(e);
 });

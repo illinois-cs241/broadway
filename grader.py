@@ -76,16 +76,18 @@ def worker_routine():
 
         # execute the job runner with job as json string
         runner_process = Popen(['node', 'src/jobRunner.js', json.dumps(job)], stderr=PIPE)
-        res = runner_process.communicate()[1]  # capture its stderr which holds the results. This blocks.
+        runner_process.wait()
         logger.info("Finished job {}".format(job.get(api_key.JOB_ID)))
+        with open("temp_result.json") as res_file:
+            res = json.load(res_file)
 
         # send back the results to the server
         http_client = httpclient.AsyncHTTPClient()
-        res_obj = json.loads(escape.to_basestring(res))
-        assert api_key.INFO in res_obj
-        assert api_key.SUCCESS in res_obj
+        assert api_key.INFO in res
+        assert api_key.SUCCESS in res
         update_request = httpclient.HTTPRequest("{}/{}".format(get_url(GRADING_JOB_ENDPOINT), job_id),
-                                                headers=get_header(sys.argv[1], worker_id), method="POST", body=res)
+                                                headers=get_header(sys.argv[1], worker_id), method="POST",
+                                                body=json.dumps(res))
 
         try:
             logger.info("Sending job results")

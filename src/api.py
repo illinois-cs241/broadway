@@ -6,6 +6,7 @@ from queue import Queue
 import tornado
 import tornado.ioloop
 import tornado.web
+from bson import ObjectId
 
 import src.constants.constants as consts
 import src.constants.db_keys as db_key
@@ -39,10 +40,14 @@ def signal_handler(sig, frame):
     tornado.ioloop.IOLoop.instance().add_callback_from_signal(shutdown)
 
 
-# TODO
 def handle_lost_worker_node(worker_node, db_resolver):
     # type: (dict, DatabaseResolver) -> None
-    pass
+    logging.critical("Grader {} executing {} went offline unexpectedly".format(str(worker_node.get(db_key.ID)),
+                                                                               worker_node.get(db_key.RUNNING_JOBS)))
+    for job_id in worker_node.get(db_key.RUNNING_JOBS):
+        job = db_resolver.get_grading_job_collection().find_one({db_key.ID: ObjectId(job_id)})
+        db_resolver.get_grading_run_collection().update_one({db_key.ID: ObjectId(job.get(db_key.GRADING_RUN))},
+                                                            {"$inc": {db_key.STUDENT_JOBS_LEFT: -1}})
 
 
 def heartbeat_validator():

@@ -1,27 +1,33 @@
 import json
-import requests
 import sys
 
-HOST = ""
-PORT = ""
+from tornado import httpclient
+
+import src.constants.api_keys as api_key
+from src.config import GRADING_RUN_ENDPOINT
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python start_run_script.py <path to json config>")
+    if len(sys.argv) != 5:
+        print("Usage: python start_run_script.py <HOST> <PORT> <cluster token> <path to json config>")
         exit(-1)
 
-    with open(sys.argv[1]) as f:
+    HOST = sys.argv[1]
+    PORT = sys.argv[2]
+    token = sys.argv[3]
+
+
+    def get_url(endpoint):
+        return "http://{}:{}{}".format(HOST, PORT, endpoint)
+
+
+    with open(sys.argv[4]) as f:
         config = json.load(f)
-        r = requests.post("http://{}:{}/api/v1/grading_run".format(HOST, PORT),
-                          data={'json_payload': json.dumps(config)})
-        if r.status_code != 200:
-            print("Error in uploading config: {}".format(r.text))
-            exit(-1)
-
-        id_ = json.loads(r.text)["id"]
-        r = requests.post("http://{}:{}/api/v1/grading_run/{}".format(HOST, PORT, id_))
-        if r.status_code != 200:
-            print("Error in starting run: {}".format(r.text))
-            exit(-1)
-
+        headers = {api_key.AUTH: token}
+        http_client = httpclient.AsyncHTTPClient()
+        add_request = httpclient.HTTPRequest(get_url(GRADING_RUN_ENDPOINT), method="POST",
+                                             body=json.dumps(config))
+        response = http_client.fetch(add_request)
+        id_ = json.loads(response.body)["data"][api_key.RUN_ID]
+        response = http_client.fetch("{}/{}".format(get_url(GRADING_RUN_ENDPOINT), id_), method='POST', headers=headers,
+                                     body="")
         print("Grading run with id {} started!".format(id_))

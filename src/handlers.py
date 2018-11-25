@@ -293,7 +293,8 @@ class GetGradingJobHandler(BaseAPIHandler):
 
             return job
         except Exception as e:
-            self.abort({'message': 'The queue is empty'}, QUEUE_EMPTY_CODE)
+            self.set_status(QUEUE_EMPTY_CODE)
+            return {api_key.JOB_ID: 'no id', api_key.STAGES: []}
 
 
 class UpdateGradingJobHandler(BaseAPIHandler):

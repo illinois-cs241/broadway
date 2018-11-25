@@ -67,7 +67,7 @@ class BaseTest(AsyncHTTPTestCase):
 
     def post_job_result(self, worker_id, job_id):
         headers = {api_key.AUTH: self.token, api_key.WORKER_ID: worker_id}
-        body = {api_key.SUCCESS: True, api_key.INFO: "lol"}
+        body = {api_key.SUCCESS: True, api_key.INFO: [{"res": "container 1 success"}, {"res": "container 2 success"}]}
         response = self.fetch(
             self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, job_id)), method='POST', headers=headers,
             body=json.dumps(body)

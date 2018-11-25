@@ -305,7 +305,10 @@ class UpdateGradingJobHandler(BaseAPIHandler):
             "type": "object",
             "properties": {
                 api_key.SUCCESS: {"type": "boolean"},
-                api_key.INFO: {"type": "string"}
+                api_key.INFO: {
+                    "type": "array",
+                    "items": {"type": "object"},
+                }
             },
             "required": [api_key.SUCCESS, api_key.INFO],
             "additionalProperties": False

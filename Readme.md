@@ -19,7 +19,7 @@ python -m src.api
 ```
 
 ## Starting a Grading Run
-Provided a [simple script](start_run_script.py) to start a grading run. Make sure `HOST` and `PORT` are set correctly. Usage:
+Provided a [simple script](utils/start_run_script.py) to start a grading run. Make sure `HOST` and `PORT` are set correctly. Usage:
 ```shell
 python start_run_script.py <path to valid pipeline json>
 ```
@@ -107,7 +107,7 @@ Returns the JSON string of:
 ```
 
 ### GET api/v1/grading_job
-Used to poll the queue for a job. If the queue is empty, sets the status code to [this](src/settings.py#L5)
+Used to poll the queue for a job. If the queue is empty, sets the status code to [this](src/config.py#L5)
 
 Arguments:
 ```

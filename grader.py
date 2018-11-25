@@ -38,6 +38,7 @@ def heartbeat_routine():
                                                    headers=get_header(sys.argv[1], worker_id), method="POST", body="")
         try:
             yield http_client.fetch(heartbeat_request)
+            logger.info("Send heartbeat")
             yield asyncio.sleep(HEARTBEAT_INTERVAL)
         except httpclient.HTTPClientError as e:
             logger.critical("Heartbeat failed!\nError: {}".format(e.response.body.decode('utf-8')))
@@ -69,12 +70,11 @@ def worker_routine():
         http_client.close()
 
         # we successfully polled a job. execute the job
-        json_payload = response.body.decode('utf-8').get('data')
-        job = json.loads(json_payload)
+        job = json.loads(response.body.decode('utf-8')).get('data')
         logger.info("Starting job {}".format(job.get(api_key.JOB_ID)))
 
         # execute the job runner with job as json string
-        runner_process = Popen(['node', 'src/jobRunner.js', json_payload], stderr=PIPE)
+        runner_process = Popen(['node', 'src/jobRunner.js', json.dumps(job)], stderr=PIPE)
         res = runner_process.communicate()[1]  # capture its stderr which holds the results. This blocks.
         logger.info("Finished job {}".format(job.get(api_key.JOB_ID)))
 
@@ -88,6 +88,7 @@ def worker_routine():
                                                 body=res)
 
         try:
+            logger.info("Sending job results")
             yield http_client.fetch(update_request)
         except httpclient.HTTPClientError as e:
             logger.critical("Bad server response while updating about job status.\nError: {}".format(

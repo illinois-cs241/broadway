@@ -75,8 +75,8 @@ def worker_routine():
         logger.info("Starting job {}".format(job_id))
 
         # execute the job runner with job as json string
-        runner_process = Popen(['node', 'src/jobRunner.js', json.dumps(job)], stderr=PIPE)
-        runner_process.wait()
+        runner_process = Popen(['node', 'src/jobRunner.js', json.dumps(job)])
+        yield asyncio.get_event_loop().run_in_executor(None, lambda: runner_process.wait())
         logger.info("Finished job {}".format(job.get(api_key.JOB_ID)))
         with open("temp_result.json") as res_file:
             res = json.load(res_file)

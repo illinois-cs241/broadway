@@ -8,6 +8,7 @@ const handleJob = require('./handleJob');
     logger.info('Finished with results:');
     const res_string = JSON.stringify(results, null, 4);
     logger.info(res_string);
+    var fs = require("fs");
     fs.writeFile("temp_result.json", res_string, (err) => {
         if (err) {
             console.error(err);

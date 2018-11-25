@@ -35,11 +35,11 @@ class BaseTest(AsyncHTTPTestCase):
         self.assertIn(api_key.WORKER_ID, response_body["data"])
         return response_body["data"].get(api_key.WORKER_ID)
 
-    def add_grading_run(self):
+    def add_grading_run(self, config_obj=tests.configs.valid_config):
         headers = {api_key.AUTH: self.token}
         response = self.fetch(
             self.get_url(GRADING_RUN_ENDPOINT), method='POST', headers=headers,
-            body=json.dumps(tests.configs.valid_config)
+            body=json.dumps(config_obj)
         )
         self.assertEqual(response.code, OK_REQUEST_CODE)
         response_body = json.loads(response.body)

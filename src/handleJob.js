@@ -125,6 +125,7 @@ async function runContainer(docker, options) {
         timedOut: false,
     };
     let jobTimeout = timeout || 30;
+    let startTime = new Date();
 
     try {
         const container = await docker.createContainer({
@@ -190,5 +191,7 @@ async function runContainer(docker, options) {
         results.message = e.toString();
     }
 
+    let endTime = new Date();
+    results.duration = Math.round((endTime - startTime) / 1000);
     return results;
 }

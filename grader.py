@@ -3,9 +3,9 @@ import json
 import logging
 import os
 import sys
-from subprocess import PIPE, Popen
+from subprocess import Popen, PIPE
 
-from tornado import httpclient, gen, escape
+from tornado import httpclient, gen
 
 import api_keys as api_key
 from config import GRADER_REGISTER_ENDPOINT, HEARTBEAT_ENDPOINT, GRADING_JOB_ENDPOINT
@@ -75,8 +75,8 @@ def worker_routine():
         logger.info("Starting job {}".format(job_id))
 
         # execute the job runner with job as json string
-        runner_process = Popen(['node', 'src/jobRunner.js', json.dumps(job)])
-        yield asyncio.get_event_loop().run_in_executor(None, lambda: runner_process.wait())
+        runner_process = Popen(['node', 'src/jobRunner.js', json.dumps(job)], stderr=PIPE, stdout=PIPE)
+        container_stdout, container_stderr = yield asyncio.get_event_loop().run_in_executor(None, lambda: runner_process.communicate())
         logger.info("Finished job {}".format(job.get(api_key.JOB_ID)))
         with open("temp_result.json") as res_file:
             res = json.load(res_file)
@@ -85,6 +85,7 @@ def worker_routine():
         http_client = httpclient.AsyncHTTPClient()
         assert api_key.INFO in res
         assert api_key.SUCCESS in res
+        res[api_key.INFO].append({'stderr': container_stderr, 'stdout': container_stdout})
         update_request = httpclient.HTTPRequest("{}/{}".format(get_url(GRADING_JOB_ENDPOINT), job_id),
                                                 headers=get_header(sys.argv[1], worker_id), method="POST",
                                                 body=json.dumps(res))

@@ -1,7 +1,13 @@
 # Broadway API
 [![Build Status](https://www.travis-ci.com/illinois-cs241/broadway-api.svg?branch=master)](https://www.travis-ci.com/illinois-cs241/broadway-api)
 [![Coverage Status](https://coveralls.io/repos/github/illinois-cs241/broadway-api/badge.svg?branch=master)](https://coveralls.io/github/illinois-cs241/broadway-api?branch=master)
+![License](https://img.shields.io/badge/license-NCSA%2FIllinois-blue.svg)
+![Python Versions](https://img.shields.io/badge/python-3.5%20%7C%203.6-blue.svg)
+[![Maintainability](https://api.codeclimate.com/v1/badges/490d3846207832df47fd/maintainability)](https://codeclimate.com/github/illinois-cs241/broadway-api/maintainability)
+
+Broadway API is a webserver that receives, distributes, and ensures completion of grading job requests.
 ## Running API Server
+
 Requires Python 3.5+ Install the required packages specified in [requirements.txt](requirements.txt) by:
 ```shell
 pip install -r requirements.txt

@@ -5,7 +5,7 @@ import os
 import sys
 from subprocess import Popen, PIPE
 
-from tornado import httpclient, gen
+from tornado import httpclient, gen, escape
 
 import api_keys as api_key
 from config import GRADER_REGISTER_ENDPOINT, HEARTBEAT_ENDPOINT, GRADING_JOB_ENDPOINT
@@ -87,8 +87,8 @@ def worker_routine():
         http_client = httpclient.AsyncHTTPClient()
         assert api_key.INFO in res
         assert api_key.SUCCESS in res
-        res[api_key.INFO]['stdout'] = container_stdout
-        res[api_key.INFO]['stderr'] = container_stderr
+        res[api_key.INFO]['stdout'] = escape.to_basestring(container_stdout)
+        res[api_key.INFO]['stderr'] = escape.to_basestring(container_stderr)
         update_request = httpclient.HTTPRequest("{}/{}".format(get_url(GRADING_JOB_ENDPOINT), job_id),
                                                 headers=get_header(sys.argv[1], worker_id), method="POST",
                                                 body=json.dumps(res))

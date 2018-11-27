@@ -44,7 +44,7 @@ module.exports = async function (job) {
     }
 
     // We'll store information about each stage here
-    const results = {success: true, info: []};
+    const results = {success: true, info: {stageResults: []}};
 
     // Now, run stages in sequence
     for (let i = 0; i < job.stages.length; i++) {
@@ -72,9 +72,9 @@ module.exports = async function (job) {
             enableNetworking: stage.enable_networking,
             hostName: stage.host_name,
         };
-        const stageResults = await runContainer(docker, options);
-        results.info.push(stageResults);
-        if (!stageResults.succeeded) {
+        const stageResult = await runContainer(docker, options);
+        results.info.stageResults.push(stageResult);
+        if (!stageResult.succeeded) {
             results.success = false;
             logger.error(`Pipeline stage ${i} failed; aborting job.`);
             break;

@@ -1,6 +1,7 @@
 API_HOSTNAME = "127.0.0.1"
 API_PORT = "1470"
 LOGS_DIR = "logs"
+GRADING_RUN_RES_FILE = "grading_job_result.json"
 TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
 SUCCESS_CODE = 200
 QUEUE_EMPTY_CODE = 498

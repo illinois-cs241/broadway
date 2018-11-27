@@ -2,6 +2,14 @@
 
 ## Starting Grader Instance
 - Requires Python 3.5+
+- To install virtual env:
+```shell
+sudo apt-get install python-pip
+export LC_ALL="en_US.UTF-8"
+export LC_CTYPE="en_US.UTF-8"
+sudo pip install virtualenv
+virtualenv -p python3 venv
+```
 - Install the required packages specified in [requirements.txt](requirements.txt) by:
 ```shell
 pip install -r requirements.txt
@@ -13,7 +21,8 @@ pip install -r requirements.txt
 ```shell
 npm install
 ```
-- Make sure `SERVER_HOSTNAME` is pointing to the [API](https://github.com/illinois-cs241/broadway-api). Start the [grader](grader.py) by:
+- Make sure `API_HOST` and `API_PORT` in the [config file](config.py) is pointing to the [API](https://github.com/illinois-cs241/broadway-api). Start the [grader](grader.py) using:
 ```shell
-sudo python grader.py <cluster token>
+nohup sudo venv/bin/python grader.py <cluster token> &
 ```
+Note that under `sudo` the python interpreter path changes to `/usr/bin/python` even when inside a virtual environment. So the above command is required.

@@ -1,6 +1,6 @@
 PORT = 1470
 HEARTBEAT_INTERVAL = 10
-JOB_POLL_TIMEOUT = 18
+JOB_POLL_TIMEOUT = 15
 DB_PATH = "/tmp/mongo/data"
 
 # request codes

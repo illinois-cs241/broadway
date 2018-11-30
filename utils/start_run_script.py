@@ -7,7 +7,7 @@ PORT = ""
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print("Usage: python start_run_script.py <path to json config> <token>")
+        print("Usage: python start_run_script.py <path to config json> <token>")
         exit(-1)
     token = sys.argv[2]
     with open(sys.argv[1]) as f:

@@ -48,6 +48,7 @@ def handle_lost_worker_node(worker_node, db_resolver):
         job = db_resolver.get_grading_job_collection().find_one({db_key.ID: ObjectId(job_id)})
         db_resolver.get_grading_run_collection().update_one({db_key.ID: ObjectId(job.get(db_key.GRADING_RUN))},
                                                             {"$inc": {db_key.STUDENT_JOBS_LEFT: -1}})
+        # TODO what if this was the last student job? Post processing might need to be scheduled
 
 
 def heartbeat_validator():

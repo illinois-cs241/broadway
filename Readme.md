@@ -148,7 +148,7 @@ Starts the grading run of the given id. Queues pre-processing job if it exists o
 These endpoints are only meant for worker nodes ([Graders](https://github.com/illinois-cs241/broadway-grader)) in the cluster.
 
 ### Auth
-All grader request headers should have the format (except register endpoint which does not require worker id since you only get the worker id after registration). Describes a two layer authentication since workers both the cluster token and a worker ID which is an [ObjectId](https://docs.mongodb.com/manual/reference/method/ObjectId/).
+All grader request headers should have the format (except register endpoint which does not require worker id since you only get the worker id after registration). Describes a two layer authentication since workers need both the cluster token and a worker ID which is an [ObjectId](https://docs.mongodb.com/manual/reference/method/ObjectId/).
 ```
 {
     'Authorization': <cluster token>,
@@ -171,7 +171,7 @@ This endpoint is used by workers to register themselves into the cluster and get
 ```
 
 ### GET api/v1/grading_job
-Used to poll the queue for a job. If the queue is empty, sets the status code to [this](src/config.py#L5)
+Used to poll the queue for a job. If the queue is empty, sets the status code to `QUEUE_EMPTY_CODE` mentioned in the [config file](src/config.py).
 
 **Returns** - JSON string if successful in polling the queue:
 ```

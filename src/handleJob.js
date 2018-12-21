@@ -44,7 +44,7 @@ module.exports = async function (job) {
     }
 
     // We'll store information about each stage here
-    const results = {success: true, info: {stageResults: []}};
+    const jobResult = {success: true, results: []};
 
     // Now, run stages in sequence
     for (let i = 0; i < job.stages.length; i++) {
@@ -73,9 +73,9 @@ module.exports = async function (job) {
             hostName: stage.host_name,
         };
         const stageResult = await runContainer(docker, options);
-        results.info.stageResults.push(stageResult);
+        jobResult.results.push(stageResult);
         if (!stageResult.succeeded) {
-            results.success = false;
+            jobResult.success = false;
             logger.error(`Pipeline stage ${i} failed; aborting job.`);
             break;
         }
@@ -83,7 +83,7 @@ module.exports = async function (job) {
 
     await tmpDir.cleanup();
 
-    return results;
+    return jobResult;
 };
 
 async function pullImage(docker, image) {

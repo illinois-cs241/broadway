@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import signal
@@ -6,14 +7,15 @@ from queue import Queue
 import tornado
 import tornado.ioloop
 import tornado.web
-from bson import ObjectId
+from tornado import httpclient
 
 import src.constants.constants as consts
 import src.constants.db_keys as db_key
+import src.constants.api_keys as api_key
 import src.handlers as handlers
 from src.auth import initialize_token
-from src.config import PORT, HEARTBEAT_INTERVAL
 from src.config import GRADER_REGISTER_ENDPOINT, GRADING_JOB_ENDPOINT, GRADING_RUN_ENDPOINT, HEARTBEAT_ENDPOINT
+from src.config import PORT, HEARTBEAT_INTERVAL
 from src.database import DatabaseResolver
 from src.utilities import get_time, get_string_from_time
 
@@ -30,7 +32,6 @@ logger = logging.getLogger()
 
 
 def shutdown():
-    # TODO notify all blocking calls that API is shutting down
     tornado.ioloop.IOLoop.current().stop()
     db_resolver = app.settings.get(consts.APP_DB)  # type: DatabaseResolver
     db_resolver.shutdown()
@@ -40,15 +41,21 @@ def signal_handler(sig, frame):
     tornado.ioloop.IOLoop.instance().add_callback_from_signal(shutdown)
 
 
-def handle_lost_worker_node(worker_node, db_resolver):
-    # type: (dict, DatabaseResolver) -> None
-    logging.critical("Grader {} executing {} went offline unexpectedly".format(str(worker_node.get(db_key.ID)),
-                                                                               worker_node.get(db_key.RUNNING_JOBS)))
-    for job_id in worker_node.get(db_key.RUNNING_JOBS):
-        job = db_resolver.get_grading_job_collection().find_one({db_key.ID: ObjectId(job_id)})
-        db_resolver.get_grading_run_collection().update_one({db_key.ID: ObjectId(job.get(db_key.GRADING_RUN))},
-                                                            {"$inc": {db_key.STUDENT_JOBS_LEFT: -1}})
-        # TODO what if this was the last student job? Post processing might need to be scheduled
+def handle_lost_worker_node(worker_node):
+    running_job_id = worker_node.get(db_key.RUNNING_JOB)
+    worker_id = str(worker_node.get(db_key.ID))
+    logging.critical("Grader {} executing {} went offline unexpectedly".format(worker_id, running_job_id))
+
+    if running_job_id is None:
+        return
+
+    res = {api_key.SUCCESS: False, api_key.RESULTS: [{"result": "Grader died while executing this job"}],
+           api_key.LOGS: {"logs": "No logs available for this job since the grader died while executing this job"}}
+    update_request = httpclient.HTTPRequest(
+        "http://localhost:{}{}/{}".format(PORT, GRADING_JOB_ENDPOINT, running_job_id),
+        headers={api_key.AUTH: cluster_token, api_key.WORKER_ID: worker_id},
+        method="POST", body=json.dumps(res))
+    handlers.UpdateGradingJobHandler(app, update_request).post(running_job_id)
 
 
 def heartbeat_validator():
@@ -69,7 +76,7 @@ def heartbeat_validator():
 
         # the worker node dead if it does not send a heartbeat for 2 intervals
         if (cur_time - last_seen_time).total_seconds() >= 2 * HEARTBEAT_INTERVAL:
-            handle_lost_worker_node(worker_node, db_resolver)
+            handle_lost_worker_node(worker_node)
             worker_nodes_collection.delete_one({db_key.ID: worker_node.get(db_key.ID)})
 
 
@@ -108,7 +115,8 @@ def make_app(token, db_object):
 
 if __name__ == "__main__":
     logger.info("initializing application")
-    app = make_app(token=initialize_token(), db_object=DatabaseResolver())
+    cluster_token = initialize_token()
+    app = make_app(token=cluster_token, db_object=DatabaseResolver())
 
     logger.info("listening on port {}".format(PORT))
     app.listen(PORT)

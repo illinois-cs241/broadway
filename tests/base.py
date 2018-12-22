@@ -5,7 +5,8 @@ from tornado.testing import AsyncHTTPTestCase
 import src.constants.api_keys as api_key
 import tests.configs
 from src.api import make_app
-from src.config import OK_REQUEST_CODE, GRADING_JOB_ENDPOINT, GRADER_REGISTER_ENDPOINT, GRADING_RUN_ENDPOINT
+from src.config import OK_REQUEST_CODE, QUEUE_EMPTY_CODE, GRADING_JOB_ENDPOINT, GRADER_REGISTER_ENDPOINT, \
+    GRADING_RUN_ENDPOINT
 from src.database import DatabaseResolver
 
 MOCK_TOKEN = "testing"
@@ -17,7 +18,7 @@ class BaseTest(AsyncHTTPTestCase):
         self.token = MOCK_TOKEN
 
     def get_app(self):
-        self.db_resolver = DatabaseResolver(db_name='__test')
+        self.db_resolver = DatabaseResolver(db_name='__test', logs_db_name='__test_logs')
         return make_app(token=MOCK_TOKEN, db_object=self.db_resolver)
 
     def tearDown(self):
@@ -53,13 +54,31 @@ class BaseTest(AsyncHTTPTestCase):
         )
         self.assertEqual(response.code, OK_REQUEST_CODE)
 
-    def poll_job(self, worker_id):
+    def poll_job(self, worker_id, empty_job=False):
         headers = {api_key.AUTH: self.token, api_key.WORKER_ID: worker_id}
 
         response = self.fetch(
             self.get_url(GRADING_JOB_ENDPOINT), method='GET', headers=headers, body=None
         )
-        self.assertEqual(response.code, OK_REQUEST_CODE)
+
+        self.assertEqual(response.code, QUEUE_EMPTY_CODE if empty_job else OK_REQUEST_CODE)
+        response_body = json.loads(response.body)
+        self.assertIn(api_key.JOB_ID, response_body["data"])
+        self.assertIn(api_key.STAGES, response_body["data"])
+        return response_body["data"]
+
+    def safe_poll_job(self, worker_id):
+        headers = {api_key.AUTH: self.token, api_key.WORKER_ID: worker_id}
+
+        while True:
+            response = self.fetch(
+                self.get_url(GRADING_JOB_ENDPOINT), method='GET', headers=headers, body=None
+            )
+            if response.code == OK_REQUEST_CODE:
+                break
+            else:
+                self.assertEqual(response.code, QUEUE_EMPTY_CODE)
+
         response_body = json.loads(response.body)
         self.assertIn(api_key.JOB_ID, response_body["data"])
         self.assertIn(api_key.STAGES, response_body["data"])
@@ -67,7 +86,9 @@ class BaseTest(AsyncHTTPTestCase):
 
     def post_job_result(self, worker_id, job_id):
         headers = {api_key.AUTH: self.token, api_key.WORKER_ID: worker_id}
-        body = {api_key.SUCCESS: True, api_key.INFO: [{"res": "container 1 success"}, {"res": "container 2 success"}]}
+        body = {api_key.SUCCESS: True,
+                api_key.RESULTS: [{"res": "container 1 success"}, {"res": "container 2 success"}],
+                api_key.LOGS: {"logs": "test logs"}}
         response = self.fetch(
             self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, job_id)), method='POST', headers=headers,
             body=json.dumps(body)

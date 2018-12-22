@@ -10,8 +10,9 @@ PRE_PROCESSING_PIPELINE = "pre_processing_pipeline"
 POST_PROCESSING_PIPELINE = "post_processing_pipeline"
 STUDENT_PIPELINE = "student_pipeline"
 RUN_ID = "grading_run_id"
-INFO = "info"
+RESULTS = "results"
 SUCCESS = "success"
+LOGS = "logs"
 
 # these let us specify the stage specs
 IMAGE = "image"

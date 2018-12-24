@@ -19,7 +19,6 @@ from utils import get_time, get_url, get_header, print_usage
 worker_id = None
 worker_thread = None
 running = True
-http_client = httpclient.HTTPClient()
 
 # setting up logger
 os.makedirs(LOGS_DIR, exist_ok=True)
@@ -40,7 +39,7 @@ def signal_handler(sig, frame):
 
 
 def heartbeat_routine():
-    global http_client
+    http_client = httpclient.HTTPClient()
     heartbeat_request = httpclient.HTTPRequest(get_url(HEARTBEAT_ENDPOINT),
                                                headers=get_header(sys.argv[1], worker_id), method="POST", body="")
 
@@ -51,10 +50,11 @@ def heartbeat_routine():
         except httpclient.HTTPClientError as e:
             logger.critical("Heartbeat failed!\nError: {}".format(e.response.body.decode('utf-8')))
             return
+    http_client.close()
 
 
 def worker_routine():
-    global http_client
+    http_client = httpclient.HTTPClient()
     job_request = httpclient.HTTPRequest(get_url(GRADING_JOB_ENDPOINT), headers=get_header(sys.argv[1], worker_id),
                                          method="GET")
 
@@ -108,7 +108,9 @@ def worker_routine():
 
 def register_node():
     global worker_id
+    global running
 
+    http_client = httpclient.HTTPClient()
     req = httpclient.HTTPRequest(get_url(GRADER_REGISTER_ENDPOINT), headers=get_header(sys.argv[1]), method="GET")
 
     try:
@@ -124,6 +126,7 @@ def register_node():
             raise Exception("Invalid response")
     except Exception as e:
         logger.critical("Registration failed!\nError: {}".format(str(e)))
+        running = False
         exit(-1)
 
     http_client.close()

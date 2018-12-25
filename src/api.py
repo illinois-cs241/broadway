@@ -50,13 +50,16 @@ def handle_lost_worker_node(worker_node):
     if running_job_id is None:
         return
 
+    # Make a fake update request on behalf of the dead worker so that the job is marked as failed and the rest of the
+    # jobs for the grading run can be handled as expected and scheduled in the right order
+    http_client = httpclient.AsyncHTTPClient()
     res = {api_key.SUCCESS: False, api_key.RESULTS: [{"result": "Grader died while executing this job"}],
            api_key.LOGS: {"logs": "No logs available for this job since the grader died while executing this job"}}
     update_request = httpclient.HTTPRequest(
         "http://localhost:{}{}/{}".format(PORT, GRADING_JOB_ENDPOINT, running_job_id),
         headers={api_key.AUTH: cluster_token, api_key.WORKER_ID: worker_id},
         method="POST", body=json.dumps(res))
-    handlers.UpdateGradingJobHandler(app, update_request).post(running_job_id)
+    yield http_client.fetch(update_request)
 
 
 def heartbeat_validator():
@@ -65,8 +68,6 @@ def heartbeat_validator():
     heartbeat in the past 2 X HEARTBEAT_INTERVAL seconds.
     """
     global app
-
-    logging.info("Checking for any disconnected worker nodes")
 
     db_resolver = app.settings.get(consts.APP_DB)  # type: DatabaseResolver
     worker_nodes_collection = db_resolver.get_worker_node_collection()

@@ -5,6 +5,7 @@ import signal
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
+from logging.handlers import TimedRotatingFileHandler
 from subprocess import Popen, PIPE
 
 from tornado import httpclient, escape
@@ -24,8 +25,7 @@ running = True
 os.makedirs(LOGS_DIR, exist_ok=True)
 logging.basicConfig(
     handlers=[
-        logging.FileHandler(
-            '{}/{}.log'.format(LOGS_DIR, get_time())),
+        TimedRotatingFileHandler('{}/log'.format(LOGS_DIR), when='midnight', backupCount=7),
         logging.StreamHandler()
     ],
     level=logging.INFO

@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import signal
+from logging.handlers import TimedRotatingFileHandler
 from queue import Queue
 
 import tornado
@@ -9,21 +10,21 @@ import tornado.ioloop
 import tornado.web
 from tornado import httpclient
 
+import src.constants.api_keys as api_key
 import src.constants.constants as consts
 import src.constants.db_keys as db_key
-import src.constants.api_keys as api_key
 import src.handlers as handlers
 from src.auth import initialize_token
 from src.config import GRADER_REGISTER_ENDPOINT, GRADING_JOB_ENDPOINT, GRADING_RUN_ENDPOINT, HEARTBEAT_ENDPOINT
 from src.config import PORT, HEARTBEAT_INTERVAL
 from src.database import DatabaseResolver
-from src.utilities import get_time, get_string_from_time
+from src.utilities import get_time
 
 # setting up logger
 os.makedirs(consts.LOGS_DIR, exist_ok=True)
 logging.basicConfig(
     handlers=[
-        logging.FileHandler('{}/{}.log'.format(consts.LOGS_DIR, get_string_from_time())),
+        TimedRotatingFileHandler('{}/log'.format(consts.LOGS_DIR), when='midnight', backupCount=7),
         logging.StreamHandler()
     ],
     level=logging.INFO

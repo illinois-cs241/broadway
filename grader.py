@@ -19,7 +19,8 @@ from utils import get_time, get_url, get_header, print_usage
 # globals
 worker_id = None
 worker_thread = None
-running = True
+heartbeat_running = True
+worker_running = True
 
 # setting up logger
 os.makedirs(LOGS_DIR, exist_ok=True)
@@ -34,8 +35,8 @@ logger = logging.getLogger()
 
 
 def signal_handler(sig, frame):
-    global running
-    running = False
+    global worker_running
+    worker_running = False
 
 
 def heartbeat_routine():
@@ -43,7 +44,7 @@ def heartbeat_routine():
     heartbeat_request = httpclient.HTTPRequest(get_url(HEARTBEAT_ENDPOINT),
                                                headers=get_header(sys.argv[1], worker_id), method="POST", body="")
 
-    while running:
+    while heartbeat_running:
         try:
             http_client.fetch(heartbeat_request)
             time.sleep(HEARTBEAT_INTERVAL)
@@ -58,7 +59,7 @@ def worker_routine():
     job_request = httpclient.HTTPRequest(get_url(GRADING_JOB_ENDPOINT), headers=get_header(sys.argv[1], worker_id),
                                          method="GET")
 
-    while running:
+    while worker_running:
         # poll from queue
         try:
             response = http_client.fetch(job_request)
@@ -84,6 +85,10 @@ def worker_routine():
         logger.info("Finished job {}".format(job_id))
 
         # send back the results to the server
+        if not os.path.isfile(GRADING_RUN_RES_FILE):
+            logger.critical("Grading run result file did not get generated.")
+            return
+
         with open(GRADING_RUN_RES_FILE) as res_file:
             grading_job_result = json.load(res_file)
 
@@ -108,7 +113,8 @@ def worker_routine():
 
 def register_node():
     global worker_id
-    global running
+    global worker_running
+    global heartbeat_running
 
     http_client = httpclient.HTTPClient()
     req = httpclient.HTTPRequest(get_url(GRADER_REGISTER_ENDPOINT), headers=get_header(sys.argv[1]), method="GET")
@@ -126,7 +132,8 @@ def register_node():
             raise Exception("Invalid response")
     except Exception as e:
         logger.critical("Registration failed!\nError: {}".format(str(e)))
-        running = False
+        worker_running = False
+        heartbeat_running = False
         exit(-1)
 
     http_client.close()
@@ -147,5 +154,6 @@ if __name__ == "__main__":
     executor = ThreadPoolExecutor(max_workers=2)
     futures = [executor.submit(heartbeat_routine), executor.submit(worker_routine)]
     wait(futures, return_when=FIRST_COMPLETED)
-    running = False
+    worker_running = False
+    heartbeat_running = False
     executor.shutdown()

@@ -1,6 +1,7 @@
 PORT = 1470
 HEARTBEAT_INTERVAL = 10
 DB_PATH = "/tmp/mongo/data"
+LOGS_DIR = "logs"
 
 # request codes
 OK_REQUEST_CODE = 200

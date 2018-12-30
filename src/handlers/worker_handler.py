@@ -53,7 +53,8 @@ class WorkerRegisterHandler(BaseAPIHandler):
         return {api_key.WORKER_ID: worker_id, api_key.HEARTBEAT: HEARTBEAT_INTERVAL}
 
 
-class GetGradingJobHandler(BaseAPIHandler):
+class GradingJobHandler(BaseAPIHandler):
+    # GET used to poll a grading job
     @authenticate
     @authenticate_worker
     @schema.validate(
@@ -74,10 +75,9 @@ class GetGradingJobHandler(BaseAPIHandler):
             "additionalProperties": False
         }
     )
-    def get(self):
+    def get(self, worker_id):
         db_resolver = self.get_db()
         job_queue = self.get_queue()
-        worker_id = self.request.headers.get(api_key.WORKER_ID)
 
         try:
             job = job_queue.get_nowait()
@@ -94,8 +94,57 @@ class GetGradingJobHandler(BaseAPIHandler):
             self.set_status(QUEUE_EMPTY_CODE)
             return {api_key.JOB_ID: 'no id', api_key.STAGES: []}
 
+    # POST used to update grading job status upon completion
+    @authenticate
+    @authenticate_worker
+    @schema.validate(
+        input_schema={
+            "type": "object",
+            "properties": {
+                api_key.JOB_ID: {"type": "string"},
+                api_key.SUCCESS: {"type": "boolean"},
+                api_key.RESULTS: {
+                    "type": "array",
+                    "items": {"type": "object"},
+                },
+                api_key.LOGS: {"type": "object"}
+            },
+            "required": [api_key.JOB_ID, api_key.SUCCESS, api_key.RESULTS, api_key.LOGS],
+            "additionalProperties": False
+        }
+    )
+    def post(self, worker_id):
+        db_handler = self.get_db()
+        worker_nodes_collection = db_handler.get_worker_node_collection()
+        jobs_collection = db_handler.get_grading_job_collection()
+        job_logs_collection = db_handler.get_job_logs_collection()
 
-class UpdateGradingJobHandler(BaseAPIHandler):
+        # update worker node: remove this job from its currently running jobs
+        worker_nodes_collection.update_one({db_key.ID: ObjectId(worker_id)},
+                                           {"$set": {db_key.RUNNING_JOB: None}})
+
+        # check if the job exists
+        job_id = self.body.get(api_key.JOB_ID)
+        job = self.get_grading_job(job_id)
+        if job is None:
+            return
+
+        # update job: finished_at and result
+        assert db_key.CREATED in job
+        assert db_key.QUEUED in job
+        assert db_key.STARTED in job
+        assert db_key.FINISHED not in job
+        job_succeeded = self.body.get(api_key.SUCCESS)
+        jobs_collection.update_one({db_key.ID: ObjectId(job_id)}, {
+            "$set": {db_key.FINISHED: get_time(), db_key.RESULTS: self.body.get(api_key.RESULTS),
+                     db_key.SUCCESS: job_succeeded}})
+
+        # save logs in the logs DB along with the job id to identify it
+        job_logs_collection.insert_one({db_key.JOB_ID: job_id, **self.body.get(api_key.LOGS)})
+
+        # thread safe callback
+        tornado.ioloop.IOLoop.current().add_callback(self.job_update_callback, job_id, job.get(db_key.GRADING_RUN))
+
     def job_update_callback(self, job_id, grading_run_id):
         db_handler = self.get_db()
         grading_run_collection = db_handler.get_grading_run_collection()
@@ -138,62 +187,12 @@ class UpdateGradingJobHandler(BaseAPIHandler):
                     grading_run_collection.update_one({db_key.ID: ObjectId(grading_run_id)},
                                                       {"$set": {db_key.SUCCESS: True, db_key.FINISHED: get_time()}})
 
-    @authenticate
-    @authenticate_worker
-    @schema.validate(
-        input_schema={
-            "type": "object",
-            "properties": {
-                api_key.SUCCESS: {"type": "boolean"},
-                api_key.RESULTS: {
-                    "type": "array",
-                    "items": {"type": "object"},
-                },
-                api_key.LOGS: {"type": "object"}
-            },
-            "required": [api_key.SUCCESS, api_key.RESULTS, api_key.LOGS],
-            "additionalProperties": False
-        }
-    )
-    def post(self, job_id):
-        db_handler = self.get_db()
-        worker_nodes_collection = db_handler.get_worker_node_collection()
-        jobs_collection = db_handler.get_grading_job_collection()
-        job_logs_collection = db_handler.get_job_logs_collection()
-
-        # update worker node: remove this job from its currently running jobs
-        worker_id = self.request.headers.get(api_key.WORKER_ID)
-        worker_nodes_collection.update_one({db_key.ID: ObjectId(worker_id)},
-                                           {"$set": {db_key.RUNNING_JOB: None}})
-
-        # check if the job exists
-        job = self.get_grading_job(job_id)
-        if job is None:
-            return
-
-        # update job: finished_at and result
-        assert db_key.CREATED in job
-        assert db_key.QUEUED in job
-        assert db_key.STARTED in job
-        assert db_key.FINISHED not in job
-        job_succeeded = self.body.get(api_key.SUCCESS)
-        jobs_collection.update_one({db_key.ID: ObjectId(job_id)}, {
-            "$set": {db_key.FINISHED: get_time(), db_key.RESULTS: self.body.get(api_key.RESULTS),
-                     db_key.SUCCESS: job_succeeded}})
-
-        # save logs in the logs DB along with the job id to identify it
-        job_logs_collection.insert_one({db_key.JOB_ID: job_id, **self.body.get(api_key.LOGS)})
-
-        # thread safe callback
-        tornado.ioloop.IOLoop.current().add_callback(self.job_update_callback, job_id, job.get(db_key.GRADING_RUN))
-
 
 class HeartBeatHandler(BaseAPIHandler):
     @authenticate
     @authenticate_worker
-    def post(self):
+    def post(self, worker_id):
         db_handler = self.get_db()
         worker_nodes_collection = db_handler.get_worker_node_collection()
-        worker_id = self.request.headers.get(api_key.WORKER_ID)
 
         worker_nodes_collection.update_one({db_key.ID: ObjectId(worker_id)}, {"$set": {db_key.LAST_SEEN: get_time()}})

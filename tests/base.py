@@ -26,16 +26,6 @@ class BaseTest(AsyncHTTPTestCase):
         self.db_resolver.clear_db()
         # self.db_resolver.shutdown()
 
-    def register_worker(self):
-        headers = {api_key.AUTH: self.token}
-
-        response = self.fetch(self.get_url("{}/{}".format(WORKER_REGISTER_ENDPOINT, "mock_hostname")), method='GET',
-                              headers=headers, body=None)
-        self.assertEqual(response.code, OK_REQUEST_CODE)
-        response_body = json.loads(response.body)
-        self.assertIn(api_key.WORKER_ID, response_body["data"])
-        return response_body["data"].get(api_key.WORKER_ID)
-
     def add_grading_run(self, config_obj=tests.configs.valid_config):
         headers = {api_key.AUTH: self.token}
         response = self.fetch(
@@ -54,11 +44,21 @@ class BaseTest(AsyncHTTPTestCase):
         )
         self.assertEqual(response.code, OK_REQUEST_CODE)
 
+    def register_worker(self):
+        headers = {api_key.AUTH: self.token}
+
+        response = self.fetch(self.get_url("{}/{}".format(WORKER_REGISTER_ENDPOINT, "mock_hostname")), method='GET',
+                              headers=headers, body=None)
+        self.assertEqual(response.code, OK_REQUEST_CODE)
+        response_body = json.loads(response.body)
+        self.assertIn(api_key.WORKER_ID, response_body["data"])
+        return response_body["data"].get(api_key.WORKER_ID)
+
     def poll_job(self, worker_id, empty_job=False):
-        headers = {api_key.AUTH: self.token, api_key.WORKER_ID: worker_id}
+        headers = {api_key.AUTH: self.token}
 
         response = self.fetch(
-            self.get_url(GRADING_JOB_ENDPOINT), method='GET', headers=headers, body=None
+            self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)), method='GET', headers=headers, body=None
         )
 
         self.assertEqual(response.code, QUEUE_EMPTY_CODE if empty_job else OK_REQUEST_CODE)
@@ -68,11 +68,11 @@ class BaseTest(AsyncHTTPTestCase):
         return response_body["data"]
 
     def safe_poll_job(self, worker_id):
-        headers = {api_key.AUTH: self.token, api_key.WORKER_ID: worker_id}
+        headers = {api_key.AUTH: self.token}
 
         while True:
             response = self.fetch(
-                self.get_url(GRADING_JOB_ENDPOINT), method='GET', headers=headers, body=None
+                self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)), method='GET', headers=headers, body=None
             )
             if response.code == OK_REQUEST_CODE:
                 break
@@ -85,12 +85,13 @@ class BaseTest(AsyncHTTPTestCase):
         return response_body["data"]
 
     def post_job_result(self, worker_id, job_id):
-        headers = {api_key.AUTH: self.token, api_key.WORKER_ID: worker_id}
-        body = {api_key.SUCCESS: True,
+        headers = {api_key.AUTH: self.token}
+        body = {api_key.JOB_ID: job_id,
+                api_key.SUCCESS: True,
                 api_key.RESULTS: [{"res": "container 1 success"}, {"res": "container 2 success"}],
                 api_key.LOGS: {"logs": "test logs"}}
         response = self.fetch(
-            self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, job_id)), method='POST', headers=headers,
+            self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)), method='POST', headers=headers,
             body=json.dumps(body)
         )
         self.assertEqual(response.code, OK_REQUEST_CODE)

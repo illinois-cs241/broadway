@@ -2,7 +2,6 @@ import json
 import logging
 import os
 import signal
-import time
 from logging.handlers import TimedRotatingFileHandler
 from queue import Queue
 from threading import Thread, Condition
@@ -15,11 +14,13 @@ from tornado import httpclient
 import src.constants.api_keys as api_key
 import src.constants.constants as consts
 import src.constants.db_keys as db_key
-import src.handlers as handlers
 from src.auth import initialize_token
-from src.config import GRADER_REGISTER_ENDPOINT, GRADING_JOB_ENDPOINT, GRADING_RUN_ENDPOINT, HEARTBEAT_ENDPOINT
+from src.config import WORKER_REGISTER_ENDPOINT, GRADING_JOB_ENDPOINT, GRADING_RUN_ENDPOINT, HEARTBEAT_ENDPOINT
 from src.config import PORT, HEARTBEAT_INTERVAL
 from src.database import DatabaseResolver
+from src.handlers.client_handler import AddGradingRunHandler, GradingRunHandler
+from src.handlers.worker_handler import WorkerRegisterHandler, UpdateGradingJobHandler, GetGradingJobHandler, \
+    HeartBeatHandler
 from src.utilities import get_time
 
 # setting up logger
@@ -52,7 +53,8 @@ def signal_handler(sig, frame):
 def handle_lost_worker_node(worker_node):
     running_job_id = worker_node.get(db_key.RUNNING_JOB)
     worker_id = str(worker_node.get(db_key.ID))
-    logger.critical("Grader {} executing {} went offline unexpectedly".format(worker_id, running_job_id))
+    logger.critical("Worker with hostname {} and id {} executing {} went offline unexpectedly".format(
+        worker_node.get(db_key.WORKER_HOSTNAME), worker_id, running_job_id))
 
     if running_job_id is None:
         return
@@ -60,8 +62,8 @@ def handle_lost_worker_node(worker_node):
     # Make a fake update request on behalf of the dead worker so that the job is marked as failed and the rest of the
     # jobs for the grading run can be handled as expected and scheduled in the right order
     http_client = httpclient.HTTPClient()
-    res = {api_key.SUCCESS: False, api_key.RESULTS: [{"result": "Grader died while executing this job"}],
-           api_key.LOGS: {"logs": "No logs available for this job since the grader died while executing this job"}}
+    res = {api_key.SUCCESS: False, api_key.RESULTS: [{"result": "Worker died while executing this job"}],
+           api_key.LOGS: {"logs": "No logs available for this job since the worker died while executing this job"}}
     update_request = httpclient.HTTPRequest(
         "http://localhost:{}{}/{}".format(PORT, GRADING_JOB_ENDPOINT, running_job_id),
         headers={api_key.AUTH: cluster_token, api_key.WORKER_ID: worker_id},
@@ -72,7 +74,7 @@ def handle_lost_worker_node(worker_node):
 
 def heartbeat_validator():
     """
-    Checks if any of the grader machines went offline. It decides so if the grader machine has not sent any
+    Checks if any of the worker went offline. It decides so if the worker has not sent any
     heartbeat in the past 2 X HEARTBEAT_INTERVAL seconds.
     """
     global heartbeat_running
@@ -105,25 +107,25 @@ def make_app(token, db_object):
     return tornado.web.Application([
         # ---------Client Endpoints---------
         # POST to add grading run
-        (GRADING_RUN_ENDPOINT, handlers.AddGradingRunHandler),
+        (GRADING_RUN_ENDPOINT, AddGradingRunHandler),
 
         # POST to start grading run.
         # GET to get statuses of all jobs
-        (r"{}/{}".format(GRADING_RUN_ENDPOINT, consts.ID_REGEX), handlers.GradingRunHandler),
+        (r"{}/{}".format(GRADING_RUN_ENDPOINT, consts.HEX_REGEX.format("grading_run_id")), GradingRunHandler),
         # ----------------------------------
 
-        # --------Grader Endpoints-----------
+        # --------Worker Endpoints----------
         # GET to register node and get worked ID
-        (GRADER_REGISTER_ENDPOINT, handlers.WorkerRegisterHandler),
+        (r"{}/{}".format(WORKER_REGISTER_ENDPOINT, consts.STRING_REGEX.format("hostname")), WorkerRegisterHandler),
 
         # GET to get a grading job
-        (GRADING_JOB_ENDPOINT, handlers.GetGradingJobHandler),
+        (GRADING_JOB_ENDPOINT, GetGradingJobHandler),
 
         # POST to update status of job
-        (r"{}/{}".format(GRADING_JOB_ENDPOINT, consts.ID_REGEX), handlers.UpdateGradingJobHandler),
+        (r"{}/{}".format(GRADING_JOB_ENDPOINT, consts.HEX_REGEX.format("job_id")), UpdateGradingJobHandler),
 
         # POST to register heartbeat
-        (HEARTBEAT_ENDPOINT, handlers.HeartBeatHandler),
+        (HEARTBEAT_ENDPOINT, HeartBeatHandler),
         # ----------------------------------
     ], **settings)
 

@@ -3,7 +3,7 @@ import json
 import src.constants.api_keys as api_key
 import tests.configs
 from src.config import UNAUTHORIZED_REQUEST_CODE, BAD_REQUEST_CODE, OK_REQUEST_CODE
-from src.config import GRADING_JOB_ENDPOINT, GRADING_RUN_ENDPOINT, GRADER_REGISTER_ENDPOINT, HEARTBEAT_ENDPOINT
+from src.config import GRADING_JOB_ENDPOINT, GRADING_RUN_ENDPOINT, WORKER_REGISTER_ENDPOINT, HEARTBEAT_ENDPOINT
 from tests.base import BaseTest
 
 
@@ -12,9 +12,8 @@ class TestRegisterGrader(BaseTest):
         self.assertIsNotNone(self.register_worker())
 
     def test_unauthorized(self):
-        response = self.fetch(
-            self.get_url(GRADER_REGISTER_ENDPOINT), method='GET', headers=None, body=None
-        )
+        response = self.fetch(self.get_url("{}/{}".format(WORKER_REGISTER_ENDPOINT, "mockhostname")), method='GET',
+                              headers=None, body=None)
         self.assertEqual(response.code, UNAUTHORIZED_REQUEST_CODE)
 
 

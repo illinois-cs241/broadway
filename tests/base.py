@@ -5,7 +5,7 @@ from tornado.testing import AsyncHTTPTestCase
 import src.constants.api_keys as api_key
 import tests.configs
 from src.api import make_app
-from src.config import OK_REQUEST_CODE, QUEUE_EMPTY_CODE, GRADING_JOB_ENDPOINT, GRADER_REGISTER_ENDPOINT, \
+from src.config import OK_REQUEST_CODE, QUEUE_EMPTY_CODE, GRADING_JOB_ENDPOINT, WORKER_REGISTER_ENDPOINT, \
     GRADING_RUN_ENDPOINT
 from src.database import DatabaseResolver
 
@@ -29,8 +29,8 @@ class BaseTest(AsyncHTTPTestCase):
     def register_worker(self):
         headers = {api_key.AUTH: self.token}
 
-        response = self.fetch(
-            self.get_url(GRADER_REGISTER_ENDPOINT), method='GET', headers=headers, body=None)
+        response = self.fetch(self.get_url("{}/{}".format(WORKER_REGISTER_ENDPOINT, "mock_hostname")), method='GET',
+                              headers=headers, body=None)
         self.assertEqual(response.code, OK_REQUEST_CODE)
         response_body = json.loads(response.body)
         self.assertIn(api_key.WORKER_ID, response_body["data"])

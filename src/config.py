@@ -10,6 +10,6 @@ QUEUE_EMPTY_CODE = 498
 
 # endpoints
 GRADING_RUN_ENDPOINT = "/api/v1/grading_run"
-GRADER_REGISTER_ENDPOINT = "/api/v1/grader_register"
+WORKER_REGISTER_ENDPOINT = "/api/v1/worker_register"
 GRADING_JOB_ENDPOINT = "/api/v1/grading_job"
 HEARTBEAT_ENDPOINT = "/api/v1/heartbeat"

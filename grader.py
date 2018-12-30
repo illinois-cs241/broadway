@@ -15,7 +15,7 @@ import api_keys as api_key
 from config import GRADER_REGISTER_ENDPOINT, HEARTBEAT_ENDPOINT, GRADING_JOB_ENDPOINT, HEARTBEAT_INTERVAL, \
     JOB_POLL_INTERVAL
 from config import LOGS_DIR, GRADING_RUN_RES_FILE, QUEUE_EMPTY_CODE
-from utils import get_time, get_url, get_header, print_usage
+from utils import get_time, get_url, print_usage
 
 # globals
 worker_id = None
@@ -42,8 +42,8 @@ def signal_handler(sig, frame):
 
 def heartbeat_routine():
     http_client = httpclient.HTTPClient()
-    heartbeat_request = httpclient.HTTPRequest(get_url(HEARTBEAT_ENDPOINT),
-                                               headers=get_header(sys.argv[1], worker_id), method="POST", body="")
+    heartbeat_request = httpclient.HTTPRequest(get_url("{}/{}".format(HEARTBEAT_ENDPOINT, worker_id)), headers=header,
+                                               method="POST", body="")
 
     while heartbeat_running:
         try:
@@ -57,8 +57,8 @@ def heartbeat_routine():
 
 def worker_routine():
     http_client = httpclient.HTTPClient()
-    job_request = httpclient.HTTPRequest(get_url(GRADING_JOB_ENDPOINT), headers=get_header(sys.argv[1], worker_id),
-                                         method="GET")
+    job_request = httpclient.HTTPRequest(get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)), method="GET",
+                                         headers=header)
 
     while worker_running:
         # poll from queue
@@ -97,9 +97,9 @@ def worker_routine():
         assert api_key.SUCCESS in grading_job_result
         grading_job_result[api_key.LOGS] = {'stdout': escape.to_basestring(container_stdout),
                                             'stderr': escape.to_basestring(container_stderr)}
-        update_request = httpclient.HTTPRequest("{}/{}".format(get_url(GRADING_JOB_ENDPOINT), job_id),
-                                                headers=get_header(sys.argv[1], worker_id), method="POST",
-                                                body=json.dumps(grading_job_result))
+        grading_job_result[api_key.JOB_ID] = job_id
+        update_request = httpclient.HTTPRequest("{}/{}".format(get_url(GRADING_JOB_ENDPOINT), worker_id),
+                                                headers=header, method="POST", body=json.dumps(grading_job_result))
 
         try:
             logger.info("Sending job results")
@@ -119,7 +119,7 @@ def register_node():
 
     http_client = httpclient.HTTPClient()
     req = httpclient.HTTPRequest(get_url("{}/{}".format(GRADER_REGISTER_ENDPOINT, socket.gethostname())),
-                                 headers=get_header(sys.argv[1]), method="GET")
+                                 headers=header, method="GET")
 
     try:
         response = http_client.fetch(req)
@@ -150,6 +150,7 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
 
     # register node to server
+    header = {api_key.AUTH: sys.argv[1]}
     register_node()
 
     # run the grader on two separate threads. If any of the routines fail, the grader shuts down

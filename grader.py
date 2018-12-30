@@ -4,6 +4,7 @@ import os
 import signal
 import sys
 import time
+import socket
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 from logging.handlers import TimedRotatingFileHandler
 from subprocess import Popen, PIPE
@@ -117,7 +118,8 @@ def register_node():
     global heartbeat_running
 
     http_client = httpclient.HTTPClient()
-    req = httpclient.HTTPRequest(get_url(GRADER_REGISTER_ENDPOINT), headers=get_header(sys.argv[1]), method="GET")
+    req = httpclient.HTTPRequest(get_url("{}/{}".format(GRADER_REGISTER_ENDPOINT, socket.gethostname())),
+                                 headers=get_header(sys.argv[1]), method="GET")
 
     try:
         response = http_client.fetch(req)

@@ -98,7 +98,7 @@ def worker_routine():
         grading_job_result[api_key.LOGS] = {'stdout': escape.to_basestring(container_stdout),
                                             'stderr': escape.to_basestring(container_stderr)}
         grading_job_result[api_key.JOB_ID] = job_id
-        update_request = httpclient.HTTPRequest("{}/{}".format(get_url(GRADING_JOB_ENDPOINT), worker_id),
+        update_request = httpclient.HTTPRequest(get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)),
                                                 headers=header, method="POST", body=json.dumps(grading_job_result))
 
         try:

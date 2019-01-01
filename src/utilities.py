@@ -7,29 +7,30 @@ import time
 
 class PeriodicCallbackThread:
     def routine(self):
-        while self.running:
-            self.callback()
-            self.cv.acquire()
-            self.cv.wait(timeout=self.interval)
-            self.cv.release()
+        while self._running:
+            self._callback(*self._args)
+            self._cv.acquire()
+            self._cv.wait(timeout=self._interval)
+            self._cv.release()
 
-    def __init__(self, callback, interval):
-        self.callback = callback
-        self.running = False
-        self.interval = interval
-        self.cv = Condition()
-        self.thread = Thread(target=self.routine)
+    def __init__(self, callback, interval, args=()):
+        self._callback = callback
+        self._interval = interval
+        self._args = args
+        self._running = False
+        self._cv = Condition()
+        self._thread = Thread(target=self.routine)
 
     def start(self):
-        self.running = True
-        self.thread.start()
+        self._running = True
+        self._thread.start()
 
     def stop(self):
-        self.running = False
-        self.cv.acquire()
-        self.cv.notify_all()
-        self.cv.release()
-        self.thread.join()
+        self._running = False
+        self._cv.acquire()
+        self._cv.notify_all()
+        self._cv.release()
+        self._thread.join()
 
 
 def get_time():

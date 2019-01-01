@@ -6,7 +6,7 @@ import time
 
 
 class PeriodicCallbackThread:
-    def routine(self):
+    def _routine(self):
         while self._running:
             self._callback(*self._args)
             self._cv.acquire()
@@ -19,7 +19,7 @@ class PeriodicCallbackThread:
         self._args = args
         self._running = False
         self._cv = Condition()
-        self._thread = Thread(target=self.routine)
+        self._thread = Thread(target=self._routine)
 
     def start(self):
         self._running = True

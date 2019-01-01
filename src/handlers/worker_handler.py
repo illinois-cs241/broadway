@@ -183,14 +183,17 @@ class GradingJobHandler(BaseAPIHandler):
         # Since the job is in valid state, the following errors imply that there is some error with application logic
         if db_key.CREATED not in grading_run:
             logger.critical("CREATED field not set in grading run with id {}".format(grading_run_id))
+            return
 
         if db_key.STARTED not in grading_run:
             logger.critical("Received a job update for a job with id {} belonging to a grading run with id {} that "
                             "had not even been started".format(job_id, grading_run_id))
+            return
 
         if db_key.FINISHED in grading_run:
             logger.critical("Received a job update for a job with id {} belonging to a grading run with id {} that "
                             "had already finished".format(job_id, grading_run_id))
+            return
 
         if grading_run.get(db_key.PRE_PROCESSING, "") == job_id:
             # pre processing job finished
@@ -202,13 +205,21 @@ class GradingJobHandler(BaseAPIHandler):
 
         elif grading_run.get(db_key.POST_PROCESSING, "") == job_id:
             # post processing job finished so the grading run is over
-            assert grading_run.get(db_key.STUDENT_JOBS_LEFT) == 0
+            if grading_run.get(db_key.STUDENT_JOBS_LEFT) != 0:
+                logger.critical("Processed post processing job when {} student jobs are left. Something is wrong with "
+                                "the scheduling logic".format(grading_run.get(db_key.STUDENT_JOBS_LEFT)))
+                return
+
             grading_run_collection.update_one({db_key.ID: ObjectId(grading_run_id)},
                                               {"$set": {db_key.SUCCESS: job_succeeded, db_key.FINISHED: get_time()}})
 
         else:
             # a student's job finished
-            assert grading_run.get(db_key.STUDENT_JOBS_LEFT) > 0
+            if grading_run.get(db_key.STUDENT_JOBS_LEFT) <= 0:
+                logger.critical("Processed another student job when the number of student jobs is not positive. "
+                                "Something is wrong with the counting logic. Possible race condition.")
+                return
+
             grading_run_collection.update_one({db_key.ID: ObjectId(grading_run_id)},
                                               {"$inc": {db_key.STUDENT_JOBS_LEFT: -1}})
 

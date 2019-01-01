@@ -23,12 +23,12 @@ def initialize_token():
 
 def authenticate(func):
     def wrapper(*args, **kwargs):
-        self = args[0]
-        token = self.get_cluster_token()
-        request_token = self.request.headers.get(api_key.AUTH)
+        base_handler_instance = args[0]
+        token = base_handler_instance.get_cluster_token()
+        request_token = base_handler_instance.request.headers.get(api_key.AUTH)
 
         if (request_token is None) or (token != request_token):
-            self.abort({"message": "Not authorized"}, UNAUTHORIZED_REQUEST_CODE)
+            base_handler_instance.abort({"message": "Not authorized"}, UNAUTHORIZED_REQUEST_CODE)
         else:
             return func(*args, **kwargs)
 
@@ -37,10 +37,10 @@ def authenticate(func):
 
 def authenticate_worker(func):
     def wrapper(*args, **kwargs):
-        self = args[0]
+        base_handler_instance = args[0]
         worker_id = kwargs.get("worker_id") if len(args) < 2 else args[1]
 
-        if self.get_worker_node(worker_id) is None:  # this call aborts if it returns None
+        if base_handler_instance.get_worker_node(worker_id) is None:  # this call aborts if it returns None
             return
         else:
             return func(*args, **kwargs)
@@ -50,12 +50,12 @@ def authenticate_worker(func):
 
 def validate_id(func):
     def wrapper(*args, **kwargs):
-        self = args[0]
+        base_handler_instance = args[0]
         id_ = kwargs.get("id_") if len(args) < 2 else args[1]
 
         if ObjectId.is_valid(id_):
             return func(*args, **kwargs)
         else:
-            self.abort({"message": "ID {} is not a valid bson ObjectId".format(id_)}, BAD_REQUEST_CODE)
+            base_handler_instance.abort({"message": "ID {} is not a valid bson ObjectId".format(id_)}, BAD_REQUEST_CODE)
 
     return wrapper

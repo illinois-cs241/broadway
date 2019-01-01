@@ -1,7 +1,35 @@
 import datetime as dt
-import time
 from src.constants.constants import TIMESTAMP_FORMAT
 from src.constants.db_keys import FINISHED, STARTED, QUEUED
+from threading import Thread, Condition
+import time
+
+
+class PeriodicCallbackThread:
+    def routine(self):
+        while self.running:
+            self.callback()
+            self.cv.acquire()
+            self.cv.wait(timeout=self.interval)
+            self.cv.release()
+
+    def __init__(self, callback, interval):
+        self.callback = callback
+        self.running = False
+        self.interval = interval
+        self.cv = Condition()
+        self.thread = Thread(target=self.routine)
+
+    def start(self):
+        self.running = True
+        self.thread.start()
+
+    def stop(self):
+        self.running = False
+        self.cv.acquire()
+        self.cv.notify_all()
+        self.cv.release()
+        self.thread.join()
 
 
 def get_time():

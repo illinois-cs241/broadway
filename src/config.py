@@ -2,6 +2,8 @@ PORT = 1470
 HEARTBEAT_INTERVAL = 10
 DB_PATH = "/tmp/mongo/data"
 LOGS_DIR = "logs"
+LOGS_ROTATE_WHEN = 'midnight'
+LOGS_BACKUP_COUNT = 7
 
 # request codes
 OK_REQUEST_CODE = 200

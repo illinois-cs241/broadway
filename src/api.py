@@ -16,7 +16,7 @@ import src.constants.constants as consts
 import src.constants.db_keys as db_key
 from src.auth import initialize_token
 from src.config import WORKER_REGISTER_ENDPOINT, GRADING_JOB_ENDPOINT, GRADING_RUN_ENDPOINT, HEARTBEAT_ENDPOINT
-from src.config import PORT, HEARTBEAT_INTERVAL, LOGS_DIR
+from src.config import PORT, HEARTBEAT_INTERVAL, LOGS_DIR, LOGS_ROTATE_WHEN, LOGS_BACKUP_COUNT
 from src.database import DatabaseResolver
 from src.handlers.client_handler import AddGradingRunHandler, GradingRunHandler
 from src.handlers.worker_handler import WorkerRegisterHandler, GradingJobHandler, HeartBeatHandler
@@ -26,7 +26,7 @@ from src.utilities import get_time
 os.makedirs(LOGS_DIR, exist_ok=True)
 logging.basicConfig(
     handlers=[
-        TimedRotatingFileHandler('{}/log'.format(LOGS_DIR), when='midnight', backupCount=7),
+        TimedRotatingFileHandler('{}/log'.format(LOGS_DIR), when=LOGS_ROTATE_WHEN, backupCount=LOGS_BACKUP_COUNT),
         logging.StreamHandler()
     ],
     level=logging.INFO

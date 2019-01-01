@@ -1,4 +1,5 @@
 import json
+import time
 
 from tornado.testing import AsyncHTTPTestCase
 
@@ -74,10 +75,12 @@ class BaseTest(AsyncHTTPTestCase):
             response = self.fetch(
                 self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)), method='GET', headers=headers, body=None
             )
+
             if response.code == OK_REQUEST_CODE:
                 break
-            else:
-                self.assertEqual(response.code, QUEUE_EMPTY_CODE)
+
+            self.assertEqual(response.code, QUEUE_EMPTY_CODE)
+            time.sleep(1)
 
         response_body = json.loads(response.body)
         self.assertIn(api_key.JOB_ID, response_body["data"])

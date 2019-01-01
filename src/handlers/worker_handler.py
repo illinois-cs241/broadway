@@ -8,7 +8,7 @@ from tornado_json import schema
 import src.constants.api_keys as api_key
 import src.constants.db_keys as db_key
 from src.auth import authenticate, authenticate_worker
-from src.config import HEARTBEAT_INTERVAL, QUEUE_EMPTY_CODE
+from src.config import HEARTBEAT_INTERVAL, QUEUE_EMPTY_CODE, BAD_REQUEST_CODE
 from src.utilities import get_time
 from src.handlers.base_handler import BaseAPIHandler
 
@@ -120,9 +120,7 @@ class GradingJobHandler(BaseAPIHandler):
         jobs_collection = db_handler.get_grading_job_collection()
         job_logs_collection = db_handler.get_job_logs_collection()
 
-        # update worker node: remove this job from its currently running jobs
-        worker_nodes_collection.update_one({db_key.ID: ObjectId(worker_id)},
-                                           {"$set": {db_key.RUNNING_JOB: None}})
+        # Error checks
 
         # check if the job exists
         job_id = self.body.get(api_key.JOB_ID)
@@ -130,11 +128,33 @@ class GradingJobHandler(BaseAPIHandler):
         if job is None:
             return
 
+        # make sure the job has the correct state
+        if db_key.CREATED not in job:
+            # does not necessarily mean anything wrong with the grader so we process the rest of the request
+            logger.critical("Received an update for job {} which does not have the created field set in DB. "
+                            "Something is wrong with application logic for job creation.".format(job_id))
+
+        if db_key.QUEUED not in job:
+            logger.critical("Received an update for job {} which had not been even queued yet.".format(job_id))
+            self.abort({"message": "Grading job with id {} has not been queued yet".format(job_id)}, BAD_REQUEST_CODE)
+            return
+
+        if db_key.STARTED not in job:
+            logger.critical("Received an update for job {} which had not been polled from the queue.".format(job_id))
+            self.abort({"message": "Grading job with id {} has not polled yet".format(job_id)}, BAD_REQUEST_CODE)
+            return
+
+        if db_key.FINISHED in job:
+            logger.critical("Received an update for job {} which had already been finished before.".format(job_id))
+            self.abort({"message": "Grading job with id {} has already been finished and updated.".format(job_id)},
+                       BAD_REQUEST_CODE)
+            return
+
+        # update worker node: remove this job from its currently running jobs
+        worker_nodes_collection.update_one({db_key.ID: ObjectId(worker_id)},
+                                           {"$set": {db_key.RUNNING_JOB: None}})
+
         # update job: finished_at and result
-        assert db_key.CREATED in job
-        assert db_key.QUEUED in job
-        assert db_key.STARTED in job
-        assert db_key.FINISHED not in job
         job_succeeded = self.body.get(api_key.SUCCESS)
         jobs_collection.update_one({db_key.ID: ObjectId(job_id)}, {
             "$set": {db_key.FINISHED: get_time(), db_key.RESULTS: self.body.get(api_key.RESULTS),
@@ -155,10 +175,22 @@ class GradingJobHandler(BaseAPIHandler):
 
         grading_run = self.get_grading_run(grading_run_id)
         job_succeeded = self.body.get(api_key.SUCCESS)
-        assert grading_run is not None
-        assert db_key.CREATED in grading_run
-        assert db_key.STARTED in grading_run
-        assert db_key.FINISHED not in grading_run
+        if grading_run is None:
+            logger.critical("Received job update for job {}. Its document points to a non-existent grading run with "
+                            "id {}.".format(job_id, grading_run_id))
+            return
+
+        # Since the job is in valid state, the following errors imply that there is some error with application logic
+        if db_key.CREATED not in grading_run:
+            logger.critical("CREATED field not set in grading run with id {}".format(grading_run_id))
+
+        if db_key.STARTED not in grading_run:
+            logger.critical("Received a job update for a job with id {} belonging to a grading run with id {} that "
+                            "had not even been started".format(job_id, grading_run_id))
+
+        if db_key.FINISHED in grading_run:
+            logger.critical("Received a job update for a job with id {} belonging to a grading run with id {} that "
+                            "had already finished".format(job_id, grading_run_id))
 
         if grading_run.get(db_key.PRE_PROCESSING, "") == job_id:
             # pre processing job finished

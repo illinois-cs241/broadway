@@ -1,6 +1,7 @@
 import logging
 
 import tornado.ioloop
+from queue import Empty
 from bson import ObjectId
 from tornado_json import schema
 
@@ -90,7 +91,7 @@ class GradingJobHandler(BaseAPIHandler):
                                                                 {"$set": {db_key.RUNNING_JOB: job_id}})
 
             return job
-        except Exception as e:
+        except Empty:
             self.set_status(QUEUE_EMPTY_CODE)
             return {api_key.JOB_ID: 'no id', api_key.STAGES: []}
 

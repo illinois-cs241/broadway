@@ -19,7 +19,7 @@ from src.config import WORKER_REGISTER_ENDPOINT, GRADING_JOB_ENDPOINT, GRADING_R
 from src.database import DatabaseResolver
 from src.handlers.client_handler import AddGradingRunHandler, GradingRunHandler
 from src.handlers.worker_handler import WorkerRegisterHandler, GradingJobHandler, HeartBeatHandler
-from src.utilities import get_time, PeriodicCallbackThread
+from src.utilities import get_time, get_header, PeriodicCallbackThread
 
 # setting up logger
 os.makedirs(LOGS_DIR, exist_ok=True)
@@ -58,8 +58,7 @@ def handle_lost_worker_node(worker_node):
            api_key.LOGS: {"logs": "No logs available for this job since the worker died while executing this job"}}
     update_request = httpclient.HTTPRequest(
         "http://localhost:{}{}/{}".format(PORT, GRADING_JOB_ENDPOINT, worker_id),
-        headers={api_key.AUTH: cluster_token},
-        method="POST", body=json.dumps(res))
+        headers=get_header(cluster_token), method="POST", body=json.dumps(res))
     http_client.fetch(update_request)
     http_client.close()
 

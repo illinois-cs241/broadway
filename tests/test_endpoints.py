@@ -14,7 +14,7 @@ class TestRegisterGrader(BaseTest):
     def test_unauthorized(self):
         response = self.fetch(self.get_url("{}/{}".format(WORKER_REGISTER_ENDPOINT, "mockhostname")), method='GET',
                               headers=None, body=None)
-        self.assertEqual(response.code, UNAUTHORIZED_REQUEST_CODE)
+        self.assertEqual(response.code, BAD_REQUEST_CODE)
 
 
 class TestPollGradingJob(BaseTest):
@@ -22,21 +22,17 @@ class TestPollGradingJob(BaseTest):
         response = self.fetch(
             self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, "123")), method='GET', headers=None, body=None
         )
-        self.assertEqual(response.code, UNAUTHORIZED_REQUEST_CODE)
+        self.assertEqual(response.code, BAD_REQUEST_CODE)
 
     def test_invalid_id(self):
-        headers = {api_key.AUTH: self.token}
-
         response = self.fetch(
-            self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, "-1")), method='GET', headers=headers, body=None
+            self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, "-1")), method='GET', headers=self.header, body=None
         )
         self.assertNotEqual(response.code, OK_REQUEST_CODE)
 
     def test_invalid_worker_id(self):
-        headers = {api_key.AUTH: self.token}
-
         response = self.fetch(
-            self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, "1234")), method='GET', headers=headers, body=None
+            self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, "1234")), method='GET', headers=self.header, body=None
         )
         self.assertEqual(response.code, BAD_REQUEST_CODE)
 
@@ -50,26 +46,24 @@ class TestUpdateGradingJob(BaseTest):
         response = self.fetch(
             self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, "123")), method='POST', headers=None, body=''
         )
-        self.assertEqual(response.code, UNAUTHORIZED_REQUEST_CODE)
+        self.assertEqual(response.code, BAD_REQUEST_CODE)
 
     def test_invalid_id(self):
-        headers = {api_key.AUTH: self.token}
         res = {api_key.JOB_ID: "123", api_key.SUCCESS: True,
                api_key.RESULTS: [{"result": "Worker died while executing this job"}],
                api_key.LOGS: {"logs": "No logs available for this job since the worker died while executing this job"}}
 
-        response = self.fetch(self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, "-1")), method='POST', headers=headers,
-                              body=json.dumps(res))
+        response = self.fetch(self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, "-1")), method='POST',
+                              headers=self.header, body=json.dumps(res))
         self.assertNotEqual(response.code, OK_REQUEST_CODE)
 
     def test_invalid_worker_id(self):
-        headers = {api_key.AUTH: self.token}
         res = {api_key.JOB_ID: "123", api_key.SUCCESS: True,
                api_key.RESULTS: [{"result": "Worker died while executing this job"}],
                api_key.LOGS: {"logs": "No logs available for this job since the worker died while executing this job"}}
 
-        response = self.fetch(self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, "123")), method='POST', headers=headers,
-                              body=json.dumps(res))
+        response = self.fetch(self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, "123")), method='POST',
+                              headers=self.header, body=json.dumps(res))
         self.assertEqual(response.code, BAD_REQUEST_CODE)
 
 
@@ -78,12 +72,9 @@ class TestAddGradingRun(BaseTest):
         self.assertIsNotNone(self.add_grading_run())
 
     def test_invalid_runs(self):
-        headers = {api_key.AUTH: self.token}
-
         for invalid_config in tests.configs.invalid_configs:
             response = self.fetch(
-                self.get_url(GRADING_RUN_ENDPOINT), method='POST', headers=headers,
-                body=json.dumps(invalid_config)
+                self.get_url(GRADING_RUN_ENDPOINT), method='POST', headers=self.header, body=json.dumps(invalid_config)
             )
             self.assertEqual(response.code, BAD_REQUEST_CODE)
 
@@ -134,7 +125,6 @@ class TestJobPollOrder(BaseTest):
 class TestHeartBeat(BaseTest):
     def test_valid_heartbeat(self):
         worker_id = self.register_worker()
-        headers = {api_key.AUTH: self.token}
         response = self.fetch(self.get_url("{}/{}".format(HEARTBEAT_ENDPOINT, worker_id)), method='POST',
-                              headers=headers, body='')
+                              headers=self.header, body='')
         self.assertEqual(response.code, OK_REQUEST_CODE)

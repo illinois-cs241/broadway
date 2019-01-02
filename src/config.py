@@ -4,6 +4,7 @@ DB_PATH = "/tmp/mongo/data"
 LOGS_DIR = "logs"
 LOGS_ROTATE_WHEN = 'midnight'
 LOGS_BACKUP_COUNT = 7
+TOKEN_ENV_VAR = "API_TOKEN"
 
 # request codes
 OK_REQUEST_CODE = 200

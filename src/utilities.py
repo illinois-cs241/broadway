@@ -1,6 +1,7 @@
 import datetime as dt
 from src.constants.constants import TIMESTAMP_FORMAT
-from src.constants.db_keys import FINISHED, STARTED, QUEUED
+import src.constants.db_keys as db_key
+import src.constants.api_keys as api_key
 from threading import Thread, Condition
 import time
 
@@ -65,14 +66,18 @@ def get_status(student_job):
     :param student_job: dictionary representing student job
     :return: state description
     """
-    if FINISHED in student_job:
+    if db_key.FINISHED in student_job:
         return "Finished"
-    elif STARTED in student_job:
+    elif db_key.STARTED in student_job:
         return "Running"
-    elif QUEUED in student_job:
+    elif db_key.QUEUED in student_job:
         return "Queued"
     else:
         return "Created"
+
+
+def get_header(token):
+    return {api_key.AUTH: "Bearer {}".format(token)}
 
 
 def resolve_env_vars(stage_env_vars, global_env_vars, student_env_vars=None):

@@ -9,7 +9,7 @@ import src.constants.api_keys as api_key
 import src.constants.db_keys as db_key
 from src.auth import authenticate, authenticate_worker
 from src.config import HEARTBEAT_INTERVAL, QUEUE_EMPTY_CODE, BAD_REQUEST_CODE
-from src.utilities import get_time
+from src.utilities import get_time, enqueue_job, enqueue_student_jobs, job_update_callback
 from src.handlers.base_handler import BaseAPIHandler
 
 logger = logging.getLogger()
@@ -164,72 +164,8 @@ class GradingJobHandler(BaseAPIHandler):
         job_logs_collection.insert_one({db_key.JOB_ID: job_id, **self.body.get(api_key.LOGS)})
 
         # thread safe callback
-        tornado.ioloop.IOLoop.current().add_callback(self.job_update_callback, job_id, job.get(db_key.GRADING_RUN))
-
-    def job_update_callback(self, job_id, grading_run_id):
-        db_handler = self.get_db()
-        grading_run_collection = db_handler.get_grading_run_collection()
-
-        # update grading run: if last job finished then update finished_at. Update student_jobs_left if student job.
-        # enqueue post processing if all student jobs finished
-
-        grading_run = self.get_grading_run(grading_run_id)
-        job_succeeded = self.body.get(api_key.SUCCESS)
-        if grading_run is None:
-            logger.critical("Received job update for job {}. Its document points to a non-existent grading run with "
-                            "id {}.".format(job_id, grading_run_id))
-            return
-
-        # Since the job is in valid state, the following errors imply that there is some error with application logic
-        if db_key.CREATED not in grading_run:
-            logger.critical("CREATED field not set in grading run with id {}".format(grading_run_id))
-            return
-
-        if db_key.STARTED not in grading_run:
-            logger.critical("Received a job update for a job with id {} belonging to a grading run with id {} that "
-                            "had not even been started".format(job_id, grading_run_id))
-            return
-
-        if db_key.FINISHED in grading_run:
-            logger.critical("Received a job update for a job with id {} belonging to a grading run with id {} that "
-                            "had already finished".format(job_id, grading_run_id))
-            return
-
-        if grading_run.get(db_key.PRE_PROCESSING, "") == job_id:
-            # pre processing job finished
-            if job_succeeded:
-                self.enqueue_student_jobs(grading_run)
-            else:
-                grading_run_collection.update_one({db_key.ID: ObjectId(grading_run_id)},
-                                                  {"$set": {db_key.SUCCESS: False, db_key.FINISHED: get_time()}})
-
-        elif grading_run.get(db_key.POST_PROCESSING, "") == job_id:
-            # post processing job finished so the grading run is over
-            if grading_run.get(db_key.STUDENT_JOBS_LEFT) != 0:
-                logger.critical("Processed post processing job when {} student jobs are left. Something is wrong with "
-                                "the scheduling logic".format(grading_run.get(db_key.STUDENT_JOBS_LEFT)))
-                return
-
-            grading_run_collection.update_one({db_key.ID: ObjectId(grading_run_id)},
-                                              {"$set": {db_key.SUCCESS: job_succeeded, db_key.FINISHED: get_time()}})
-
-        else:
-            # a student's job finished
-            if grading_run.get(db_key.STUDENT_JOBS_LEFT) <= 0:
-                logger.critical("Processed another student job when the number of student jobs is not positive. "
-                                "Something is wrong with the counting logic. Possible race condition.")
-                return
-
-            grading_run_collection.update_one({db_key.ID: ObjectId(grading_run_id)},
-                                              {"$inc": {db_key.STUDENT_JOBS_LEFT: -1}})
-
-            if grading_run[db_key.STUDENT_JOBS_LEFT] == 1:
-                # this was the last student job which finished so if post processing exists then schedule it
-                if db_key.POST_PROCESSING in grading_run:
-                    self.enqueue_job(grading_run.get(db_key.POST_PROCESSING), grading_run.get(db_key.STUDENTS))
-                else:
-                    grading_run_collection.update_one({db_key.ID: ObjectId(grading_run_id)},
-                                                      {"$set": {db_key.SUCCESS: True, db_key.FINISHED: get_time()}})
+        tornado.ioloop.IOLoop.current().add_callback(job_update_callback, db_handler, self.get_queue(), job_id,
+                                                     job.get(db_key.GRADING_RUN), self.body.get(api_key.SUCCESS))
 
 
 class HeartBeatHandler(BaseAPIHandler):

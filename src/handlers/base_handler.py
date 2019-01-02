@@ -65,21 +65,3 @@ class BaseAPIHandler(APIHandler):
             cur_job.append(cur_stage)
 
         return cur_job
-
-    def enqueue_job(self, job_id, students=None):
-        db_resolver = self.get_db()
-        job_queue = self.get_queue()
-
-        jobs_collection = db_resolver.get_grading_job_collection()
-        job = self.get_grading_job(job_id)
-
-        cur_job = {api_key.STAGES: job[db_key.STAGES], api_key.JOB_ID: job_id}
-        if students is not None:
-            cur_job[api_key.STUDENTS] = students
-
-        job_queue.put(cur_job)
-        jobs_collection.update_one({db_key.ID: ObjectId(job_id)}, {"$set": {db_key.QUEUED: get_time()}})
-
-    def enqueue_student_jobs(self, grading_run):
-        for student_job_id in grading_run.get(db_key.STUDENT_JOBS):
-            self.enqueue_job(student_job_id)

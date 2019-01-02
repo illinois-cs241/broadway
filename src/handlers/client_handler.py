@@ -7,7 +7,7 @@ import src.constants.api_keys as api_key
 import src.constants.db_keys as db_key
 from src.auth import authenticate
 from src.config import BAD_REQUEST_CODE
-from src.utilities import get_time
+from src.utilities import get_time, enqueue_job, enqueue_student_jobs
 from src.handlers.base_handler import BaseAPIHandler
 
 logger = logging.getLogger()
@@ -124,9 +124,10 @@ class GradingRunHandler(BaseAPIHandler):
 
         # enqueue jobs
         if db_key.PRE_PROCESSING in grading_run:
-            self.enqueue_job(grading_run.get(db_key.PRE_PROCESSING), grading_run.get(db_key.STUDENTS))
+            enqueue_job(db_handler, self.get_queue(), grading_run.get(db_key.PRE_PROCESSING),
+                        grading_run.get(db_key.STUDENTS))
         else:
-            self.enqueue_student_jobs(grading_run)
+            enqueue_student_jobs(db_handler, self.get_queue(), grading_run)
 
     # TODO when building a web app around this
     @authenticate

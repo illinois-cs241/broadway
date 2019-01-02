@@ -150,7 +150,7 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
 
     # register node to server
-    header = {api_key.AUTH: sys.argv[1]}
+    header = {api_key.AUTH: "Bearer {}".format(sys.argv[1])}
     register_node()
 
     # run the grader on two separate threads. If any of the routines fail, the grader shuts down

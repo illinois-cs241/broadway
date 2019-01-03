@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import signal
@@ -8,9 +7,8 @@ from queue import Queue
 import tornado
 import tornado.ioloop
 import tornado.web
-from tornado import httpclient
+from bson import ObjectId
 
-import src.constants.api_keys as api_key
 import src.constants.constants as consts
 import src.constants.db_keys as db_key
 from src.auth import initialize_token
@@ -19,7 +17,7 @@ from src.config import WORKER_REGISTER_ENDPOINT, GRADING_JOB_ENDPOINT, GRADING_R
 from src.database import DatabaseResolver
 from src.handlers.client_handler import AddGradingRunHandler, GradingRunHandler
 from src.handlers.worker_handler import WorkerRegisterHandler, GradingJobHandler, HeartBeatHandler
-from src.utilities import get_time, get_header, PeriodicCallbackThread
+from src.utilities import get_time, job_update_callback
 
 # setting up logger
 os.makedirs(LOGS_DIR, exist_ok=True)
@@ -41,7 +39,7 @@ def signal_handler(sig, frame):
     tornado.ioloop.IOLoop.instance().add_callback_from_signal(shutdown)
 
 
-def handle_lost_worker_node(worker_node):
+def handle_lost_worker_node(db_resolver, worker_node):
     running_job_id = worker_node.get(db_key.RUNNING_JOB)
     worker_id = str(worker_node.get(db_key.ID))
     logger.critical("Worker with hostname {} and id {} executing {} went offline unexpectedly".format(
@@ -50,17 +48,20 @@ def handle_lost_worker_node(worker_node):
     if running_job_id is None:
         return
 
-    # Make a fake update request on behalf of the dead worker so that the job is marked as failed and the rest of the
-    # jobs for the grading run can be handled as expected and scheduled in the right order
-    http_client = httpclient.HTTPClient()
-    res = {api_key.JOB_ID: running_job_id, api_key.SUCCESS: False,
-           api_key.RESULTS: [{"result": "Worker died while executing this job"}],
-           api_key.LOGS: {"logs": "No logs available for this job since the worker died while executing this job"}}
-    update_request = httpclient.HTTPRequest(
-        "http://localhost:{}{}/{}".format(PORT, GRADING_JOB_ENDPOINT, worker_id),
-        headers=get_header(cluster_token), method="POST", body=json.dumps(res))
-    http_client.fetch(update_request)
-    http_client.close()
+    jobs_collection = db_resolver.get_grading_job_collection()
+    job = jobs_collection.find_one({db_key.ID: ObjectId(running_job_id)})
+    if job is None:
+        logger.critical(
+            "Job {} which could not be completed because worker went offline does not exist".format(running_job_id))
+        return
+
+    # update job: finished_at and result
+    jobs_collection.update_one({db_key.ID: ObjectId(running_job_id)}, {
+        "$set": {db_key.FINISHED: get_time(), db_key.SUCCESS: False,
+                 db_key.RESULTS: [{"result": "Worker died while executing this job"}]}})
+
+    tornado.ioloop.IOLoop.current().add_callback(job_update_callback, db_resolver, app.settings.get(consts.APP_QUEUE),
+                                                 running_job_id, job.get(db_key.GRADING_RUN), False)
 
 
 def heartbeat_validator(db_resolver):
@@ -77,7 +78,7 @@ def heartbeat_validator(db_resolver):
 
         # the worker node dead if it does not send a heartbeat for 2 intervals
         if (cur_time - last_seen_time).total_seconds() >= 2 * HEARTBEAT_INTERVAL:
-            handle_lost_worker_node(worker_node)
+            handle_lost_worker_node(db_resolver, worker_node)
             worker_nodes_collection.delete_one({db_key.ID: worker_node.get(db_key.ID)})
 
 
@@ -124,13 +125,8 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
 
     # Checks if any worker node disconnected every HEARTBEAT_INTERVAL seconds.
-    heartbeat_thread = PeriodicCallbackThread(callback=heartbeat_validator, interval=HEARTBEAT_INTERVAL,
-                                              args=[db_object])
-    heartbeat_thread.start()
-
-    # start event loop
+    tornado.ioloop.PeriodicCallback(lambda: heartbeat_validator(db_object), HEARTBEAT_INTERVAL * 1000).start()
     tornado.ioloop.IOLoop.instance().start()
 
-    # now that we have stopped serving requests, stop heartbeat thread and shutdown DB
-    heartbeat_thread.stop()
+    # now that we have stopped serving requests, shutdown DB
     db_object.shutdown()

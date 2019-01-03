@@ -1,16 +1,16 @@
 import logging
+from queue import Empty
 
 import tornado.ioloop
-from queue import Empty
 from bson import ObjectId
 from tornado_json import schema
 
 import src.constants.api_keys as api_key
 import src.constants.db_keys as db_key
-from src.auth import authenticate, authenticate_worker
+from src.auth import authenticate
 from src.config import HEARTBEAT_INTERVAL, QUEUE_EMPTY_CODE, BAD_REQUEST_CODE
-from src.utilities import get_time, enqueue_job, enqueue_student_jobs, job_update_callback
 from src.handlers.base_handler import BaseAPIHandler
+from src.utilities import get_time, job_update_callback
 
 logger = logging.getLogger()
 
@@ -57,7 +57,6 @@ class WorkerRegisterHandler(BaseAPIHandler):
 class GradingJobHandler(BaseAPIHandler):
     # GET used to poll a grading job
     @authenticate
-    @authenticate_worker
     @schema.validate(
         output_schema={
             "type": "object",
@@ -77,6 +76,9 @@ class GradingJobHandler(BaseAPIHandler):
         }
     )
     def get(self, worker_id):
+        if self.get_worker_node(worker_id) is None:  # this call aborts if it returns None
+            return
+
         db_resolver = self.get_db()
         job_queue = self.get_queue()
 
@@ -97,7 +99,6 @@ class GradingJobHandler(BaseAPIHandler):
 
     # POST used to update grading job status upon completion
     @authenticate
-    @authenticate_worker
     @schema.validate(
         input_schema={
             "type": "object",
@@ -115,6 +116,9 @@ class GradingJobHandler(BaseAPIHandler):
         }
     )
     def post(self, worker_id):
+        if self.get_worker_node(worker_id) is None:  # this call aborts if it returns None
+            return
+
         db_handler = self.get_db()
         worker_nodes_collection = db_handler.get_worker_node_collection()
         jobs_collection = db_handler.get_grading_job_collection()
@@ -170,9 +174,10 @@ class GradingJobHandler(BaseAPIHandler):
 
 class HeartBeatHandler(BaseAPIHandler):
     @authenticate
-    @authenticate_worker
     def post(self, worker_id):
+        if self.get_worker_node(worker_id) is None:  # this call aborts if it returns None
+            return
+
         db_handler = self.get_db()
         worker_nodes_collection = db_handler.get_worker_node_collection()
-
         worker_nodes_collection.update_one({db_key.ID: ObjectId(worker_id)}, {"$set": {db_key.LAST_SEEN: get_time()}})

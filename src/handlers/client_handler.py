@@ -111,6 +111,8 @@ class GradingRunHandler(BaseAPIHandler):
         db_handler = self.get_db()
         grading_runs_collection = db_handler.get_grading_run_collection()
         grading_run = self.get_grading_run(grading_run_id)
+        if grading_run is None:
+            return
 
         # check to see if grading run has already started
         if db_key.STARTED in grading_run:

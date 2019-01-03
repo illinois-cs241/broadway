@@ -6,16 +6,22 @@ from tornado_json.requesthandlers import APIHandler
 import src.constants.api_keys as api_key
 import src.constants.constants as consts
 import src.constants.db_keys as db_key
-from src.auth import validate_id
 from src.config import BAD_REQUEST_CODE
 from src.database import DatabaseResolver
-from src.utilities import get_time, resolve_env_vars
+from src.utilities import resolve_env_vars
 
 
 class BaseAPIHandler(APIHandler):
     def abort(self, data, status):
         self.set_status(status)
         self.fail(data)
+
+    def is_id_valid(self, id_):
+        if not ObjectId.is_valid(id_):
+            self.abort({"message": "ID {} is not a valid bson ObjectId".format(id_)}, BAD_REQUEST_CODE)
+            return False
+
+        return True
 
     def get_db(self):
         # type: () -> DatabaseResolver
@@ -29,8 +35,10 @@ class BaseAPIHandler(APIHandler):
         # type: () -> str
         return self.settings.get(consts.APP_TOKEN)
 
-    @validate_id
     def get_worker_node(self, id_):
+        if not self.is_id_valid(id_):
+            return None
+
         db_resolver = self.get_db()
         worker_node = db_resolver.get_worker_node_collection().find_one({db_key.ID: ObjectId(id_)})
         if worker_node is None:
@@ -38,8 +46,10 @@ class BaseAPIHandler(APIHandler):
         else:
             return worker_node
 
-    @validate_id
     def get_grading_run(self, id_):
+        if not self.is_id_valid(id_):
+            return None
+
         db_resolver = self.get_db()
         grading_run = db_resolver.get_grading_run_collection().find_one({db_key.ID: ObjectId(id_)})
         if grading_run is None:
@@ -47,8 +57,10 @@ class BaseAPIHandler(APIHandler):
         else:
             return grading_run
 
-    @validate_id
     def get_grading_job(self, id_):
+        if not self.is_id_valid(id_):
+            return None
+
         db_resolver = self.get_db()
         grading_job = db_resolver.get_grading_job_collection().find_one({db_key.ID: ObjectId(id_)})
         if grading_job is None:

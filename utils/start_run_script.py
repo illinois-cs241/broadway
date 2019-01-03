@@ -11,7 +11,7 @@ if __name__ == "__main__":
         exit(-1)
     token = sys.argv[2]
     with open(sys.argv[1]) as f:
-        headers = {"Authorization": token}
+        headers = {"Authorization": "Bearer ".format(token)}
         config = json.load(f)
         r = requests.post("http://{}:{}/api/v1/grading_run".format(HOST, PORT), headers=headers,
                           data=json.dumps(config))

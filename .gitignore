@@ -112,3 +112,4 @@ dmypy.json
 
 ngrok
 .idea/
+logs/

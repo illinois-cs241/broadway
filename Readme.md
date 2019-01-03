@@ -204,4 +204,7 @@ Used to register a heartbeat.
 
 
 ## Testing
-Please run/modify the [tests](tests) each time a change is made to the logic or structure. You can run tests using [pytest](https://docs.pytest.org/en/latest/).
+Please run/modify the [tests](tests) each time a change is made to the logic or structure. You can run tests using [pytest](https://docs.pytest.org/en/latest/) by the following command:
+```shell
+python -m pytest
+```

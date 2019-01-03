@@ -2,20 +2,16 @@ import logging
 import os
 import uuid
 
-from bson import ObjectId
-
 import src.constants.api_keys as api_key
-import src.database
-import src.handlers
-from src.config import UNAUTHORIZED_REQUEST_CODE, BAD_REQUEST_CODE
+from src.config import UNAUTHORIZED_REQUEST_CODE, BAD_REQUEST_CODE, TOKEN_ENV_VAR
 
 logger = logging.getLogger()
 
 
 def initialize_token():
-    if os.environ.get("API_TOKEN"):
+    if os.environ.get(TOKEN_ENV_VAR):
         logger.info("using authentication token from environment")
-        token = os.environ.get("API_TOKEN")
+        token = os.environ.get(TOKEN_ENV_VAR)
     else:
         logger.info("generating authentication token")
         token = str(uuid.uuid4())
@@ -25,38 +21,16 @@ def initialize_token():
 
 def authenticate(func):
     def wrapper(*args, **kwargs):
-        self = args[0]  # type: src.handlers.BaseAPIHandler
-        token = self.get_cluster_token()
-        request_token = self.request.headers.get(api_key.AUTH)
+        base_handler_instance = args[0]
+        token = base_handler_instance.get_cluster_token()
+        request_token = base_handler_instance.request.headers.get(api_key.AUTH)
 
-        if (request_token is None) or (token != request_token):
-            self.abort({"message": "Not authorized"}, UNAUTHORIZED_REQUEST_CODE)
+        if (request_token is None) or not request_token.startswith("Bearer ") or len(request_token.split(" ")) != 2:
+            base_handler_instance.abort({"message": "Cluster token in wrong format. Expect format \'Bearer <token>\'"},
+                                        BAD_REQUEST_CODE)
+        elif token != request_token.split(" ")[1]:
+            base_handler_instance.abort({"message": "Not authorized. Wrong token."}, UNAUTHORIZED_REQUEST_CODE)
         else:
             return func(*args, **kwargs)
-
-    return wrapper
-
-
-def authenticate_worker(func):
-    def wrapper(*args, **kwargs):
-        self = args[0]  # type: src.handlers.BaseAPIHandler
-        worker_id = self.request.headers.get(api_key.WORKER_ID)
-        if self.get_worker_node(worker_id) is None:  # this call aborts if it returns None
-            return
-        else:
-            return func(*args, **kwargs)
-
-    return wrapper
-
-
-def validate_id(func):
-    def wrapper(*args, **kwargs):
-        self = args[0]  # type: src.handlers.BaseAPIHandler
-        id_ = args[1]  # type: str
-
-        if ObjectId.is_valid(id_):
-            return func(*args, **kwargs)
-        else:
-            self.abort({"message": "ID {} is not a valid bson ObjectId".format(id_)}, BAD_REQUEST_CODE)
 
     return wrapper

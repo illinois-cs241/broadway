@@ -23,7 +23,9 @@ class DatabaseResolver(object):
 
     def get_job_logs_collection(self):
         """
-        Returns a collection of Job logs produced by the containers when the job was run.
+        Returns a collection of Job logs produced by the containers when the job was run. This is contained in a
+        separate DB since this can be bulky.
+
         Document format:
             _id (implicit)
             job_id
@@ -40,9 +42,11 @@ class DatabaseResolver(object):
         Returns a collection of documents representing worker nodes currently online.
         Document format:
             _id (implicit)
+            running_job_id (None if not executing any job)
             last_seen
             worker_hostname
-            running_job_id         None if not executing any job
+            jobs_processed
+            alive
 
         :rtype: collection.Collection
         :return: collection of work node documents
@@ -55,13 +59,29 @@ class DatabaseResolver(object):
         Document format:
             _id (implicit)
             auth_token
-            course_id
-            assignment_configs = [id,...]
+            course_id (unique)
 
         :rtype: collection.Collection
         :return: collection of work node documents
         """
         return self.db.courses
+
+    def get_assignments_collection(self):
+        """
+        Returns a collection of documents containing all assignment configs belonging to various courses.
+        Document format:
+            _id (implicit)
+            course_id
+            assignment_id (unique within a course)
+            pre_processing_pipeline
+            post_processing_pipeline
+            student_pipeline
+            global_env_vars
+
+        :rtype: collection.Collection
+        :return: collection of work node documents
+        """
+        return self.db.assigment_configs
 
     def get_grading_run_collection(self):
         """
@@ -70,14 +90,13 @@ class DatabaseResolver(object):
 
         Document format:
             _id (implicit)
+            course_id
+            assignment_id
             created_at
             started_at
             finished_at
             students
             student_jobs_left
-            student_job_ids = [id,...]
-            pre_processing_job_id   (optional)
-            post_processing_job_id  (optional)
             success
 
         :rtype: collection.Collection
@@ -92,13 +111,14 @@ class DatabaseResolver(object):
 
         Document format:
             _id (implicit)
+            grading_run_id
+            worker_id (once started)
             created_at
             queued_at
             started_at
             finished_at
             results
             success
-            grading_run_id
             stages = [stage1, stage2, ...]
 
         :rtype: collection.Collection

@@ -2,6 +2,8 @@ import logging
 import os
 import uuid
 
+import jsonschema
+
 import src.constants.api_keys as api_key
 import src.constants.db_keys as db_key
 import src.constants.constants as consts
@@ -24,21 +26,26 @@ def initialize_cluster_token():
 
 def configure_course_tokens(db_resolver, course_tokens):
     """
-    Expected format of the course tokens:
-    {
-        "tokens": {
-            <token-name>: <token-value>, ...
-        },
-        "courses": {
-            <course-id>: [<token-name>, ...]
-        }
-    }
+    Creates course and token documents in the DB correctly and links them together.
 
     :param db_resolver: DatabaseResolver object
     :type db_resolver: DatabaseResolver
     :param course_tokens: object containing the configuration of courses and their tokens
     :type course_tokens: dict
     """
+    # Expected format specified below
+    jsonschema.validate(course_tokens, {
+        "type": "object",
+        "properties": {
+            consts.CONFIG_TOKENS: {"type": "object"},
+            consts.CONFIG_COURSES: {"type": "object",
+                                    "patternProperties": {
+                                        "": {"type": "array", "items": {"type": "string"}}
+                                    }}
+        },
+        "additionalProperties": False
+    })
+
     courses_collection = db_resolver.get_course_collection()
     courses_collection.drop()
 

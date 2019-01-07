@@ -37,11 +37,11 @@ def configure_course_tokens(db_resolver, course_tokens):
     jsonschema.validate(course_tokens, {
         "type": "object",
         "properties": {
-            consts.CONFIG_TOKENS: {"type": "object"},
+            consts.CONFIG_TOKENS: {"type": "object",
+                                   "patternProperties": {"": {"type": "string"}}},
             consts.CONFIG_COURSES: {"type": "object",
                                     "patternProperties": {
-                                        "": {"type": "array", "items": {"type": "string"}}
-                                    }}
+                                        "": {"type": "array", "items": {"type": "string"}}}}
         },
         "additionalProperties": False
     })

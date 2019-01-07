@@ -8,10 +8,10 @@ def test_periodic_callback_thread():
 
     counter = [0]
     prev = 0
-    thread = PeriodicCallbackThread(callback=routine, interval=0.1, args=[counter])
+    thread = PeriodicCallbackThread(callback=routine, interval=0.01, args=[counter])
     thread.start()
     for _ in range(10):
         assert prev <= counter[0]
         prev += 1
-        time.sleep(0.1)
+        time.sleep(0.01)
     thread.stop()

@@ -122,7 +122,7 @@ class GradingJobHandler(BaseAPIHandler):
         db_handler = self.get_db()
         worker_nodes_collection = db_handler.get_worker_node_collection()
         jobs_collection = db_handler.get_grading_job_collection()
-        job_logs_collection = db_handler.get_job_logs_collection()
+        job_logs_collection = db_handler.get_job_log_collection()
 
         # Error checks
 

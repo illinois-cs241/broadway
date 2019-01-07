@@ -33,7 +33,7 @@ class BaseAPIHandler(APIHandler):
 
     def get_cluster_token(self):
         # type: () -> str
-        return self.settings.get(consts.APP_TOKEN)
+        return self.settings.get(consts.CLUSTER_TOKEN)
 
     def get_worker_node(self, id_):
         if not self.is_id_valid(id_):

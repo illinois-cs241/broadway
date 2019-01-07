@@ -3,20 +3,63 @@ import os
 import uuid
 
 import src.constants.api_keys as api_key
-from src.config import UNAUTHORIZED_REQUEST_CODE, BAD_REQUEST_CODE, TOKEN_ENV_VAR
+import src.constants.db_keys as db_key
+import src.constants.constants as consts
+from src.config import UNAUTHORIZED_REQUEST_CODE, BAD_REQUEST_CODE, CLUSTER_TOKEN_ENV_VAR
+from src.database import DatabaseResolver
 
 logger = logging.getLogger()
 
 
-def initialize_token():
-    if os.environ.get(TOKEN_ENV_VAR):
-        logger.info("using authentication token from environment")
-        token = os.environ.get(TOKEN_ENV_VAR)
+def initialize_cluster_token():
+    if os.environ.get(CLUSTER_TOKEN_ENV_VAR):
+        logger.info("using cluster token from environment")
+        token = os.environ.get(CLUSTER_TOKEN_ENV_VAR)
     else:
-        logger.info("generating authentication token")
+        logger.info("generating cluster token")
         token = str(uuid.uuid4())
-        logger.info("authentication token is {}".format(token))
+        logger.info("cluster token is {}".format(token))
     return token
+
+
+def configure_course_tokens(db_resolver, course_tokens):
+    """
+    Expected format of the course tokens:
+    {
+        "tokens": {
+            <token-name>: <token-value>, ...
+        },
+        "courses": {
+            <course-id>: [<token-name>, ...]
+        }
+    }
+
+    :param db_resolver: DatabaseResolver object
+    :type db_resolver: DatabaseResolver
+    :param course_tokens: object containing the configuration of courses and their tokens
+    :type course_tokens: dict
+    """
+    courses_collection = db_resolver.get_course_collection()
+    courses_collection.drop()
+
+    tokens_collection = db_resolver.get_token_collection()
+    tokens_collection.drop()
+
+    token_name_to_id = {}
+    for token_name in course_tokens.get(consts.CONFIG_TOKENS, {}):
+        token_name_to_id[token_name] = str(
+            tokens_collection.insert_one({db_key.TOKEN: course_tokens[consts.CONFIG_TOKENS][token_name]}).inserted_id)
+
+    for course_id in course_tokens.get(consts.CONFIG_COURSES, {}):
+        course = {db_key.ID: course_id, db_key.TOKEN_IDS: []}
+        for token_name in course_tokens[consts.CONFIG_COURSES][course_id]:
+            if token_name not in token_name_to_id:
+                logger.critical("Token name {} does not exist in course tokens config".format(token_name))
+                raise KeyError
+
+            course[db_key.TOKEN_IDS].append(token_name_to_id[token_name])
+
+        courses_collection.insert_one(course)
 
 
 def authenticate(func):

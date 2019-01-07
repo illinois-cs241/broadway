@@ -21,7 +21,7 @@ class DatabaseResolver(object):
         os.makedirs(DB_PATH, exist_ok=True)
         self.mongo_daemon = Popen(["mongod", "--dbpath", DB_PATH], stdout=DEVNULL, stderr=DEVNULL)
 
-    def get_job_logs_collection(self):
+    def get_job_log_collection(self):
         """
         Returns a collection of Job logs produced by the containers when the job was run. This is contained in a
         separate DB since this can be bulky.
@@ -35,7 +35,7 @@ class DatabaseResolver(object):
         :rtype: collection.Collection
         :return: collection of job log documents
         """
-        return self.logs_db.job_logs
+        return self.logs_db.job_log
 
     def get_worker_node_collection(self):
         """
@@ -51,41 +51,38 @@ class DatabaseResolver(object):
         :rtype: collection.Collection
         :return: collection of work node documents
         """
-        return self.db.worker_nodes
+        return self.db.worker_node
 
     def get_token_collection(self):
         """
         Returns a collection of tokens used to authenticate requests. A token can be owned by multiple courses and a
-        course can own multiple tokens.
+        course can own multiple tokens. Courses and tokens have a many to many relationship.
         Document format:
             _id (implicit)
-            token_value
+            token
 
         :rtype: collection.Collection
         :return: collection of work node documents
         """
-        return self.db.courses
+        return self.db.token
 
-    def get_courses_collection(self):
+    def get_course_collection(self):
         """
         Returns a collection of documents representing all courses registered into the system.
         Document format:
-            _id (implicit)
-            course_id (unique)
+            _id (unique, specified by clients)
             token_ids = [id,...]
 
         :rtype: collection.Collection
         :return: collection of work node documents
         """
-        return self.db.courses
+        return self.db.course
 
-    def get_assignments_collection(self):
+    def get_assignment_collection(self):
         """
         Returns a collection of documents containing all assignment configs belonging to various courses.
         Document format:
-            _id (implicit)
-            course_id
-            assignment_id (unique within a course)
+            _id (unique: course_id + '/' + assignment_name)
             pre_processing_pipeline
             post_processing_pipeline
             student_pipeline
@@ -94,7 +91,7 @@ class DatabaseResolver(object):
         :rtype: collection.Collection
         :return: collection of work node documents
         """
-        return self.db.assigment_configs
+        return self.db.assigment_config
 
     def get_grading_run_collection(self):
         """
@@ -102,8 +99,7 @@ class DatabaseResolver(object):
         state (created, running, finished).
 
         Document format:
-            _id (implicit)
-            course_id
+            _id (auto)
             assignment_id
             created_at
             started_at
@@ -115,7 +111,7 @@ class DatabaseResolver(object):
         :rtype: collection.Collection
         :return: collection of grading run documents
         """
-        return self.db.grading_runs
+        return self.db.grading_run
 
     def get_grading_job_collection(self):
         """
@@ -123,7 +119,7 @@ class DatabaseResolver(object):
         state (created, queued, running, finished).
 
         Document format:
-            _id (implicit)
+            _id (auto)
             grading_run_id
             worker_id (once started)
             created_at
@@ -137,7 +133,7 @@ class DatabaseResolver(object):
         :rtype: collection.Collection
         :return: collection of grading job documents
         """
-        return self.db.grading_jobs
+        return self.db.grading_job
 
     def shutdown(self):
         logger.info("shutting down Mongo daemon")

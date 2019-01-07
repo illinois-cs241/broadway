@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import signal
@@ -11,8 +12,8 @@ from bson import ObjectId
 
 import src.constants.constants as consts
 import src.constants.db_keys as db_key
-from src.auth import initialize_token
-from src.config import PORT, HEARTBEAT_INTERVAL, LOGS_DIR, LOGS_ROTATE_WHEN, LOGS_BACKUP_COUNT
+from src.auth import initialize_cluster_token, configure_course_tokens
+from src.config import PORT, HEARTBEAT_INTERVAL, LOGS_DIR, LOGS_ROTATE_WHEN, LOGS_BACKUP_COUNT, COURSES_CONFIG_FILE
 from src.config import WORKER_REGISTER_ENDPOINT, GRADING_JOB_ENDPOINT, GRADING_RUN_ENDPOINT, HEARTBEAT_ENDPOINT
 from src.database import DatabaseResolver
 from src.handlers.client_handler import AddGradingRunHandler, GradingRunHandler
@@ -82,10 +83,13 @@ def heartbeat_validator(db_resolver):
             worker_nodes_collection.delete_one({db_key.ID: worker_node.get(db_key.ID)})
 
 
-def make_app(token, db_object):
+def make_app(cluster_token, db_resolver, course_tokens):
+    if course_tokens:
+        configure_course_tokens(db_resolver, course_tokens)
+
     settings = {
-        consts.APP_TOKEN: token,
-        consts.APP_DB: db_object,
+        consts.CLUSTER_TOKEN: cluster_token,
+        consts.APP_DB: db_resolver,
         consts.APP_QUEUE: Queue()
     }
 
@@ -115,9 +119,16 @@ def make_app(token, db_object):
 
 if __name__ == "__main__":
     logger.info("initializing application")
-    cluster_token = initialize_token()
+    if os.path.isfile(COURSES_CONFIG_FILE):
+        logger.info("Initializing courses and tokens. Overwriting previous DB contents.")
+        with open(COURSES_CONFIG_FILE) as courses_config_file:
+            courses = json.load(courses_config_file)
+    else:
+        logger.info("No courses config file found. Retaining previous DB contents.")
+        courses = None
+
     db_object = DatabaseResolver()
-    app = make_app(token=cluster_token, db_object=db_object)
+    app = make_app(cluster_token=initialize_cluster_token(), db_resolver=db_object, course_tokens=courses)
 
     logger.info("listening on port {}".format(PORT))
     app.listen(PORT)

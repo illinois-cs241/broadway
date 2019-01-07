@@ -26,13 +26,13 @@ class TestPollGradingJob(BaseTest):
 
     def test_invalid_id(self):
         response = self.fetch(
-            self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, "-1")), method='GET', headers=self.header, body=None
+            self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, "-1")), method='GET', headers=self.grader_header, body=None
         )
         self.assertNotEqual(response.code, OK_REQUEST_CODE)
 
     def test_invalid_worker_id(self):
         response = self.fetch(
-            self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, "1234")), method='GET', headers=self.header, body=None
+            self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, "1234")), method='GET', headers=self.grader_header, body=None
         )
         self.assertEqual(response.code, BAD_REQUEST_CODE)
 
@@ -54,7 +54,7 @@ class TestUpdateGradingJob(BaseTest):
                api_key.LOGS: {"logs": "No logs available for this job since the worker died while executing this job"}}
 
         response = self.fetch(self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, "-1")), method='POST',
-                              headers=self.header, body=json.dumps(res))
+                              headers=self.grader_header, body=json.dumps(res))
         self.assertNotEqual(response.code, OK_REQUEST_CODE)
 
     def test_invalid_worker_id(self):
@@ -63,7 +63,7 @@ class TestUpdateGradingJob(BaseTest):
                api_key.LOGS: {"logs": "No logs available for this job since the worker died while executing this job"}}
 
         response = self.fetch(self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, "123")), method='POST',
-                              headers=self.header, body=json.dumps(res))
+                              headers=self.grader_header, body=json.dumps(res))
         self.assertEqual(response.code, BAD_REQUEST_CODE)
 
 
@@ -74,7 +74,7 @@ class TestAddGradingRun(BaseTest):
     def test_invalid_runs(self):
         for invalid_config in tests.configs.invalid_configs:
             response = self.fetch(
-                self.get_url(GRADING_RUN_ENDPOINT), method='POST', headers=self.header, body=json.dumps(invalid_config)
+                self.get_url(GRADING_RUN_ENDPOINT), method='POST', headers=self.grader_header, body=json.dumps(invalid_config)
             )
             self.assertEqual(response.code, BAD_REQUEST_CODE)
 
@@ -126,5 +126,5 @@ class TestHeartBeat(BaseTest):
     def test_valid_heartbeat(self):
         worker_id = self.register_worker()
         response = self.fetch(self.get_url("{}/{}".format(HEARTBEAT_ENDPOINT, worker_id)), method='POST',
-                              headers=self.header, body='')
+                              headers=self.grader_header, body='')
         self.assertEqual(response.code, OK_REQUEST_CODE)

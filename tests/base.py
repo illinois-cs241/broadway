@@ -7,8 +7,8 @@ import src.constants.api_keys as api_key
 import src.constants.constants as consts
 import tests.configs
 from src.api import make_app
-from src.config import OK_REQUEST_CODE, QUEUE_EMPTY_CODE, GRADING_JOB_ENDPOINT, WORKER_REGISTER_ENDPOINT, \
-    GRADING_RUN_ENDPOINT
+from src.config import OK_REQUEST_CODE, QUEUE_EMPTY_CODE
+from src.config import GRADING_JOB_ENDPOINT, WORKER_REGISTER_ENDPOINT, GRADING_RUN_ENDPOINT, GRADING_CONFIG_ENDPOINT
 from src.database import DatabaseResolver
 from src.utilities import get_header
 
@@ -58,6 +58,11 @@ class BaseTest(AsyncHTTPTestCase):
             body=""
         )
         self.assertEqual(response.code, OK_REQUEST_CODE)
+
+    def upload_grading_config(self, course_id, assignment_id, header, grading_config, expected_code):
+        response = self.fetch(self.get_url("{}/{}/{}".format(GRADING_CONFIG_ENDPOINT, course_id, assignment_id)),
+                              method='POST', body=json.dumps(grading_config), headers=header)
+        self.assertEqual(response.code, expected_code)
 
     def register_worker(self):
         response = self.fetch(self.get_url("{}/{}".format(WORKER_REGISTER_ENDPOINT, "mock_hostname")), method='GET',

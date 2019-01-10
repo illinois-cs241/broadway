@@ -1,5 +1,6 @@
-HEX_REGEX = "(?P<{}>[a-f0-9]+)"
-STRING_REGEX = "(?P<{}>[^()]+)"
+HEX_REGEX = r"(?P<{}>[a-f0-9]+)"
+ID_REGEX = r"(?P<{}>[-\w]+)"
+STRING_REGEX = r"(?P<{}>[^()]+)"
 TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 # application specific constants

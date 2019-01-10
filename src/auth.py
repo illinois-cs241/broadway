@@ -69,18 +69,58 @@ def configure_course_tokens(db_resolver, course_tokens):
         courses_collection.insert_one(course)
 
 
-def authenticate(func):
+def authenticate_worker(func):
     def wrapper(*args, **kwargs):
         base_handler_instance = args[0]
-        token = base_handler_instance.get_cluster_token()
+        worker_id = kwargs.get(api_key.WORKER_ID_PARAM) if len(args) < 2 else args[1]
+        if base_handler_instance.get_worker_node(worker_id) is None:  # this call aborts if it returns None
+            return
+        else:
+            return func(*args, **kwargs)
+
+    return wrapper
+
+
+def authenticate_cluster_token(func):
+    def wrapper(*args, **kwargs):
+        base_handler_instance = args[0]
+        expected_token = base_handler_instance.get_cluster_token()
         request_token = base_handler_instance.request.headers.get(api_key.AUTH)
 
         if (request_token is None) or not request_token.startswith("Bearer ") or len(request_token.split(" ")) != 2:
             base_handler_instance.abort({"message": "Cluster token in wrong format. Expect format \'Bearer <token>\'"},
                                         BAD_REQUEST_CODE)
-        elif token != request_token.split(" ")[1]:
+        elif expected_token != request_token.split(" ")[1]:
             base_handler_instance.abort({"message": "Not authorized. Wrong token."}, UNAUTHORIZED_REQUEST_CODE)
         else:
             return func(*args, **kwargs)
+
+    return wrapper
+
+
+def authenticate_course(func):
+    def wrapper(*args, **kwargs):
+        base_handler_instance = args[0]
+
+        request_token = base_handler_instance.request.headers.get(api_key.AUTH)
+        if (request_token is None) or not request_token.startswith("Bearer ") or len(request_token.split(" ")) != 2:
+            base_handler_instance.abort({"message": "Cluster token in wrong format. Expect format \'Bearer <token>\'"},
+                                        BAD_REQUEST_CODE)
+            return
+
+        request_token = request_token.split(" ")[1]
+
+        course_id = kwargs.get(api_key.COURSE_ID_PARAM) if len(args) < 2 else args[1]
+        course = base_handler_instance.get_course(course_id)
+        if course is None:
+            # get_course() internally aborts the request so return\
+            return
+
+        for token_id in course.get(db_key.TOKEN_IDS):
+            cur_token = base_handler_instance.get_token(token_id).get(db_key.TOKEN)
+            if cur_token == request_token:
+                return func(*args, **kwargs)
+
+        base_handler_instance.abort({"message": "Not authorized. Wrong token."}, UNAUTHORIZED_REQUEST_CODE)
 
     return wrapper

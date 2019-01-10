@@ -7,7 +7,7 @@ from tornado_json import schema
 
 import src.constants.api_keys as api_key
 import src.constants.db_keys as db_key
-from src.auth import authenticate
+from src.auth import authenticate_cluster_token, authenticate_worker
 from src.config import HEARTBEAT_INTERVAL, QUEUE_EMPTY_CODE, BAD_REQUEST_CODE
 from src.handlers.base_handler import BaseAPIHandler
 from src.utilities import get_time, job_update_callback
@@ -31,7 +31,7 @@ grading_job_def = {
 
 
 class WorkerRegisterHandler(BaseAPIHandler):
-    @authenticate
+    @authenticate_cluster_token
     @schema.validate(
         output_schema={
             "type": "object",
@@ -43,7 +43,8 @@ class WorkerRegisterHandler(BaseAPIHandler):
             "additionalProperties": False
         }
     )
-    def get(self, hostname):
+    def get(self, *args, **kwargs):
+        hostname = kwargs.get(api_key.HOSTNAME_PARAM) if len(args) == 0 else args[0]
         db_resolver = self.get_db()
         worker_nodes_collection = db_resolver.get_worker_node_collection()
 
@@ -56,7 +57,8 @@ class WorkerRegisterHandler(BaseAPIHandler):
 
 class GradingJobHandler(BaseAPIHandler):
     # GET used to poll a grading job
-    @authenticate
+    @authenticate_cluster_token
+    @authenticate_worker
     @schema.validate(
         output_schema={
             "type": "object",
@@ -75,9 +77,8 @@ class GradingJobHandler(BaseAPIHandler):
             "additionalProperties": False
         }
     )
-    def get(self, worker_id):
-        if self.get_worker_node(worker_id) is None:  # this call aborts if it returns None
-            return
+    def get(self, *args, **kwargs):
+        worker_id = kwargs.get(api_key.WORKER_ID_PARAM) if len(args) == 0 else args[0]
 
         db_resolver = self.get_db()
         job_queue = self.get_queue()
@@ -98,7 +99,8 @@ class GradingJobHandler(BaseAPIHandler):
             return {api_key.JOB_ID: 'no id', api_key.STAGES: []}
 
     # POST used to update grading job status upon completion
-    @authenticate
+    @authenticate_cluster_token
+    @authenticate_worker
     @schema.validate(
         input_schema={
             "type": "object",
@@ -115,9 +117,8 @@ class GradingJobHandler(BaseAPIHandler):
             "additionalProperties": False
         }
     )
-    def post(self, worker_id):
-        if self.get_worker_node(worker_id) is None:  # this call aborts if it returns None
-            return
+    def post(self, *args, **kwargs):
+        worker_id = kwargs.get(api_key.WORKER_ID_PARAM) if len(args) == 0 else args[0]
 
         db_handler = self.get_db()
         worker_nodes_collection = db_handler.get_worker_node_collection()
@@ -173,10 +174,10 @@ class GradingJobHandler(BaseAPIHandler):
 
 
 class HeartBeatHandler(BaseAPIHandler):
-    @authenticate
-    def post(self, worker_id):
-        if self.get_worker_node(worker_id) is None:  # this call aborts if it returns None
-            return
+    @authenticate_cluster_token
+    @authenticate_worker
+    def post(self, *args, **kwargs):
+        worker_id = kwargs.get(api_key.WORKER_ID_PARAM) if len(args) == 0 else args[0]
 
         db_handler = self.get_db()
         worker_nodes_collection = db_handler.get_worker_node_collection()

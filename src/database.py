@@ -27,7 +27,7 @@ class DatabaseResolver(object):
         separate DB since this can be bulky.
 
         Document format:
-            _id (implicit)
+            _id (auto)
             job_id
             stderr
             stdout
@@ -41,7 +41,7 @@ class DatabaseResolver(object):
         """
         Returns a collection of documents representing worker nodes currently online.
         Document format:
-            _id (implicit)
+            _id (auto)
             running_job_id (None if not executing any job)
             last_seen
             worker_hostname
@@ -58,7 +58,7 @@ class DatabaseResolver(object):
         Returns a collection of tokens used to authenticate requests. A token can be owned by multiple courses and a
         course can own multiple tokens. Courses and tokens have a many to many relationship.
         Document format:
-            _id (implicit)
+            _id (auto)
             token
 
         :rtype: collection.Collection

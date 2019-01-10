@@ -5,7 +5,7 @@ from tornado_json import schema
 
 import src.constants.api_keys as api_key
 import src.constants.db_keys as db_key
-from src.auth import authenticate
+from src.auth import authenticate_cluster_token, authenticate_course
 from src.config import BAD_REQUEST_CODE
 from src.utilities import get_time, enqueue_job, enqueue_student_jobs
 from src.handlers.base_handler import BaseAPIHandler
@@ -28,8 +28,36 @@ grading_stage_def = {
 }
 
 
+class GradingConfigHandler(BaseAPIHandler):
+    @authenticate_course
+    @schema.validate(
+        input_schema={
+            "type": "object",
+            "properties": {
+                api_key.PRE_PROCESSING_PIPELINE: {
+                    "type": "array",
+                    "items": grading_stage_def,
+                },
+                api_key.STUDENT_PIPELINE: {
+                    "type": "array",
+                    "items": grading_stage_def,
+                },
+                api_key.POST_PROCESSING_PIPELINE: {
+                    "type": "array",
+                    "items": grading_stage_def,
+                },
+                api_key.ENV: {"type": "object"},
+            },
+            "required": [api_key.STUDENT_PIPELINE],
+            "additionalProperties": False
+        }
+    )
+    def post(self, *args, **kwargs):
+        pass
+
+
 class AddGradingRunHandler(BaseAPIHandler):
-    @authenticate
+    @authenticate_cluster_token
     @schema.validate(
         input_schema={
             "type": "object",
@@ -106,7 +134,7 @@ class AddGradingRunHandler(BaseAPIHandler):
 
 
 class GradingRunHandler(BaseAPIHandler):
-    @authenticate
+    @authenticate_cluster_token
     def post(self, grading_run_id):
         db_handler = self.get_db()
         grading_runs_collection = db_handler.get_grading_run_collection()
@@ -132,6 +160,6 @@ class GradingRunHandler(BaseAPIHandler):
             enqueue_student_jobs(db_handler, self.get_queue(), grading_run)
 
     # TODO when building a web app around this
-    @authenticate
+    @authenticate_cluster_token
     def get(self, grading_run_id):
         pass

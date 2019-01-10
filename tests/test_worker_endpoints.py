@@ -36,13 +36,6 @@ class TestPollGradingJob(BaseTest):
                               headers=get_header("lol"), body=None)
         self.assertEqual(response.code, UNAUTHORIZED_REQUEST_CODE)
 
-    def test_invalid_id(self):
-        response = self.fetch(
-            self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, "-1")), method='GET', headers=self.grader_header,
-            body=None
-        )
-        self.assertNotEqual(response.code, OK_REQUEST_CODE)
-
     def test_invalid_worker_id(self):
         response = self.fetch(
             self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, "1234")), method='GET', headers=self.grader_header,
@@ -68,15 +61,6 @@ class TestUpdateGradingJob(BaseTest):
                               headers=get_header("lol"), body=None)
         self.assertEqual(response.code, UNAUTHORIZED_REQUEST_CODE)
 
-    def test_invalid_id(self):
-        res = {api_key.JOB_ID: "123", api_key.SUCCESS: True,
-               api_key.RESULTS: [{"result": "Worker died while executing this job"}],
-               api_key.LOGS: {"logs": "No logs available for this job since the worker died while executing this job"}}
-
-        response = self.fetch(self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, "-1")), method='POST',
-                              headers=self.grader_header, body=json.dumps(res))
-        self.assertNotEqual(response.code, OK_REQUEST_CODE)
-
     def test_invalid_worker_id(self):
         res = {api_key.JOB_ID: "123", api_key.SUCCESS: True,
                api_key.RESULTS: [{"result": "Worker died while executing this job"}],
@@ -100,11 +84,6 @@ class TestHeartBeat(BaseTest):
         response = self.fetch(self.get_url("{}/{}".format(HEARTBEAT_ENDPOINT, worker_id)), method='POST', body='',
                               headers=get_header("lol"))
         self.assertEqual(response.code, UNAUTHORIZED_REQUEST_CODE)
-
-    def test_invalid_id(self):
-        response = self.fetch(
-            self.get_url("{}/{}".format(HEARTBEAT_ENDPOINT, "-1")), method='POST', headers=self.grader_header, body='')
-        self.assertNotEqual(response.code, OK_REQUEST_CODE)
 
     def test_invalid_worker_id(self):
         response = self.fetch(

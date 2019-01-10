@@ -14,6 +14,13 @@ RESULTS = "results"
 SUCCESS = "success"
 LOGS = "logs"
 
+# these define url parameters
+HOSTNAME_PARAM = "hostname"
+WORKER_ID_PARAM = "worker_id"
+COURSE_ID_PARAM = "course_id"
+ASSIGNMENT_ID_PARAM = "assignment_id"
+
+
 # these let us specify the stage specs
 IMAGE = "image"
 ENV = "env"

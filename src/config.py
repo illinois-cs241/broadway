@@ -14,6 +14,7 @@ UNAUTHORIZED_REQUEST_CODE = 401
 QUEUE_EMPTY_CODE = 498
 
 # endpoints
+GRADING_CONFIG_ENDPOINT = "/api/v1/grading_config"
 GRADING_RUN_ENDPOINT = "/api/v1/grading_run"
 WORKER_REGISTER_ENDPOINT = "/api/v1/worker_register"
 GRADING_JOB_ENDPOINT = "/api/v1/grading_job"

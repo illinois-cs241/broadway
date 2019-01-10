@@ -12,11 +12,13 @@ from bson import ObjectId
 
 import src.constants.constants as consts
 import src.constants.db_keys as db_key
+import src.constants.api_keys as api_key
 from src.auth import initialize_cluster_token, configure_course_tokens
 from src.config import PORT, HEARTBEAT_INTERVAL, LOGS_DIR, LOGS_ROTATE_WHEN, LOGS_BACKUP_COUNT, COURSES_CONFIG_FILE
-from src.config import WORKER_REGISTER_ENDPOINT, GRADING_JOB_ENDPOINT, GRADING_RUN_ENDPOINT, HEARTBEAT_ENDPOINT
+from src.config import WORKER_REGISTER_ENDPOINT, GRADING_JOB_ENDPOINT, GRADING_CONFIG_ENDPOINT, GRADING_RUN_ENDPOINT, \
+    HEARTBEAT_ENDPOINT
 from src.database import DatabaseResolver
-from src.handlers.client_handler import AddGradingRunHandler, GradingRunHandler
+from src.handlers.client_handler import AddGradingRunHandler, GradingRunHandler, GradingConfigHandler
 from src.handlers.worker_handler import WorkerRegisterHandler, GradingJobHandler, HeartBeatHandler
 from src.utilities import get_time, job_update_callback
 
@@ -95,6 +97,10 @@ def make_app(cluster_token, db_resolver, course_tokens):
 
     return tornado.web.Application([
         # -------- Client Endpoints --------
+        # POST to add config for assignment
+        (r"{}/{}/{}".format(GRADING_CONFIG_ENDPOINT, consts.ID_REGEX.format(api_key.COURSE_ID_PARAM),
+                            consts.ID_REGEX.format(api_key.ASSIGNMENT_ID_PARAM)), GradingConfigHandler),
+
         # POST to add grading run
         (GRADING_RUN_ENDPOINT, AddGradingRunHandler),
 
@@ -105,14 +111,15 @@ def make_app(cluster_token, db_resolver, course_tokens):
 
         # ------- Worker Endpoints ---------
         # GET to register node and get worked ID
-        (r"{}/{}".format(WORKER_REGISTER_ENDPOINT, consts.STRING_REGEX.format("hostname")), WorkerRegisterHandler),
+        (r"{}/{}".format(WORKER_REGISTER_ENDPOINT, consts.STRING_REGEX.format(api_key.HOSTNAME_PARAM)),
+         WorkerRegisterHandler),
 
         # GET to get a grading job
         # POST to update status of job
-        (r"{}/{}".format(GRADING_JOB_ENDPOINT, consts.HEX_REGEX.format("worker_id")), GradingJobHandler),
+        (r"{}/{}".format(GRADING_JOB_ENDPOINT, consts.HEX_REGEX.format(api_key.WORKER_ID_PARAM)), GradingJobHandler),
 
         # POST to register heartbeat
-        (r"{}/{}".format(HEARTBEAT_ENDPOINT, consts.HEX_REGEX.format("worker_id")), HeartBeatHandler),
+        (r"{}/{}".format(HEARTBEAT_ENDPOINT, consts.HEX_REGEX.format(api_key.WORKER_ID_PARAM)), HeartBeatHandler),
         # ----------------------------------
     ], **settings)
 

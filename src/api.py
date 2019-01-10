@@ -18,8 +18,8 @@ from src.config import PORT, HEARTBEAT_INTERVAL, LOGS_DIR, LOGS_ROTATE_WHEN, LOG
 from src.config import WORKER_REGISTER_ENDPOINT, GRADING_JOB_ENDPOINT, GRADING_CONFIG_ENDPOINT, GRADING_RUN_ENDPOINT, \
     HEARTBEAT_ENDPOINT
 from src.database import DatabaseResolver
-from src.handlers.client_handler import AddGradingRunHandler, GradingRunHandler, GradingConfigHandler
-from src.handlers.worker_handler import WorkerRegisterHandler, GradingJobHandler, HeartBeatHandler
+from src.handlers.client_handlers import AddGradingRunHandler, GradingRunHandler, GradingConfigHandler
+from src.handlers.worker_handlers import WorkerRegisterHandler, GradingJobHandler, HeartBeatHandler
 from src.utilities import get_time, job_update_callback
 
 # setting up logger

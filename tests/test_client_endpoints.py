@@ -15,7 +15,7 @@ class TestAddGradingRun(BaseTest):
         for invalid_config in configs.invalid_configs:
             response = self.fetch(self.get_url(GRADING_RUN_ENDPOINT), method='POST', headers=self.grader_header,
                                   body=json.dumps(invalid_config))
-            self.assertEqual(response.code, BAD_REQUEST_CODE)
+            self.assertEqual(response.code, 400)
 
 
 class TestGradingConfig(BaseTest):
@@ -31,6 +31,22 @@ class TestGradingConfig(BaseTest):
         self.upload_grading_config("wrong_id", "assignment1", self.client_header1, dummy_configs.valid_configs[0],
                                    BAD_REQUEST_CODE)
 
-    def test_valid_config(self):
+    def test_update_old_config(self):
+        self.upload_grading_config(self.course1, "assignment1", self.client_header1, dummy_configs.valid_configs[0],
+                                   OK_REQUEST_CODE)
+        self.upload_grading_config(self.course1, "assignment1", self.client_header1, dummy_configs.valid_configs[1],
+                                   OK_REQUEST_CODE)
+
+    def test_same_assignment_name(self):
+        self.upload_grading_config(self.course1, "assignment1", self.client_header1, dummy_configs.valid_configs[0],
+                                   OK_REQUEST_CODE)
+        self.upload_grading_config(self.course2, "assignment1", self.client_header2, dummy_configs.valid_configs[0],
+                                   OK_REQUEST_CODE)
+
+    def test_valid_configs(self):
         for idx, valid_config in enumerate(dummy_configs.valid_configs):
             self.upload_grading_config(self.course1, str(idx), self.client_header1, valid_config, OK_REQUEST_CODE)
+
+    def test_invalid_configs(self):
+        for idx, valid_config in enumerate(dummy_configs.invalid_configs):
+            self.upload_grading_config(self.course1, str(idx), self.client_header1, valid_config, 400)

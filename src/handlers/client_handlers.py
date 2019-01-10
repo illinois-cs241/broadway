@@ -55,6 +55,33 @@ class GradingConfigHandler(BaseAPIHandler):
     def post(self, *args, **kwargs):
         pass
 
+    @authenticate_course
+    @schema.validate(
+        output_schema={
+            "type": "object",
+            "properties": {
+                api_key.PRE_PROCESSING_PIPELINE: {
+                    "type": "array",
+                    "items": grading_stage_def,
+                },
+                api_key.STUDENT_PIPELINE: {
+                    "type": "array",
+                    "items": grading_stage_def,
+                },
+                api_key.POST_PROCESSING_PIPELINE: {
+                    "type": "array",
+                    "items": grading_stage_def,
+                },
+                api_key.ENV: {"type": "object"},
+            },
+            "required": [api_key.STUDENT_PIPELINE],
+            "additionalProperties": False
+        }
+    )
+    def get(self, *args, **kwargs):
+        # TODO
+        pass
+
 
 class AddGradingRunHandler(BaseAPIHandler):
     @authenticate_cluster_token

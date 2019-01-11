@@ -5,6 +5,7 @@ from tornado_json import schema
 
 import src.constants.api_keys as api_key
 import src.constants.db_keys as db_key
+import src.constants.constants as consts
 from src.auth import authenticate_cluster_token, authenticate_course
 from src.config import BAD_REQUEST_CODE
 from src.utilities import get_time, enqueue_job, enqueue_student_jobs
@@ -12,75 +13,41 @@ from src.handlers.base_handler import BaseAPIHandler
 
 logger = logging.getLogger()
 
-# constants
-grading_stage_def = {
-    "type": "object",
-    "properties": {
-        api_key.IMAGE: {"type": "string"},
-        api_key.ENV: {"type": "object"},
-        api_key.ENTRY_POINT: {"type": "array", "items": {"type": "string"}},
-        api_key.NETWORKING: {"type": "boolean"},
-        api_key.HOST_NAME: {"type": "string"},
-        api_key.TIMEOUT: {"type": "number"}
-    },
-    "required": [api_key.IMAGE],
-    "additionalProperties": False
-}
-
 
 class GradingConfigHandler(BaseAPIHandler):
     @authenticate_course
     @schema.validate(
-        input_schema={
-            "type": "object",
-            "properties": {
-                api_key.PRE_PROCESSING_PIPELINE: {
-                    "type": "array",
-                    "items": grading_stage_def,
-                },
-                api_key.STUDENT_PIPELINE: {
-                    "type": "array",
-                    "items": grading_stage_def,
-                },
-                api_key.POST_PROCESSING_PIPELINE: {
-                    "type": "array",
-                    "items": grading_stage_def,
-                },
-                api_key.ENV: {"type": "object"},
-            },
-            "required": [api_key.STUDENT_PIPELINE],
-            "additionalProperties": False
-        }
+        input_schema=consts.GRADING_CONFIG_DEF
     )
     def post(self, *args, **kwargs):
-        pass
+        course_id = kwargs.get(api_key.COURSE_ID_PARAM)
+        assignment_name = kwargs.get(api_key.ASSIGNMENT_NAME_PARAM)
+        assignment_id = "{}/{}".format(course_id, assignment_name)
+        assignment_collection = self.get_db().get_assignment_collection()
+
+        # if the assignment config already exists then delete it and replace it with the new one
+        if assignment_collection.find_one({db_key.ID: assignment_id}) is not None:
+            assignment_collection.delete_one({db_key.ID: assignment_id})
+
+        assignment_collection.insert_one({db_key.ID: assignment_id, **self.body})
 
     @authenticate_course
     @schema.validate(
-        output_schema={
-            "type": "object",
-            "properties": {
-                api_key.PRE_PROCESSING_PIPELINE: {
-                    "type": "array",
-                    "items": grading_stage_def,
-                },
-                api_key.STUDENT_PIPELINE: {
-                    "type": "array",
-                    "items": grading_stage_def,
-                },
-                api_key.POST_PROCESSING_PIPELINE: {
-                    "type": "array",
-                    "items": grading_stage_def,
-                },
-                api_key.ENV: {"type": "object"},
-            },
-            "required": [api_key.STUDENT_PIPELINE],
-            "additionalProperties": False
-        }
+        on_empty_404=True,
+        output_schema=consts.GRADING_CONFIG_DEF
     )
     def get(self, *args, **kwargs):
-        # TODO
-        pass
+        course_id = kwargs.get(api_key.COURSE_ID_PARAM)
+        assignment_name = kwargs.get(api_key.ASSIGNMENT_NAME_PARAM)
+        assignment_id = "{}/{}".format(course_id, assignment_name)
+        assignment = self.get_db().get_assignment_collection().find_one({db_key.ID: assignment_id})
+        if assignment is None:
+            self.abort(
+                {"message": "Course {} has not uploaded a config for assignment {}".format(course_id, assignment_name)},
+                BAD_REQUEST_CODE)
+        else:
+            del assignment[db_key.ID]
+            return assignment
 
 
 class AddGradingRunHandler(BaseAPIHandler):
@@ -91,15 +58,51 @@ class AddGradingRunHandler(BaseAPIHandler):
             "properties": {
                 api_key.PRE_PROCESSING_PIPELINE: {
                     "type": "array",
-                    "items": grading_stage_def,
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            api_key.IMAGE: {"type": "string"},
+                            api_key.ENV: {"type": "object"},
+                            api_key.ENTRY_POINT: {"type": "array", "items": {"type": "string"}},
+                            api_key.NETWORKING: {"type": "boolean"},
+                            api_key.HOST_NAME: {"type": "string"},
+                            api_key.TIMEOUT: {"type": "number"}
+                        },
+                        "required": [api_key.IMAGE],
+                        "additionalProperties": False
+                    },
                 },
                 api_key.STUDENT_PIPELINE: {
                     "type": "array",
-                    "items": grading_stage_def,
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            api_key.IMAGE: {"type": "string"},
+                            api_key.ENV: {"type": "object"},
+                            api_key.ENTRY_POINT: {"type": "array", "items": {"type": "string"}},
+                            api_key.NETWORKING: {"type": "boolean"},
+                            api_key.HOST_NAME: {"type": "string"},
+                            api_key.TIMEOUT: {"type": "number"}
+                        },
+                        "required": [api_key.IMAGE],
+                        "additionalProperties": False
+                    },
                 },
                 api_key.POST_PROCESSING_PIPELINE: {
                     "type": "array",
-                    "items": grading_stage_def,
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            api_key.IMAGE: {"type": "string"},
+                            api_key.ENV: {"type": "object"},
+                            api_key.ENTRY_POINT: {"type": "array", "items": {"type": "string"}},
+                            api_key.NETWORKING: {"type": "boolean"},
+                            api_key.HOST_NAME: {"type": "string"},
+                            api_key.TIMEOUT: {"type": "number"}
+                        },
+                        "required": [api_key.IMAGE],
+                        "additionalProperties": False
+                    },
                 },
                 api_key.STUDENTS: {
                     "type": "array",

@@ -18,7 +18,7 @@ LOGS = "logs"
 HOSTNAME_PARAM = "hostname"
 WORKER_ID_PARAM = "worker_id"
 COURSE_ID_PARAM = "course_id"
-ASSIGNMENT_ID_PARAM = "assignment_id"
+ASSIGNMENT_NAME_PARAM = "assignment_name"
 
 
 # these let us specify the stage specs

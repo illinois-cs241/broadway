@@ -7,27 +7,13 @@ from tornado_json import schema
 
 import src.constants.api_keys as api_key
 import src.constants.db_keys as db_key
+import src.constants.constants as consts
 from src.auth import authenticate_cluster_token, authenticate_worker
 from src.config import HEARTBEAT_INTERVAL, QUEUE_EMPTY_CODE, BAD_REQUEST_CODE
 from src.handlers.base_handler import BaseAPIHandler
 from src.utilities import get_time, job_update_callback
 
 logger = logging.getLogger()
-
-# constants
-grading_job_def = {
-    "type": "object",
-    "properties": {
-        api_key.IMAGE: {"type": "string"},
-        api_key.ENV: {"type": "array", "items": {"type": "string"}},
-        api_key.ENTRY_POINT: {"type": "array", "items": {"type": "string"}},
-        api_key.NETWORKING: {"type": "boolean"},
-        api_key.HOST_NAME: {"type": "string"},
-        api_key.TIMEOUT: {"type": "number"}
-    },
-    "required": [api_key.IMAGE],
-    "additionalProperties": False
-}
 
 
 class WorkerRegisterHandler(BaseAPIHandler):
@@ -60,13 +46,14 @@ class GradingJobHandler(BaseAPIHandler):
     @authenticate_cluster_token
     @authenticate_worker
     @schema.validate(
+        on_empty_404=True,
         output_schema={
             "type": "object",
             "properties": {
                 api_key.JOB_ID: {"type": "string"},
                 api_key.STAGES: {
                     "type": "array",
-                    "items": grading_job_def,
+                    "items": consts.GRADING_STAGE_DEF,
                 },
                 api_key.STUDENTS: {
                     "type": "array",
@@ -95,8 +82,7 @@ class GradingJobHandler(BaseAPIHandler):
 
             return job
         except Empty:
-            self.set_status(QUEUE_EMPTY_CODE)
-            return {api_key.JOB_ID: 'no id', api_key.STAGES: []}
+            self.abort({"message": "The grading job queue is empty. No jobs available."}, QUEUE_EMPTY_CODE)
 
     # POST used to update grading job status upon completion
     @authenticate_cluster_token

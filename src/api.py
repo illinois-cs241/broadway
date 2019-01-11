@@ -99,7 +99,7 @@ def make_app(cluster_token, db_resolver, course_tokens):
         # -------- Client Endpoints --------
         # POST to add config for assignment
         (r"{}/{}/{}".format(GRADING_CONFIG_ENDPOINT, consts.ID_REGEX.format(api_key.COURSE_ID_PARAM),
-                            consts.ID_REGEX.format(api_key.ASSIGNMENT_ID_PARAM)), GradingConfigHandler),
+                            consts.ID_REGEX.format(api_key.ASSIGNMENT_NAME_PARAM)), GradingConfigHandler),
 
         # POST to add grading run
         (GRADING_RUN_ENDPOINT, AddGradingRunHandler),

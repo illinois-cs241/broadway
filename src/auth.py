@@ -72,7 +72,7 @@ def configure_course_tokens(db_resolver, course_tokens):
 def authenticate_worker(func):
     def wrapper(*args, **kwargs):
         base_handler_instance = args[0]
-        worker_id = kwargs.get(api_key.WORKER_ID_PARAM) if len(args) < 2 else args[1]
+        worker_id = kwargs.get(api_key.WORKER_ID_PARAM)
         if base_handler_instance.get_worker_node(worker_id) is None:  # this call aborts if it returns None
             return
         else:
@@ -110,7 +110,7 @@ def authenticate_course(func):
 
         request_token = request_token.split(" ")[1]
 
-        course_id = kwargs.get(api_key.COURSE_ID_PARAM) if len(args) < 2 else args[1]
+        course_id = kwargs.get(api_key.COURSE_ID_PARAM)
         course = base_handler_instance.get_course(course_id)
         if course is None:
             # get_course() internally aborts the request so return\

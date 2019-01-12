@@ -2,7 +2,7 @@
 AUTH = "Authorization"
 WORKER_ID = "worker_id"
 HEARTBEAT = "heartbeat"
-JOB_ID = "job_id"
+GRADING_JOB_ID = "grading_job_id"
 RESULTS = "results"
 SUCCESS = "success"
 LOGS = "logs"

@@ -13,7 +13,7 @@ from tornado import httpclient, escape
 
 import api_keys as api_key
 from config import GRADER_REGISTER_ENDPOINT, HEARTBEAT_ENDPOINT, GRADING_JOB_ENDPOINT, HEARTBEAT_INTERVAL, \
-    JOB_POLL_INTERVAL
+    JOB_POLL_INTERVAL, VERBOSE
 from config import LOGS_DIR, GRADING_RUN_RES_FILE, QUEUE_EMPTY_CODE
 from utils import get_time, get_url, print_usage
 
@@ -76,14 +76,17 @@ def worker_routine():
 
         # we successfully polled a job
         job = json.loads(response.body.decode('utf-8')).get('data')
-        job_id = job.get(api_key.JOB_ID)
+        job_id = job.get(api_key.GRADING_JOB_ID)
         logger.info("Starting job {}".format(job_id))
 
         # execute the job runner with job as json string
         docker_runner = Popen(['node', 'src/jobRunner.js', json.dumps(job), GRADING_RUN_RES_FILE], stderr=PIPE,
-                              stdout=PIPE)
-        container_stdout, container_stderr = docker_runner.communicate()
+                              stdout=PIPE, universal_newlines=True)
+        containers_stdout, containers_stderr = docker_runner.communicate()
         logger.info("Finished job {}".format(job_id))
+        if VERBOSE:
+            print("Job stdout:\n{}".format(containers_stdout))
+            print("Job stderr:\n{}".format(containers_stderr))
 
         # send back the results to the server
         if not os.path.isfile(GRADING_RUN_RES_FILE):
@@ -95,9 +98,9 @@ def worker_routine():
 
         assert api_key.RESULTS in grading_job_result
         assert api_key.SUCCESS in grading_job_result
-        grading_job_result[api_key.LOGS] = {'stdout': escape.to_basestring(container_stdout),
-                                            'stderr': escape.to_basestring(container_stderr)}
-        grading_job_result[api_key.JOB_ID] = job_id
+        grading_job_result[api_key.LOGS] = {'stdout': containers_stdout,
+                                            'stderr': containers_stderr}
+        grading_job_result[api_key.GRADING_JOB_ID] = job_id
         update_request = httpclient.HTTPRequest(get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)),
                                                 headers=header, method="POST", body=json.dumps(grading_job_result))
 

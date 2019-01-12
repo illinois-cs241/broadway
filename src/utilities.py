@@ -156,7 +156,7 @@ def enqueue_job(db_resolver, job_queue, job_id, students=None):
     jobs_collection = db_resolver.get_grading_job_collection()
     job = jobs_collection.find_one({db_key.ID: ObjectId(job_id)})
 
-    cur_job = {api_key.STAGES: job[db_key.STAGES], api_key.JOB_ID: job_id}
+    cur_job = {api_key.STAGES: job[db_key.STAGES], api_key.GRADING_JOB_ID: job_id}
     if students is not None:
         cur_job[api_key.STUDENTS] = students
 

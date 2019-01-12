@@ -18,7 +18,7 @@ from src.config import PORT, HEARTBEAT_INTERVAL, LOGS_DIR, LOGS_ROTATE_WHEN, LOG
 from src.config import WORKER_REGISTER_ENDPOINT, GRADING_JOB_ENDPOINT, GRADING_CONFIG_ENDPOINT, GRADING_RUN_ENDPOINT, \
     HEARTBEAT_ENDPOINT
 from src.database import DatabaseResolver
-from src.handlers.client_handlers import AddGradingRunHandler, GradingRunHandler, GradingConfigHandler
+from src.handlers.client_handlers import AddGradingRunHandler, GradingRunHandler, GradingConfigHandler, StartGradingRunHandler
 from src.handlers.worker_handlers import WorkerRegisterHandler, GradingJobHandler, HeartBeatHandler
 from src.utilities import get_time, job_update_callback
 
@@ -100,6 +100,9 @@ def make_app(cluster_token, db_resolver, course_tokens):
         # POST to add config for assignment
         (r"{}/{}/{}".format(GRADING_CONFIG_ENDPOINT, consts.ID_REGEX.format(api_key.COURSE_ID_PARAM),
                             consts.ID_REGEX.format(api_key.ASSIGNMENT_NAME_PARAM)), GradingConfigHandler),
+
+        (r"{}/{}/{}".format(GRADING_RUN_ENDPOINT, consts.ID_REGEX.format(api_key.COURSE_ID_PARAM),
+                            consts.ID_REGEX.format(api_key.ASSIGNMENT_NAME_PARAM)), StartGradingRunHandler),
 
         # POST to add grading run
         (GRADING_RUN_ENDPOINT, AddGradingRunHandler),

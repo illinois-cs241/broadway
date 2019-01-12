@@ -96,6 +96,6 @@ class TestGradingConfig(BaseTest):
                 self.get_grading_config(self.course1, str(idx), self.client_header1, OK_REQUEST_CODE), valid_config)
 
     def test_invalid_configs(self):
-        for idx, valid_config in enumerate(dummy_configs.invalid_configs):
-            self.upload_grading_config(self.course1, str(idx), self.client_header1, valid_config, 400)
+        for idx, invalid_config in enumerate(dummy_configs.invalid_configs):
+            self.upload_grading_config(self.course1, str(idx), self.client_header1, invalid_config, 400)
             self.get_grading_config(self.course1, str(idx), self.client_header1, BAD_REQUEST_CODE)

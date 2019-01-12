@@ -62,7 +62,7 @@ class TestUpdateGradingJob(BaseTest):
         self.assertEqual(response.code, UNAUTHORIZED_REQUEST_CODE)
 
     def test_invalid_worker_id(self):
-        res = {api_key.JOB_ID: "123", api_key.SUCCESS: True,
+        res = {api_key.GRADING_JOB_ID: "123", api_key.SUCCESS: True,
                api_key.RESULTS: [{"result": "Worker died while executing this job"}],
                api_key.LOGS: {"logs": "No logs available for this job since the worker died while executing this job"}}
 

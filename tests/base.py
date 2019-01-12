@@ -50,8 +50,8 @@ class BaseTest(AsyncHTTPTestCase):
         )
         self.assertEqual(response.code, OK_REQUEST_CODE)
         response_body = json.loads(response.body)
-        self.assertIn(api_key.RUN_ID, response_body["data"])
-        return response_body["data"].get(api_key.RUN_ID)
+        self.assertIn(api_key.GRADING_RUN_ID, response_body["data"])
+        return response_body["data"].get(api_key.GRADING_RUN_ID)
 
     def start_run(self, run_id):
         response = self.fetch(
@@ -126,7 +126,7 @@ class BaseTest(AsyncHTTPTestCase):
         else:
             self.assertEqual(response.code, OK_REQUEST_CODE)
             response_body = json.loads(response.body)
-            self.assertIn(api_key.JOB_ID, response_body["data"])
+            self.assertIn(api_key.GRADING_JOB_ID, response_body["data"])
             self.assertIn(api_key.STAGES, response_body["data"])
             return response_body["data"]
 
@@ -144,12 +144,12 @@ class BaseTest(AsyncHTTPTestCase):
             time.sleep(1)
 
         response_body = json.loads(response.body)
-        self.assertIn(api_key.JOB_ID, response_body["data"])
+        self.assertIn(api_key.GRADING_JOB_ID, response_body["data"])
         self.assertIn(api_key.STAGES, response_body["data"])
         return response_body["data"]
 
     def post_job_result(self, worker_id, job_id):
-        body = {api_key.JOB_ID: job_id,
+        body = {api_key.GRADING_JOB_ID: job_id,
                 api_key.SUCCESS: True,
                 api_key.RESULTS: [{"res": "container 1 success"}, {"res": "container 2 success"}],
                 api_key.LOGS: {"logs": "test logs"}}

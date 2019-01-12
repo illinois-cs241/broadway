@@ -15,12 +15,14 @@ CONFIG_TOKENS = "tokens"
 CONFIG_COURSES = "courses"
 
 # json validation formats
+STRING_ARRAY_DEF = {"type": "array", "items": {"type": "string"}}
+
 GRADING_STAGE_DEF = {
     "type": "object",
     "properties": {
         api_key.IMAGE: {"type": "string"},
-        api_key.ENV: {"type": "array", "items": {"type": "string"}},
-        api_key.ENTRY_POINT: {"type": "array", "items": {"type": "string"}},
+        api_key.ENV: STRING_ARRAY_DEF,
+        api_key.ENTRY_POINT: STRING_ARRAY_DEF,
         api_key.NETWORKING: {"type": "boolean"},
         api_key.HOST_NAME: {"type": "string"},
         api_key.TIMEOUT: {"type": "number"}
@@ -40,7 +42,7 @@ GRADING_CONFIG_DEF = {
         api_key.PRE_PROCESSING_PIPELINE: GRADING_PIPELINE_DEF,
         api_key.STUDENT_PIPELINE: GRADING_PIPELINE_DEF,
         api_key.POST_PROCESSING_PIPELINE: GRADING_PIPELINE_DEF,
-        api_key.ENV: {"type": "array", "items": {"type": "string"}},
+        api_key.ENV: STRING_ARRAY_DEF,
     },
     "required": [api_key.STUDENT_PIPELINE],
     "additionalProperties": False

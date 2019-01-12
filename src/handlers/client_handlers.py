@@ -22,7 +22,7 @@ class GradingConfigHandler(BaseAPIHandler):
     def post(self, *args, **kwargs):
         course_id = kwargs.get(api_key.COURSE_ID_PARAM)
         assignment_name = kwargs.get(api_key.ASSIGNMENT_NAME_PARAM)
-        assignment_id = "{}/{}".format(course_id, assignment_name)
+        assignment_id = self.get_assignment_id(course_id, assignment_name)
         assignment_collection = self.get_db().get_assignment_collection()
 
         # if the assignment config already exists then delete it and replace it with the new one
@@ -37,17 +37,41 @@ class GradingConfigHandler(BaseAPIHandler):
         output_schema=consts.GRADING_CONFIG_DEF
     )
     def get(self, *args, **kwargs):
-        course_id = kwargs.get(api_key.COURSE_ID_PARAM)
-        assignment_name = kwargs.get(api_key.ASSIGNMENT_NAME_PARAM)
-        assignment_id = "{}/{}".format(course_id, assignment_name)
-        assignment = self.get_db().get_assignment_collection().find_one({db_key.ID: assignment_id})
-        if assignment is None:
-            self.abort(
-                {"message": "Course {} has not uploaded a config for assignment {}".format(course_id, assignment_name)},
-                BAD_REQUEST_CODE)
-        else:
+        assignment = self.get_assignment(kwargs.get(api_key.COURSE_ID_PARAM), kwargs.get(api_key.ASSIGNMENT_NAME_PARAM))
+        if assignment is not None:
             del assignment[db_key.ID]
             return assignment
+
+
+class StartGradingRunHandler(BaseAPIHandler):
+    @authenticate_course
+    @schema.validate(
+        input_schema={
+            "type": "object",
+            "properties": {
+                api_key.PRE_PROCESSING_ENV: consts.STRING_ARRAY_DEF,
+                api_key.STUDENT_ENV: consts.STRING_ARRAY_DEF,
+                api_key.POST_PROCESSING_ENV: consts.STRING_ARRAY_DEF,
+            },
+            "required": [api_key.STUDENT_ENV],
+            "additionalProperties": False
+        },
+        output_schema={
+            "type": "object",
+            "properties": {
+                api_key.GRADING_RUN_ID: {"type": "string"}
+            },
+            "required": [api_key.GRADING_RUN_ID],
+            "additionalProperties": False
+        },
+        on_empty_404=True
+    )
+    def post(self, *args, **kwargs):
+        assignment = self.get_assignment(kwargs.get(api_key.COURSE_ID_PARAM), kwargs.get(api_key.ASSIGNMENT_NAME_PARAM))
+        if assignment is None:
+            return
+
+        # TODO start AG run. Schedule pre-processing if it exists otherwise schedule student jobs
 
 
 class AddGradingRunHandler(BaseAPIHandler):
@@ -116,9 +140,9 @@ class AddGradingRunHandler(BaseAPIHandler):
         output_schema={
             "type": "object",
             "properties": {
-                api_key.RUN_ID: {"type": "string"}
+                api_key.GRADING_RUN_ID: {"type": "string"}
             },
-            "required": [api_key.RUN_ID],
+            "required": [api_key.GRADING_RUN_ID],
             "additionalProperties": False
         }
     )
@@ -160,7 +184,7 @@ class AddGradingRunHandler(BaseAPIHandler):
                                                {"$set": {db_key.POST_PROCESSING: post_processing_job_id}})
 
         # return the run id to user
-        return {api_key.RUN_ID: grading_run_id}
+        return {api_key.GRADING_RUN_ID: grading_run_id}
 
 
 class GradingRunHandler(BaseAPIHandler):

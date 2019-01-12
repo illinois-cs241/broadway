@@ -81,6 +81,24 @@ def authenticate_worker(func):
     return wrapper
 
 
+def validate_assignment(func):
+    def wrapper(*args, **kwargs):
+        base_handler_instance = args[0]
+        course_id = kwargs.get(api_key.COURSE_ID_PARAM)
+        assignment_name = kwargs.get(api_key.ASSIGNMENT_NAME_PARAM)
+        assignment_id = "{}/{}".format(course_id, assignment_name)
+        assignment = base_handler_instance.get_db().get_assignment_collection().find_one({db_key.ID: assignment_id})
+        if assignment is None:
+            base_handler_instance.abort(
+                {"message": "Course {} has not uploaded a config for assignment {}".format(course_id, assignment_name)},
+                BAD_REQUEST_CODE)
+            return
+        else:
+            return func(*args, **kwargs)
+
+    return wrapper
+
+
 def authenticate_cluster_token(func):
     def wrapper(*args, **kwargs):
         base_handler_instance = args[0]

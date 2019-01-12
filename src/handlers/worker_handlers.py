@@ -50,7 +50,7 @@ class GradingJobHandler(BaseAPIHandler):
         output_schema={
             "type": "object",
             "properties": {
-                api_key.JOB_ID: {"type": "string"},
+                api_key.GRADING_JOB_ID: {"type": "string"},
                 api_key.STAGES: {
                     "type": "array",
                     "items": consts.GRADING_STAGE_DEF,
@@ -60,7 +60,7 @@ class GradingJobHandler(BaseAPIHandler):
                     "items": {"type": "object"},
                 }
             },
-            "required": [api_key.JOB_ID, api_key.STAGES],
+            "required": [api_key.GRADING_JOB_ID, api_key.STAGES],
             "additionalProperties": False
         }
     )
@@ -72,7 +72,7 @@ class GradingJobHandler(BaseAPIHandler):
 
         try:
             job = job_queue.get_nowait()
-            job_id = job.get(api_key.JOB_ID)
+            job_id = job.get(api_key.GRADING_JOB_ID)
 
             db_resolver.get_grading_job_collection().update_one({db_key.ID: ObjectId(job_id)},
                                                                 {"$set": {db_key.STARTED: get_time()}})
@@ -91,7 +91,7 @@ class GradingJobHandler(BaseAPIHandler):
         input_schema={
             "type": "object",
             "properties": {
-                api_key.JOB_ID: {"type": "string"},
+                api_key.GRADING_JOB_ID: {"type": "string"},
                 api_key.SUCCESS: {"type": "boolean"},
                 api_key.RESULTS: {
                     "type": "array",
@@ -99,7 +99,7 @@ class GradingJobHandler(BaseAPIHandler):
                 },
                 api_key.LOGS: {"type": "object"}
             },
-            "required": [api_key.JOB_ID, api_key.SUCCESS, api_key.RESULTS, api_key.LOGS],
+            "required": [api_key.GRADING_JOB_ID, api_key.SUCCESS, api_key.RESULTS, api_key.LOGS],
             "additionalProperties": False
         }
     )
@@ -114,7 +114,7 @@ class GradingJobHandler(BaseAPIHandler):
         # Error checks
 
         # check if the job exists
-        job_id = self.body.get(api_key.JOB_ID)
+        job_id = self.body.get(api_key.GRADING_JOB_ID)
         job = self.get_grading_job(job_id)
         if job is None:
             return

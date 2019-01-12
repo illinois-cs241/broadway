@@ -18,7 +18,7 @@ class TestJobPollOrder(BaseTest):
         self.assertIn(api_key.STUDENTS, pre_processing_job)
         self.assertEqual(pre_processing_job.get(api_key.STUDENTS), tests.configs.valid_config.get(api_key.STUDENTS))
         self.poll_job(worker_id, True)  # none of the student jobs should have been scheduled yet
-        self.post_job_result(worker_id, pre_processing_job.get(api_key.JOB_ID))
+        self.post_job_result(worker_id, pre_processing_job.get(api_key.GRADING_JOB_ID))
 
         # student jobs
         for i in range(1, len(tests.configs.valid_jobs) - 1):
@@ -34,7 +34,7 @@ class TestJobPollOrder(BaseTest):
                 # since we have to notified the API that the last student job finished
                 self.poll_job(worker_id, True)
 
-            self.post_job_result(worker_id, student_job.get(api_key.JOB_ID))
+            self.post_job_result(worker_id, student_job.get(api_key.GRADING_JOB_ID))
 
         # post processing job
         post_processing_job = self.poll_job(worker_id)
@@ -42,5 +42,5 @@ class TestJobPollOrder(BaseTest):
         self.assert_equal_job(post_processing_job.get(api_key.STAGES), tests.configs.valid_jobs[-1])
         self.assertIn(api_key.STUDENTS, post_processing_job)
         self.assertEqual(post_processing_job.get(api_key.STUDENTS), tests.configs.valid_config.get(api_key.STUDENTS))
-        self.post_job_result(worker_id, post_processing_job.get(api_key.JOB_ID))
+        self.post_job_result(worker_id, post_processing_job.get(api_key.GRADING_JOB_ID))
         self.poll_job(worker_id, True)

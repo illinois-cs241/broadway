@@ -101,7 +101,6 @@ class DatabaseResolver(object):
         Document format:
             _id (auto)
             assignment_id
-            created_at
             started_at
             finished_at
             students
@@ -122,7 +121,6 @@ class DatabaseResolver(object):
             _id (auto)
             grading_run_id
             worker_id (once started)
-            created_at
             queued_at
             started_at
             finished_at

@@ -69,11 +69,18 @@ class BaseAPIHandler(APIHandler):
         else:
             return course
 
-    def get_assignment(self, id_):
-        # does NOT have an auto id. So we will not be using ObjectId
-        assignment = self.get_db().get_assignment_collection().find_one({db_key.ID: id_})
+    @staticmethod
+    def get_assignment_id(course_id, assignment_name):
+        return "{}/{}".format(course_id, assignment_name)
+
+    def get_assignment(self, course_id, assignment_name):
+        assignment = self.get_db().get_assignment_collection().find_one(
+            {db_key.ID: self.get_assignment_id(course_id, assignment_name)})
+
         if assignment is None:
-            self.abort({"message": "Assignment with id {} does not exist".format(id_)}, BAD_REQUEST_CODE)
+            self.abort(
+                {"message": "Course {} has not uploaded a config for assignment {}".format(course_id, assignment_name)},
+                BAD_REQUEST_CODE)
         else:
             return assignment
 

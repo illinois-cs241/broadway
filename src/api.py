@@ -10,15 +10,14 @@ import tornado.ioloop
 import tornado.web
 from bson import ObjectId
 
-import src.constants.keys as key
 import src.constants.constants as consts
+import src.constants.keys as key
 from src.auth import initialize_cluster_token, configure_course_tokens
 from src.config import PORT, HEARTBEAT_INTERVAL, LOGS_DIR, LOGS_ROTATE_WHEN, LOGS_BACKUP_COUNT, COURSES_CONFIG_FILE
 from src.config import WORKER_REGISTER_ENDPOINT, GRADING_JOB_ENDPOINT, GRADING_CONFIG_ENDPOINT, GRADING_RUN_ENDPOINT, \
     HEARTBEAT_ENDPOINT
 from src.database import DatabaseResolver
-from src.handlers.client_handlers import AddGradingRunHandler, GradingRunHandler, GradingConfigHandler, \
-    StartGradingRunHandler
+from src.handlers.client_handlers import GradingConfigHandler, GradingRunHandler
 from src.handlers.worker_handlers import WorkerRegisterHandler, GradingJobHandler, HeartBeatHandler
 from src.utilities import get_time, job_update_callback
 
@@ -102,14 +101,7 @@ def make_app(cluster_token, db_resolver, course_tokens):
                             consts.ID_REGEX.format(key.ASSIGNMENT_NAME_PARAM)), GradingConfigHandler),
 
         (r"{}/{}/{}".format(GRADING_RUN_ENDPOINT, consts.ID_REGEX.format(key.COURSE_ID_PARAM),
-                            consts.ID_REGEX.format(key.ASSIGNMENT_NAME_PARAM)), StartGradingRunHandler),
-
-        # POST to add grading run
-        (GRADING_RUN_ENDPOINT, AddGradingRunHandler),
-
-        # POST to start grading run.
-        # GET to get statuses of all jobs
-        (r"{}/{}".format(GRADING_RUN_ENDPOINT, consts.HEX_REGEX.format("grading_run_id")), GradingRunHandler),
+                            consts.ID_REGEX.format(key.ASSIGNMENT_NAME_PARAM)), GradingRunHandler),
         # ----------------------------------
 
         # ------- Worker Endpoints ---------

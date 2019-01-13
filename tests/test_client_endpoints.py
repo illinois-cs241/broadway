@@ -1,21 +1,6 @@
-import json
-
-import tests.configs as configs
 import tests.dummy_grading_configs as dummy_configs
 from src.config import BAD_REQUEST_CODE, UNAUTHORIZED_REQUEST_CODE, OK_REQUEST_CODE
-from src.config import GRADING_RUN_ENDPOINT
 from tests.base import BaseTest
-
-
-class TestAddGradingRun(BaseTest):
-    def test_valid_run(self):
-        self.assertIsNotNone(self.add_grading_run())
-
-    def test_invalid_runs(self):
-        for invalid_config in configs.invalid_configs:
-            response = self.fetch(self.get_url(GRADING_RUN_ENDPOINT), method='POST', headers=self.grader_header,
-                                  body=json.dumps(invalid_config))
-            self.assertEqual(response.code, 400)
 
 
 class TestGradingConfig(BaseTest):

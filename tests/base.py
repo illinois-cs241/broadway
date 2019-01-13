@@ -44,21 +44,7 @@ class BaseTest(AsyncHTTPTestCase):
         self.db_resolver.clear_db()
         # self.db_resolver.shutdown()
 
-    def add_grading_run(self, config_obj=tests.configs.valid_config):
-        response = self.fetch(
-            self.get_url(GRADING_RUN_ENDPOINT), method='POST', headers=self.grader_header, body=json.dumps(config_obj)
-        )
-        self.assertEqual(response.code, OK_REQUEST_CODE)
-        response_body = json.loads(response.body)
-        self.assertIn(api_key.GRADING_RUN_ID, response_body["data"])
-        return response_body["data"].get(api_key.GRADING_RUN_ID)
-
-    def start_run(self, run_id):
-        response = self.fetch(
-            self.get_url("{}/{}".format(GRADING_RUN_ENDPOINT, run_id)), method='POST', headers=self.grader_header,
-            body=""
-        )
-        self.assertEqual(response.code, OK_REQUEST_CODE)
+    # ------------ CLIENT HELPER METHODS ------------
 
     def upload_grading_config(self, course_id, assignment_id, header, grading_config, expected_code):
         response = self.fetch(self.get_url("{}/{}/{}".format(GRADING_CONFIG_ENDPOINT, course_id, assignment_id)),
@@ -106,6 +92,8 @@ class BaseTest(AsyncHTTPTestCase):
                 self.assertEqual(sorted(actual_stage.get(key)), sorted(expected_stage.get(key)))
             else:
                 self.assertEqual(actual_stage.get(key), expected_stage.get(key))
+
+    # ------------ GRADER HELPER METHODS ------------
 
     def register_worker(self):
         response = self.fetch(self.get_url("{}/{}".format(WORKER_REGISTER_ENDPOINT, "mock_hostname")), method='GET',

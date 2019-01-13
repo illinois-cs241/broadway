@@ -100,6 +100,7 @@ class DatabaseResolver(object):
 
         Document format:
             _id (auto)
+            state
             assignment_id
             started_at
             finished_at

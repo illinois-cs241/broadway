@@ -1,9 +1,20 @@
+from enum import Enum
+
 import src.constants.keys as api_key
 
 HEX_REGEX = r"(?P<{}>[a-f0-9]+)"
 ID_REGEX = r"(?P<{}>[-\w]+)"
 STRING_REGEX = r"(?P<{}>[^()]+)"
 TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+
+class GradingState(Enum):
+    READY = 0  # the grading run is ready to be scheduled
+    PRE_PROCESSING_STAGE = 1  # the pre processing job has been scheduled
+    STUDENTS_STAGE = 2  # the students grading jobs have been scheduled to be distributed among the workers
+    POST_PROCESSING_STAGE = 3  # the post processing job has been scheduled
+    FINISHED = 4  # the grading run is complete
+
 
 # application specific constants
 CLUSTER_TOKEN = "cluster_token"

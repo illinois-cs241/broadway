@@ -1,6 +1,6 @@
 import json
 
-import src.constants.api_keys as api_key
+import src.constants.keys as api_key
 from src.config import GRADING_JOB_ENDPOINT, WORKER_REGISTER_ENDPOINT, HEARTBEAT_ENDPOINT
 from src.config import UNAUTHORIZED_REQUEST_CODE, BAD_REQUEST_CODE, OK_REQUEST_CODE
 from src.utilities import get_header

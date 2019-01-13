@@ -4,8 +4,7 @@ import uuid
 
 import jsonschema
 
-import src.constants.api_keys as api_key
-import src.constants.db_keys as db_key
+import src.constants.keys as key
 import src.constants.constants as consts
 from src.config import UNAUTHORIZED_REQUEST_CODE, BAD_REQUEST_CODE, CLUSTER_TOKEN_ENV_VAR
 from src.database import DatabaseResolver
@@ -55,16 +54,16 @@ def configure_course_tokens(db_resolver, course_tokens):
     token_name_to_id = {}
     for token_name in course_tokens.get(consts.CONFIG_TOKENS, {}):
         token_name_to_id[token_name] = str(
-            tokens_collection.insert_one({db_key.TOKEN: course_tokens[consts.CONFIG_TOKENS][token_name]}).inserted_id)
+            tokens_collection.insert_one({key.TOKEN: course_tokens[consts.CONFIG_TOKENS][token_name]}).inserted_id)
 
     for course_id in course_tokens.get(consts.CONFIG_COURSES, {}):
-        course = {db_key.ID: course_id, db_key.TOKEN_IDS: []}
+        course = {key.ID: course_id, key.TOKEN_IDS: []}
         for token_name in course_tokens[consts.CONFIG_COURSES][course_id]:
             if token_name not in token_name_to_id:
                 logger.critical("Token name {} does not exist in course tokens config".format(token_name))
                 raise KeyError
 
-            course[db_key.TOKEN_IDS].append(token_name_to_id[token_name])
+            course[key.TOKEN_IDS].append(token_name_to_id[token_name])
 
         courses_collection.insert_one(course)
 
@@ -72,7 +71,7 @@ def configure_course_tokens(db_resolver, course_tokens):
 def authenticate_worker(func):
     def wrapper(*args, **kwargs):
         base_handler_instance = args[0]
-        worker_id = kwargs.get(api_key.WORKER_ID_PARAM)
+        worker_id = kwargs.get(key.WORKER_ID_PARAM)
         if base_handler_instance.get_worker_node(worker_id) is None:  # this call aborts if it returns None
             return
         else:
@@ -84,10 +83,10 @@ def authenticate_worker(func):
 def validate_assignment(func):
     def wrapper(*args, **kwargs):
         base_handler_instance = args[0]
-        course_id = kwargs.get(api_key.COURSE_ID_PARAM)
-        assignment_name = kwargs.get(api_key.ASSIGNMENT_NAME_PARAM)
+        course_id = kwargs.get(key.COURSE_ID_PARAM)
+        assignment_name = kwargs.get(key.ASSIGNMENT_NAME_PARAM)
         assignment_id = "{}/{}".format(course_id, assignment_name)
-        assignment = base_handler_instance.get_db().get_assignment_collection().find_one({db_key.ID: assignment_id})
+        assignment = base_handler_instance.get_db().get_assignment_collection().find_one({key.ID: assignment_id})
         if assignment is None:
             base_handler_instance.abort(
                 {"message": "Course {} has not uploaded a config for assignment {}".format(course_id, assignment_name)},
@@ -103,7 +102,7 @@ def authenticate_cluster_token(func):
     def wrapper(*args, **kwargs):
         base_handler_instance = args[0]
         expected_token = base_handler_instance.get_cluster_token()
-        request_token = base_handler_instance.request.headers.get(api_key.AUTH)
+        request_token = base_handler_instance.request.headers.get(key.AUTH)
 
         if (request_token is None) or not request_token.startswith("Bearer ") or len(request_token.split(" ")) != 2:
             base_handler_instance.abort({"message": "Cluster token in wrong format. Expect format \'Bearer <token>\'"},
@@ -120,7 +119,7 @@ def authenticate_course(func):
     def wrapper(*args, **kwargs):
         base_handler_instance = args[0]
 
-        request_token = base_handler_instance.request.headers.get(api_key.AUTH)
+        request_token = base_handler_instance.request.headers.get(key.AUTH)
         if (request_token is None) or not request_token.startswith("Bearer ") or len(request_token.split(" ")) != 2:
             base_handler_instance.abort({"message": "Cluster token in wrong format. Expect format \'Bearer <token>\'"},
                                         BAD_REQUEST_CODE)
@@ -128,14 +127,14 @@ def authenticate_course(func):
 
         request_token = request_token.split(" ")[1]
 
-        course_id = kwargs.get(api_key.COURSE_ID_PARAM)
+        course_id = kwargs.get(key.COURSE_ID_PARAM)
         course = base_handler_instance.get_course(course_id)
         if course is None:
             # get_course() internally aborts the request so return\
             return
 
-        for token_id in course.get(db_key.TOKEN_IDS):
-            cur_token = base_handler_instance.get_token(token_id).get(db_key.TOKEN)
+        for token_id in course.get(key.TOKEN_IDS):
+            cur_token = base_handler_instance.get_token(token_id).get(key.TOKEN)
             if cur_token == request_token:
                 return func(*args, **kwargs)
 

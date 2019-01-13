@@ -4,7 +4,7 @@ import time
 import jsonschema
 from tornado.testing import AsyncHTTPTestCase
 
-import src.constants.api_keys as api_key
+import src.constants.keys as api_key
 import src.constants.constants as consts
 import tests.configs
 from src.api import make_app

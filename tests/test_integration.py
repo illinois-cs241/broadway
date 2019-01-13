@@ -1,4 +1,4 @@
-import src.constants.api_keys as api_key
+import src.constants.keys as api_key
 import tests.configs
 from tests.base import BaseTest
 

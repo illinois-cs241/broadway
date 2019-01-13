@@ -4,7 +4,7 @@ from src.database import DatabaseResolver
 from src.utilities import PeriodicCallbackThread
 from src.auth import configure_course_tokens
 import src.constants.constants as consts
-import src.constants.db_keys as db_key
+import src.constants.keys as key
 import time
 import unittest
 
@@ -42,32 +42,32 @@ class TestCourseConfig(unittest.TestCase):
                                     "cs241": ["token2"]}
         }
         configure_course_tokens(self.db_resolver, course_tokens)
-        token1_id = str(self.db_resolver.get_token_collection().find_one({db_key.TOKEN: "123"}).get(db_key.ID))
-        token2_id = str(self.db_resolver.get_token_collection().find_one({db_key.TOKEN: "456"}).get(db_key.ID))
+        token1_id = str(self.db_resolver.get_token_collection().find_one({key.TOKEN: "123"}).get(key.ID))
+        token2_id = str(self.db_resolver.get_token_collection().find_one({key.TOKEN: "456"}).get(key.ID))
 
-        cs125 = self.db_resolver.get_course_collection().find_one({db_key.ID: "cs125"})
-        cs225 = self.db_resolver.get_course_collection().find_one({db_key.ID: "cs225"})
-        cs233 = self.db_resolver.get_course_collection().find_one({db_key.ID: "cs233"})
-        cs241 = self.db_resolver.get_course_collection().find_one({db_key.ID: "cs241"})
+        cs125 = self.db_resolver.get_course_collection().find_one({key.ID: "cs125"})
+        cs225 = self.db_resolver.get_course_collection().find_one({key.ID: "cs225"})
+        cs233 = self.db_resolver.get_course_collection().find_one({key.ID: "cs233"})
+        cs241 = self.db_resolver.get_course_collection().find_one({key.ID: "cs241"})
 
         assert cs125 is not None
         assert cs225 is not None
         assert cs233 is not None
         assert cs241 is not None
 
-        assert token1_id in cs125.get(db_key.TOKEN_IDS)
-        assert token2_id in cs125.get(db_key.TOKEN_IDS)
-        assert len(cs125.get(db_key.TOKEN_IDS)) == 2
+        assert token1_id in cs125.get(key.TOKEN_IDS)
+        assert token2_id in cs125.get(key.TOKEN_IDS)
+        assert len(cs125.get(key.TOKEN_IDS)) == 2
 
-        assert token1_id in cs225.get(db_key.TOKEN_IDS)
-        assert token2_id in cs225.get(db_key.TOKEN_IDS)
-        assert len(cs225.get(db_key.TOKEN_IDS)) == 2
+        assert token1_id in cs225.get(key.TOKEN_IDS)
+        assert token2_id in cs225.get(key.TOKEN_IDS)
+        assert len(cs225.get(key.TOKEN_IDS)) == 2
 
-        assert token1_id in cs233.get(db_key.TOKEN_IDS)
-        assert len(cs233.get(db_key.TOKEN_IDS)) == 1
+        assert token1_id in cs233.get(key.TOKEN_IDS)
+        assert len(cs233.get(key.TOKEN_IDS)) == 1
 
-        assert token2_id in cs241.get(db_key.TOKEN_IDS)
-        assert len(cs241.get(db_key.TOKEN_IDS)) == 1
+        assert token2_id in cs241.get(key.TOKEN_IDS)
+        assert len(cs241.get(key.TOKEN_IDS)) == 1
 
     def test_missing_token(self):
         course_tokens = {

@@ -103,7 +103,9 @@ class DatabaseResolver(object):
             assignment_id
             started_at
             finished_at
-            students
+            pre_processing_env
+            post_processing_env
+            students_env
             student_jobs_left
             success
 

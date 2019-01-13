@@ -3,9 +3,8 @@ from queue import Queue
 from bson import ObjectId
 from tornado_json.requesthandlers import APIHandler
 
-import src.constants.api_keys as api_key
+import src.constants.keys as key
 import src.constants.constants as consts
-import src.constants.db_keys as db_key
 from src.config import BAD_REQUEST_CODE
 from src.database import DatabaseResolver
 from src.utilities import resolve_env_vars
@@ -55,7 +54,7 @@ class BaseAPIHandler(APIHandler):
         if not self.is_id_valid(id_):
             return None
 
-        token = self.get_db().get_token_collection().find_one({db_key.ID: ObjectId(id_)})
+        token = self.get_db().get_token_collection().find_one({key.ID: ObjectId(id_)})
         if token is None:
             self.abort({"message": "Token with id {} does not exist".format(id_)}, BAD_REQUEST_CODE)
         else:
@@ -63,7 +62,7 @@ class BaseAPIHandler(APIHandler):
 
     def get_course(self, id_):
         # does NOT have an auto id. So we will not be using ObjectId
-        course = self.get_db().get_course_collection().find_one({db_key.ID: id_})
+        course = self.get_db().get_course_collection().find_one({key.ID: id_})
         if course is None:
             self.abort({"message": "Course with id {} does not exist".format(id_)}, BAD_REQUEST_CODE)
         else:
@@ -75,7 +74,7 @@ class BaseAPIHandler(APIHandler):
 
     def get_assignment(self, course_id, assignment_name):
         assignment = self.get_db().get_assignment_collection().find_one(
-            {db_key.ID: self.get_assignment_id(course_id, assignment_name)})
+            {key.ID: self.get_assignment_id(course_id, assignment_name)})
 
         if assignment is None:
             self.abort(
@@ -88,7 +87,7 @@ class BaseAPIHandler(APIHandler):
         if not self.is_id_valid(id_):
             return None
 
-        worker_node = self.get_db().get_worker_node_collection().find_one({db_key.ID: ObjectId(id_)})
+        worker_node = self.get_db().get_worker_node_collection().find_one({key.ID: ObjectId(id_)})
         if worker_node is None:
             self.abort({"message": "Worker node with id {} does not exist".format(id_)}, BAD_REQUEST_CODE)
         else:
@@ -98,7 +97,7 @@ class BaseAPIHandler(APIHandler):
         if not self.is_id_valid(id_):
             return None
 
-        grading_run = self.get_db().get_grading_run_collection().find_one({db_key.ID: ObjectId(id_)})
+        grading_run = self.get_db().get_grading_run_collection().find_one({key.ID: ObjectId(id_)})
         if grading_run is None:
             self.abort({"message": "Grading run with id {} does not exist".format(id_)}, BAD_REQUEST_CODE)
         else:
@@ -108,7 +107,7 @@ class BaseAPIHandler(APIHandler):
         if not self.is_id_valid(id_):
             return None
 
-        grading_job = self.get_db().get_grading_job_collection().find_one({db_key.ID: ObjectId(id_)})
+        grading_job = self.get_db().get_grading_job_collection().find_one({key.ID: ObjectId(id_)})
         if grading_job is None:
             self.abort({"message": "Grading job with id {} does not exist".format(id_)}, BAD_REQUEST_CODE)
         else:
@@ -118,8 +117,8 @@ class BaseAPIHandler(APIHandler):
         cur_job = []
         for stage in self.body.get(pipeline_name):
             cur_stage = stage.copy()
-            cur_stage[api_key.ENV] = resolve_env_vars(cur_stage.get(api_key.ENV, {}),
-                                                      self.body.get(api_key.ENV, {}), student_env_vars)
+            cur_stage[key.ENV] = resolve_env_vars(cur_stage.get(key.ENV, {}),
+                                                  self.body.get(key.ENV, {}), student_env_vars)
             cur_job.append(cur_stage)
 
         return cur_job

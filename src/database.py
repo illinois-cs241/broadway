@@ -86,7 +86,7 @@ class DatabaseResolver(object):
             pre_processing_pipeline
             post_processing_pipeline
             student_pipeline
-            global_env_vars
+            env
 
         :rtype: collection.Collection
         :return: collection of work node documents
@@ -122,6 +122,7 @@ class DatabaseResolver(object):
 
         Document format:
             _id (auto)
+            type
             grading_run_id
             worker_id (once started)
             queued_at
@@ -130,6 +131,7 @@ class DatabaseResolver(object):
             results
             success
             stages = [stage1, stage2, ...]
+            students = [{env vars}, ...]
 
         :rtype: collection.Collection
         :return: collection of grading job documents

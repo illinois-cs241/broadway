@@ -4,12 +4,11 @@ import time
 import jsonschema
 from tornado.testing import AsyncHTTPTestCase
 
-import src.constants.keys as api_key
 import src.constants.constants as consts
-import tests.configs
+import src.constants.keys as api_key
 from src.api import make_app
+from src.config import GRADING_JOB_ENDPOINT, WORKER_REGISTER_ENDPOINT, GRADING_CONFIG_ENDPOINT
 from src.config import OK_REQUEST_CODE, QUEUE_EMPTY_CODE
-from src.config import GRADING_JOB_ENDPOINT, WORKER_REGISTER_ENDPOINT, GRADING_RUN_ENDPOINT, GRADING_CONFIG_ENDPOINT
 from src.database import DatabaseResolver
 from src.utilities import get_header
 

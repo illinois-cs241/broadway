@@ -8,7 +8,20 @@ STRING_REGEX = r"(?P<{}>[^()]+)"
 TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
-class GradingState(Enum):
+# enums
+class GradingJobType(Enum):
+    PRE_PROCESSING = 1
+    STUDENT = 2
+    POST_PROCESSING = 3
+
+
+class GradingJobState(Enum):
+    QUEUED = 1  # the grading job has been pushed into the job for a worker to poll it
+    STARTED = 2  # a worker has polled this grading job and is being processed
+    FINISHED = 3  # the worker finished working on this job
+
+
+class GradingRunState(Enum):
     READY = 0  # the grading run is ready to be scheduled
     PRE_PROCESSING_STAGE = 1  # the pre processing job has been scheduled
     STUDENTS_STAGE = 2  # the students grading jobs have been scheduled to be distributed among the workers

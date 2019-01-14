@@ -40,35 +40,44 @@ class PeriodicCallbackThread:
 
 
 def get_time():
-    # type: () -> dt.datetime
     """
+    Get current time represented by a datetime object
+
+    :rtype: dt.datetime
     :return: the datetime object representing the current time
     """
     return dt.datetime.fromtimestamp(time.time())
 
 
 def get_time_from_string(str_time):
-    # type: (str) -> dt.datetime
     """
+    Convert string representation of time to datetime object using the timestamp format specified
+
+    :type str_time: str
     :param str_time: string representation of time in TIMESTAMP_FORMAT
+    :rtype: dt.datetime
     :return: the datetime object representing the time
     """
     return dt.datetime.strptime(str_time, TIMESTAMP_FORMAT)
 
 
 def get_string_from_time():
-    # type: () -> str
     """
+    Get the string representation of current time
+
+    :rtype: str
     :return: string representation of current time with TIMESTAMP_FORMAT
     """
     return get_time().strftime(TIMESTAMP_FORMAT)
 
 
 def get_status(student_job):
-    # type: (dict) -> str
     """
     Given a student job, gives a string description of what state the job is in.
+
+    :type student_job: dict
     :param student_job: dictionary representing student job
+    :rtype: str
     :return: state description
     """
     if key.FINISHED in student_job:
@@ -82,65 +91,15 @@ def get_status(student_job):
 
 
 def get_header(token):
+    """
+    Constructs the HTTP request header in correct format
+
+    :type token: str
+    :param token: the token used for authentication. Could be cluster token or a course related token
+    :rtype: dict
+    :return: the HTTP Request header as a dict
+    """
     return {key.AUTH: "Bearer {}".format(token)}
-
-
-def resolve_env_vars(stage_env_vars, global_env_vars, student_env_vars=None):
-    # type: (dict, dict, dict) -> list
-    """
-    Builds the environment variables for any given stage. First adds all global environment variables and student
-    specific environment variables. Then adds all stage specific environment variables. If the variable can be expanded
-    by the global or student env vars, then expands it. In other words, if env var value is of form "$<var_name>" and
-    var_name is one of the global or student env vars, then it replaces the value of that stage env var with the value
-    of var_name.
-
-    :param stage_env_vars: stage specific env vars. Format: {<var_name>: <value>}
-    :param global_env_vars: global env vars. Format: {<var_name>: <value>}
-    :param student_env_vars: student specific env vars. Format: {<var_name>: <value>}
-    :return: final list of all aggregated environment variables. Format: ["<var_name>=value"]
-    """
-
-    def get_result_format(var_name, var_value):
-        return "{}={}".format(var_name, var_value)
-
-    if student_env_vars is None:
-        student_env_vars = {}
-
-    res_vars = []
-
-    if any(global_env_vars):
-        for global_var, global_value in global_env_vars.items():
-            res_vars.append(get_result_format(global_var, global_value))
-
-    if any(student_env_vars):
-        for student_var, student_value in student_env_vars.items():
-            res_vars.append(get_result_format(student_var, student_value))
-
-    for var_name in stage_env_vars:
-        # value is not specified: if the env var is defined anywhere else, replace it
-        if len(stage_env_vars[var_name]) == 0:
-            if var_name in global_env_vars:
-                res_vars.append(get_result_format(var_name, global_env_vars[var_name]))
-            elif var_name in student_env_vars:
-                res_vars.append(get_result_format(var_name, student_env_vars[var_name]))
-            else:
-                res_vars.append(get_result_format(var_name, stage_env_vars[var_name]))
-
-        # if the env var is dependent on another, substitute appropriately
-        elif stage_env_vars[var_name][0] == '$':
-            var_to_sub = stage_env_vars[var_name][1:]
-            if var_to_sub in global_env_vars:
-                res_vars.append(get_result_format(var_name, global_env_vars[var_to_sub]))
-            elif var_to_sub in student_env_vars:
-                res_vars.append(get_result_format(var_name, student_env_vars[var_to_sub]))
-            else:
-                res_vars.append(get_result_format(var_name, stage_env_vars[var_name]))
-
-        # if the value is independent, just copy it over
-        else:
-            res_vars.append(get_result_format(var_name, stage_env_vars[var_name]))
-
-    return res_vars
 
 
 def enqueue_job(db_resolver, job_queue, job_id, students=None):

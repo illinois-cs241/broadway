@@ -5,7 +5,9 @@ from tornado_json import schema
 import src.constants.constants as consts
 import src.constants.keys as key
 from src.auth import authenticate_course
+from src.config import BAD_REQUEST_CODE
 from src.handlers.base_handler import BaseAPIHandler
+from src.handlers.schedulers import progress_grading_run
 from src.utilities import get_time
 
 logger = logging.getLogger()
@@ -69,11 +71,24 @@ class GradingRunHandler(BaseAPIHandler):
         if assignment is None:
             return
 
+        if key.PRE_PROCESSING_ENV in self.body and key.PRE_PROCESSING_PIPELINE not in assignment:
+            self.abort({"message": "Pre processing environment variables were provided when assignment config"},
+                       BAD_REQUEST_CODE)
+            return
+
+        if key.POST_PROCESSING_ENV in self.body and key.POST_PROCESSING_PIPELINE not in assignment:
+            self.abort({"message": "Post processing environment variables were provided when assignment config"},
+                       BAD_REQUEST_CODE)
+            return
+
         # create grading run document
-        grading_run = {key.ASSIGNMENT_ID: self.get_assignment_id(course_id, assignment_name),
+        grading_run = {key.STATE: consts.GradingRunState.READY.value,
+                       key.ASSIGNMENT_ID: self.get_assignment_id(course_id, assignment_name),
                        key.STARTED: get_time(),
                        key.STUDENT_JOBS_LEFT: len(self.body.get(key.STUDENTS_ENV)),
                        **self.body}
         grading_run_id = str(self.get_db().get_grading_run_collection().insert_one(grading_run).inserted_id)
 
-        # TODO start AG run. Schedule pre-processing if it exists otherwise schedule student jobs
+        # schedule jobs
+        progress_grading_run(self.get_db(), self.get_queue(), grading_run_id)
+        return {key.GRADING_RUN_ID: grading_run_id}

@@ -7,7 +7,6 @@ import src.constants.keys as key
 import src.constants.constants as consts
 from src.config import BAD_REQUEST_CODE
 from src.database import DatabaseResolver
-from src.utilities import resolve_env_vars
 
 
 class BaseAPIHandler(APIHandler):
@@ -112,13 +111,3 @@ class BaseAPIHandler(APIHandler):
             self.abort({"message": "Grading job with id {} does not exist".format(id_)}, BAD_REQUEST_CODE)
         else:
             return grading_job
-
-    def create_job(self, pipeline_name, student_env_vars=None):
-        cur_job = []
-        for stage in self.body.get(pipeline_name):
-            cur_stage = stage.copy()
-            cur_stage[key.ENV] = resolve_env_vars(cur_stage.get(key.ENV, {}),
-                                                  self.body.get(key.ENV, {}), student_env_vars)
-            cur_job.append(cur_stage)
-
-        return cur_job

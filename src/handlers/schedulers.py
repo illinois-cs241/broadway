@@ -57,11 +57,11 @@ def progress_grading_run(db_resolver, job_queue, grading_run_id):
     assignment = db_resolver.get_assignment_collection().find_one({key.ID: grading_run.get(key.ASSIGNMENT_ID)})
     old_state = grading_run.get(key.STATE)
 
-    # move to next stage
-    grading_run_collection.update_one({key.ID: ObjectId(grading_run_id)}, {'$inc': {key.STATE: 1}})
-
     # schedule appropriate jobs
     if old_state == GradingRunState.READY.value and key.PRE_PROCESSING_PIPELINE in assignment:
+        grading_run_collection.update_one({key.ID: ObjectId(grading_run_id)},
+                                          {'$set': {key.STATE: GradingRunState.PRE_PROCESSING_STAGE.value}})
+
         pre_processing_job = {key.TYPE: GradingJobType.PRE_PROCESSING.value,
                               key.GRADING_RUN_ID: grading_run_id,
                               key.STUDENTS: grading_run.get(key.STUDENTS_ENV),
@@ -73,6 +73,9 @@ def progress_grading_run(db_resolver, job_queue, grading_run_id):
 
     elif (old_state == GradingRunState.READY.value and key.PRE_PROCESSING_PIPELINE not in assignment) or (
             old_state == GradingRunState.PRE_PROCESSING_STAGE.value):
+        grading_run_collection.update_one({key.ID: ObjectId(grading_run_id)},
+                                          {'$set': {key.STATE: GradingRunState.STUDENTS_STAGE.value}})
+
         for cur_student_env in grading_run.get(key.STUDENTS_ENV):
             cur_student_job = {key.TYPE: GradingJobType.STUDENT.value,
                                key.GRADING_RUN_ID: grading_run_id,
@@ -88,6 +91,9 @@ def progress_grading_run(db_resolver, job_queue, grading_run_id):
                 grading_run.get(key.STUDENT_JOBS_LEFT)))
             return
 
+        grading_run_collection.update_one({key.ID: ObjectId(grading_run_id)},
+                                          {'$set': {key.STATE: GradingRunState.POST_PROCESSING_STAGE.value}})
+
         post_processing_job = {key.TYPE: GradingJobType.POST_PROCESSING.value,
                                key.GRADING_RUN_ID: grading_run_id,
                                key.STUDENTS: grading_run.get(key.STUDENTS_ENV),
@@ -102,6 +108,9 @@ def progress_grading_run(db_resolver, job_queue, grading_run_id):
             logger.critical("Invalid: Attempted to finish grading run when {} student jobs left.".format(
                 grading_run.get(key.STUDENT_JOBS_LEFT)))
             return
+
+        grading_run_collection.update_one({key.ID: ObjectId(grading_run_id)},
+                                          {'$set': {key.STATE: GradingRunState.FINISHED.value}})
 
         grading_run_collection.update_one({key.ID: ObjectId(grading_run_id)}, {"$set": {key.FINISHED: get_time()}})
     else:

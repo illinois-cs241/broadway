@@ -32,10 +32,11 @@ class EndpointTestIntegration(BaseEndpointTest):
 
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
                                       OK_REQUEST_CODE, GradingRunState.STUDENTS_STAGE.value)
-
         job = self.poll_job(worker_id, self.grader_header)
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
                                       OK_REQUEST_CODE, GradingRunState.STUDENTS_STAGE.value)
+        self.poll_job(worker_id, self.grader_header, QUEUE_EMPTY_CODE)
+
         self.post_job_result(worker_id, self.grader_header, job.get(key.GRADING_JOB_ID))
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
                                       OK_REQUEST_CODE, GradingRunState.FINISHED.value)
@@ -43,17 +44,53 @@ class EndpointTestIntegration(BaseEndpointTest):
 
     def test_pre_processing_job(self):
         worker_id = self.register_worker(self.grader_header)
-        self.upload_grading_config(self.course1, "assignment1", self.client_header1, dummy_configs.only_student_config,
-                                   OK_REQUEST_CODE)
+        self.upload_grading_config(self.course1, "assignment1", self.client_header1,
+                                   dummy_configs.one_student_pre_processing_config, OK_REQUEST_CODE)
         grading_run_id = self.start_grading_run(self.course1, "assignment1", self.client_header1,
-                                                dummy_runs.one_student_job, OK_REQUEST_CODE)
+                                                dummy_runs.one_student_and_pre, OK_REQUEST_CODE)
 
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
-                                      OK_REQUEST_CODE, GradingRunState.STUDENTS_STAGE.value)
+                                      OK_REQUEST_CODE, GradingRunState.PRE_PROCESSING_STAGE.value)
+        job = self.poll_job(worker_id, self.grader_header)
+        self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
+                                      OK_REQUEST_CODE, GradingRunState.PRE_PROCESSING_STAGE.value)
+        self.poll_job(worker_id, self.grader_header, QUEUE_EMPTY_CODE)
 
+        self.post_job_result(worker_id, self.grader_header, job.get(key.GRADING_JOB_ID))
+        self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
+                                      OK_REQUEST_CODE, GradingRunState.STUDENTS_STAGE.value)
         job = self.poll_job(worker_id, self.grader_header)
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
                                       OK_REQUEST_CODE, GradingRunState.STUDENTS_STAGE.value)
+        self.poll_job(worker_id, self.grader_header, QUEUE_EMPTY_CODE)
+
+        self.post_job_result(worker_id, self.grader_header, job.get(key.GRADING_JOB_ID))
+        self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
+                                      OK_REQUEST_CODE, GradingRunState.FINISHED.value)
+        self.poll_job(worker_id, self.grader_header, QUEUE_EMPTY_CODE)
+
+    def test_post_processing_job(self):
+        worker_id = self.register_worker(self.grader_header)
+        self.upload_grading_config(self.course1, "assignment1", self.client_header1,
+                                   dummy_configs.one_student_post_processing_config, OK_REQUEST_CODE)
+        grading_run_id = self.start_grading_run(self.course1, "assignment1", self.client_header1,
+                                                dummy_runs.one_student_and_post, OK_REQUEST_CODE)
+
+        self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
+                                      OK_REQUEST_CODE, GradingRunState.STUDENTS_STAGE.value)
+        job = self.poll_job(worker_id, self.grader_header)
+        self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
+                                      OK_REQUEST_CODE, GradingRunState.STUDENTS_STAGE.value)
+        self.poll_job(worker_id, self.grader_header, QUEUE_EMPTY_CODE)
+
+        self.post_job_result(worker_id, self.grader_header, job.get(key.GRADING_JOB_ID))
+        self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
+                                      OK_REQUEST_CODE, GradingRunState.POST_PROCESSING_STAGE.value)
+        job = self.poll_job(worker_id, self.grader_header)
+        self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
+                                      OK_REQUEST_CODE, GradingRunState.POST_PROCESSING_STAGE.value)
+        self.poll_job(worker_id, self.grader_header, QUEUE_EMPTY_CODE)
+
         self.post_job_result(worker_id, self.grader_header, job.get(key.GRADING_JOB_ID))
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
                                       OK_REQUEST_CODE, GradingRunState.FINISHED.value)

@@ -1,10 +1,10 @@
 import tests.dummy_grading_configs as dummy_configs
 import tests.dummy_grading_runs as dummy_runs
 from src.config import BAD_REQUEST_CODE, UNAUTHORIZED_REQUEST_CODE, OK_REQUEST_CODE
-from tests.base import BaseTest
+from tests.base import BaseEndpointTest
 
 
-class TestGradingConfig(BaseTest):
+class EndpointTestGradingConfig(BaseEndpointTest):
     def test_unauthorized(self):
         self.upload_grading_config(self.course1, "assignment1", None, dummy_configs.valid_configs[0],
                                    UNAUTHORIZED_REQUEST_CODE)
@@ -88,7 +88,7 @@ class TestGradingConfig(BaseTest):
             self.get_grading_config(self.course1, str(idx), self.client_header1, BAD_REQUEST_CODE)
 
 
-class TestGradingRun(BaseTest):
+class EndpointTestGradingRun(BaseEndpointTest):
     def test_unauthorized(self):
         self.start_grading_run(self.course1, "assignment1", None, dummy_runs.one_student_job, UNAUTHORIZED_REQUEST_CODE)
         self.check_grading_run_status(self.course1, "assignment1", "temp", None, UNAUTHORIZED_REQUEST_CODE)

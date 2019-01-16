@@ -7,35 +7,9 @@ from src.database import DatabaseResolver
 from src.constants.constants import GradingRunState, GradingJobType
 from queue import Queue
 
-from src.utilities import get_time
+from src.utilities import get_time, build_pipeline
 
 logger = logging.getLogger()
-
-
-def build_pipeline(pipeline, global_env_var, run_env_var):
-    """
-    Builds the pipeline by populating it with environment variables appropriately. Injects global env vars and run
-    specific env vars into every stage. If there is overlap, run time env var is given priority
-
-    :param pipeline: Pipeline document as specified in the assignment config
-    :type pipeline: list
-    :param global_env_var: these are global env vars available to all pipelines
-    :type global_env_var: dict
-    :param run_env_var: these are run specific env vars. will be available to all pipelines for this run
-    :type run_env_var: dict
-    :return: fully configured pipeline
-    :rtype: list
-    """
-    for grading_stage in pipeline:
-        if key.ENV not in grading_stage:
-            grading_stage[key.ENV] = {}
-
-        # inject global env vars and run specific env vars into the stage. If there is overlap, run time env var is
-        # given priority
-        grading_stage[key.ENV].update(global_env_var)
-        grading_stage[key.ENV].update(run_env_var)
-
-    return pipeline
 
 
 def progress_grading_run(db_resolver, job_queue, grading_run_id):

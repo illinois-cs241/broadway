@@ -1,5 +1,6 @@
 import json
 import time
+import unittest
 
 import jsonschema
 from tornado.testing import AsyncHTTPTestCase
@@ -22,7 +23,42 @@ MOCK_CLIENT_TOKEN1 = "12345"
 MOCK_CLIENT_TOKEN2 = "67890"
 
 
-class BaseTest(AsyncHTTPTestCase):
+class BaseTest(unittest.TestCase):
+    def assert_equal_grading_config(self, actual_config, expected_config):
+        jsonschema.validate(actual_config, consts.GRADING_CONFIG_DEF)
+        jsonschema.validate(expected_config, consts.GRADING_CONFIG_DEF)
+
+        self.assertEqual(set(actual_config.keys()), set(expected_config.keys()))
+
+        for config_key in expected_config:
+            if config_key == key.ENV:
+                self.assertEqual(sorted(actual_config.get(config_key)), sorted(expected_config.get(config_key)))
+            else:
+                self.assert_equal_grading_pipeline(actual_config.get(config_key), expected_config.get(config_key))
+
+    def assert_equal_grading_pipeline(self, actual_pipeline, expected_pipeline):
+        jsonschema.validate(actual_pipeline, consts.GRADING_PIPELINE_DEF)
+        jsonschema.validate(expected_pipeline, consts.GRADING_PIPELINE_DEF)
+
+        self.assertEqual(len(actual_pipeline), len(expected_pipeline))
+
+        for i in range(len(expected_pipeline)):
+            self.assert_equal_grading_stage(actual_pipeline[i], expected_pipeline[i])
+
+    def assert_equal_grading_stage(self, actual_stage, expected_stage):
+        jsonschema.validate(actual_stage, consts.GRADING_STAGE_DEF)
+        jsonschema.validate(expected_stage, consts.GRADING_STAGE_DEF)
+
+        self.assertEqual(set(actual_stage.keys()), set(expected_stage.keys()))
+
+        for stage_key in expected_stage:
+            if stage_key == key.ENV or stage_key == key.ENTRY_POINT:
+                self.assertEqual(sorted(actual_stage.get(stage_key)), sorted(expected_stage.get(stage_key)))
+            else:
+                self.assertEqual(actual_stage.get(stage_key), expected_stage.get(stage_key))
+
+
+class BaseEndpointTest(BaseTest, AsyncHTTPTestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.grader_header = get_header(MOCK_CLUSTER_TOKEN)
@@ -79,39 +115,6 @@ class BaseTest(AsyncHTTPTestCase):
         if response.code == OK_REQUEST_CODE:
             response_body = json.loads(response.body)
             self.assertEqual(response_body["data"].get(key.STATE), expected_state)
-
-    def assert_equal_grading_config(self, actual_config, expected_config):
-        jsonschema.validate(actual_config, consts.GRADING_CONFIG_DEF)
-        jsonschema.validate(expected_config, consts.GRADING_CONFIG_DEF)
-
-        self.assertEqual(set(actual_config.keys()), set(expected_config.keys()))
-
-        for config_key in expected_config:
-            if config_key == key.ENV:
-                self.assertEqual(sorted(actual_config.get(config_key)), sorted(expected_config.get(config_key)))
-            else:
-                self.assert_equal_grading_pipeline(actual_config.get(config_key), expected_config.get(config_key))
-
-    def assert_equal_grading_pipeline(self, actual_pipeline, expected_pipeline):
-        jsonschema.validate(actual_pipeline, consts.GRADING_PIPELINE_DEF)
-        jsonschema.validate(expected_pipeline, consts.GRADING_PIPELINE_DEF)
-
-        self.assertEqual(len(actual_pipeline), len(expected_pipeline))
-
-        for i in range(len(expected_pipeline)):
-            self.assert_equal_grading_stage(actual_pipeline[i], expected_pipeline[i])
-
-    def assert_equal_grading_stage(self, actual_stage, expected_stage):
-        jsonschema.validate(actual_stage, consts.GRADING_STAGE_DEF)
-        jsonschema.validate(expected_stage, consts.GRADING_STAGE_DEF)
-
-        self.assertEqual(set(actual_stage.keys()), set(expected_stage.keys()))
-
-        for stage_key in expected_stage:
-            if stage_key == key.ENV or stage_key == key.ENTRY_POINT:
-                self.assertEqual(sorted(actual_stage.get(stage_key)), sorted(expected_stage.get(stage_key)))
-            else:
-                self.assertEqual(actual_stage.get(stage_key), expected_stage.get(stage_key))
 
     # ------------ GRADER HELPER METHODS ------------
 

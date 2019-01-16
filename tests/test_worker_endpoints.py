@@ -1,9 +1,9 @@
 from src.config import UNAUTHORIZED_REQUEST_CODE, BAD_REQUEST_CODE, QUEUE_EMPTY_CODE
 from src.utilities import get_header
-from tests.base import BaseTest
+from tests.base import BaseEndpointTest
 
 
-class TestRegisterGrader(BaseTest):
+class EndpointTestRegisterGrader(BaseEndpointTest):
     def test_register(self):
         self.assertIsNotNone(self.register_worker(self.grader_header))
 
@@ -14,7 +14,7 @@ class TestRegisterGrader(BaseTest):
         self.register_worker(get_header("fake"), UNAUTHORIZED_REQUEST_CODE)
 
 
-class TestPollGradingJob(BaseTest):
+class EndpointTestPollGradingJob(BaseEndpointTest):
     def test_unauthorized(self):
         worker_id = self.register_worker(self.grader_header)
         self.poll_job(worker_id, None, UNAUTHORIZED_REQUEST_CODE)
@@ -31,7 +31,7 @@ class TestPollGradingJob(BaseTest):
         self.poll_job(worker_id, self.grader_header, QUEUE_EMPTY_CODE)
 
 
-class TestUpdateGradingJob(BaseTest):
+class EndpointTestUpdateGradingJob(BaseEndpointTest):
     def test_unauthorized(self):
         worker_id = self.register_worker(self.grader_header)
         self.post_job_result(worker_id, None, '1234', True, UNAUTHORIZED_REQUEST_CODE)
@@ -44,7 +44,7 @@ class TestUpdateGradingJob(BaseTest):
         self.post_job_result("1234", self.grader_header, "1234", True, BAD_REQUEST_CODE)
 
 
-class TestHeartBeat(BaseTest):
+class EndpointTestHeartBeat(BaseEndpointTest):
     def test_unauthorized(self):
         worker_id = self.register_worker(self.grader_header)
         self.send_heartbeat(worker_id, None, UNAUTHORIZED_REQUEST_CODE)

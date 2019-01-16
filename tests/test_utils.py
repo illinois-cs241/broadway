@@ -1,28 +1,31 @@
 from jsonschema import ValidationError
 
 from src.database import DatabaseResolver
-from src.utilities import PeriodicCallbackThread
+from src.utilities import PeriodicCallbackThread, build_pipeline
 from src.auth import configure_course_tokens
 import src.constants.constants as consts
 import src.constants.keys as key
 import time
 import unittest
 
+from tests.base import BaseTest
 
-def test_periodic_callback_thread():
-    def routine(num):
-        num[0] += 1
 
-    counter = [0]
-    prev = 0
-    interval = 0.01
-    thread = PeriodicCallbackThread(callback=routine, interval=interval, args=[counter])
-    thread.start()
-    for _ in range(10):
-        assert prev <= counter[0]
-        prev += 1
-        time.sleep(interval)
-    thread.stop()
+class TestPeriodicCallbackThread(unittest.TestCase):
+    def test_periodic_callback_thread(self):
+        def routine(num):
+            num[0] += 1
+
+        counter = [0]
+        prev = 0
+        interval = 0.01
+        thread = PeriodicCallbackThread(callback=routine, interval=interval, args=[counter])
+        thread.start()
+        for _ in range(10):
+            self.assertLessEqual(prev, counter[0])
+            prev += 1
+            time.sleep(interval)
+        thread.stop()
 
 
 class TestCourseConfig(unittest.TestCase):
@@ -121,3 +124,58 @@ class TestCourseConfig(unittest.TestCase):
 
         with self.assertRaises(ValidationError):
             configure_course_tokens(self.db_resolver, course_tokens)
+
+
+class TestBuildPipeline(BaseTest):
+    def test_empty_env(self):
+        pipeline = [
+            {
+                key.IMAGE: "alpine:3.5",
+                key.TIMEOUT: 20
+            },
+            {
+                key.IMAGE: "alpine:3.5",
+                key.HOST_NAME: "123456"
+            },
+            {
+                key.IMAGE: "alpine:3.5",
+                key.NETWORKING: True
+            },
+            {
+                key.IMAGE: "alpine:3.5",
+                key.ENV: {"var1": "val1", "var2": "val2"}
+            },
+            {
+                key.IMAGE: "alpine:3.5",
+                key.ENTRY_POINT: ["echo", "student-job"]
+            }
+        ]
+        result_pipeline = build_pipeline(pipeline, {}, {})
+
+        self.assert_equal_grading_pipeline(result_pipeline, pipeline)
+
+    def test_insert_env(self):
+        pipeline = [
+            {
+                key.IMAGE: "alpine:3.5",
+                key.ENV: {"image": "1"}
+            },
+            {
+                key.IMAGE: "alpine:3.5",
+                key.ENV: {"image": "2"}
+            }
+        ]
+
+        expected_pipeline = [
+            {
+                key.IMAGE: "alpine:3.5",
+                key.ENV: {"image": "1", "global1": "var1", "global2": "var2", "net-id": "test-id"}
+            },
+            {
+                key.IMAGE: "alpine:3.5",
+                key.ENV: {"image": "2", "global1": "var1", "global2": "var2", "net-id": "test-id"}
+            }
+        ]
+
+        result_pipeline = build_pipeline(pipeline, {"global1": "var1", "global2": "var2"}, {"net-id": "test-id"})
+        self.assert_equal_grading_pipeline(result_pipeline, expected_pipeline)

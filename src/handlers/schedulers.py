@@ -86,11 +86,6 @@ def progress_grading_run(db_resolver, job_queue, grading_run_id):
             job_queue.put(str(grading_job_collection.insert_one(cur_student_job).inserted_id))
 
     elif old_state == GradingRunState.STUDENTS_STAGE.value and key.POST_PROCESSING_PIPELINE in assignment:
-        if grading_run.get(key.STUDENT_JOBS_LEFT) != 0:
-            logger.critical("Invalid: Attempted to schedule post processing job when {} student jobs left.".format(
-                grading_run.get(key.STUDENT_JOBS_LEFT)))
-            return
-
         grading_run_collection.update_one({key.ID: ObjectId(grading_run_id)},
                                           {'$set': {key.STATE: GradingRunState.POST_PROCESSING_STAGE.value}})
 
@@ -102,16 +97,63 @@ def progress_grading_run(db_resolver, job_queue, grading_run_id):
                                                           assignment.get(key.ENV, {}),
                                                           grading_run.get(key.POST_PROCESSING_ENV, {}))}
         job_queue.put(str(grading_job_collection.insert_one(post_processing_job).inserted_id))
+
     elif (old_state == GradingRunState.STUDENTS_STAGE.value and key.POST_PROCESSING_PIPELINE not in assignment) or (
             old_state == GradingRunState.POST_PROCESSING_STAGE.value):
-        if grading_run.get(key.STUDENT_JOBS_LEFT) != 0:
-            logger.critical("Invalid: Attempted to finish grading run when {} student jobs left.".format(
-                grading_run.get(key.STUDENT_JOBS_LEFT)))
-            return
-
         grading_run_collection.update_one({key.ID: ObjectId(grading_run_id)},
-                                          {'$set': {key.STATE: GradingRunState.FINISHED.value}})
+                                          {'$set': {key.STATE: GradingRunState.FINISHED.value, key.FINISHED: get_time(),
+                                                    key.SUCCESS: True}})
 
-        grading_run_collection.update_one({key.ID: ObjectId(grading_run_id)}, {"$set": {key.FINISHED: get_time()}})
     else:
         logger.critical("Invalid grading run state for grading run with id {}".format(grading_run_id))
+
+
+def fail_grading_run(db_resolver, grading_run_id):
+    grading_run_collection = db_resolver.get_grading_run_collection()
+    grading_run_collection.update_one({key.ID: ObjectId(grading_run_id)}, {
+        "$set": {key.SUCCESS: False, key.FINISHED: get_time(), key.STATE: GradingRunState.FAILED.value}})
+
+
+def on_job_update(db_resolver, job_queue, grading_job_id, grading_run_id):
+    grading_run_collection = db_resolver.get_grading_run_collection()
+    grading_run = grading_run_collection.find_one({key.ID: ObjectId(grading_run_id)})
+    student_jobs_left = grading_run.get(key.STUDENT_JOBS_LEFT)
+
+    grading_job = db_resolver.get_grading_job_collection().find_one({key.ID: ObjectId(grading_job_id)})
+    job_succeeded = grading_job.get(key.SUCCESS)
+    job_type = grading_job.get(key.TYPE)
+
+    if grading_run is None:
+        logger.critical("Grading run with id {} does not exist".format(grading_run_id))
+        return
+
+    if key.FINISHED in grading_run:
+        logger.critical("Received a job update for a grading run {} which already finished".format(grading_run_id))
+        return
+
+    if job_type == GradingJobType.PRE_PROCESSING.value:
+        if job_succeeded:
+            progress_grading_run(db_resolver, job_queue, grading_run_id)
+        else:
+            fail_grading_run(db_resolver, grading_run_id)
+
+    elif job_type == GradingJobType.POST_PROCESSING.value:
+        if student_jobs_left != 0:
+            logger.critical("Processed post processing job when {} student jobs are left.".format(student_jobs_left))
+            return
+
+        if job_succeeded:
+            progress_grading_run(db_resolver, job_queue, grading_run_id)
+        else:
+            fail_grading_run(db_resolver, grading_run_id)
+
+    elif job_type == GradingJobType.STUDENT.value:
+        # a student's job finished
+        if student_jobs_left <= 0:
+            logger.critical("Processed another student job when {} student jobs are left.".format(student_jobs_left))
+            return
+
+        grading_run_collection.update_one({key.ID: ObjectId(grading_run_id)}, {"$inc": {key.STUDENT_JOBS_LEFT: -1}})
+
+        if student_jobs_left == 1:
+            progress_grading_run(db_resolver, job_queue, grading_run_id)

@@ -10,23 +10,24 @@ TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 # enums
 class GradingJobType(Enum):
-    PRE_PROCESSING = 1
-    STUDENT = 2
-    POST_PROCESSING = 3
+    PRE_PROCESSING = "pre processing job"
+    STUDENT = "student grading job"
+    POST_PROCESSING = "post processing job"
 
 
 class GradingJobState(Enum):
-    QUEUED = 1  # the grading job has been pushed into the job for a worker to poll it
-    STARTED = 2  # a worker has polled this grading job and is being processed
-    FINISHED = 3  # the worker finished working on this job
+    QUEUED = "grading job has been scheduled"
+    STARTED = "grading job is running"
+    FINISHED = "grading job has finished"
 
 
 class GradingRunState(Enum):
-    READY = 0  # the grading run is ready to be scheduled
-    PRE_PROCESSING_STAGE = 1  # the pre processing job has been scheduled
-    STUDENTS_STAGE = 2  # the students grading jobs have been scheduled to be distributed among the workers
-    POST_PROCESSING_STAGE = 3  # the post processing job has been scheduled
-    FINISHED = 4  # the grading run is complete
+    READY = "ready to be started"
+    PRE_PROCESSING_STAGE = "pre processing job has been scheduled"
+    STUDENTS_STAGE = "students grading jobs have been scheduled"
+    POST_PROCESSING_STAGE = "post processing job has been scheduled"
+    FINISHED = "grading run is complete"
+    FAILED = "grading run failed"
 
 
 # application specific constants

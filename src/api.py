@@ -18,8 +18,9 @@ from src.config import WORKER_REGISTER_ENDPOINT, GRADING_JOB_ENDPOINT, GRADING_C
     HEARTBEAT_ENDPOINT
 from src.database import DatabaseResolver
 from src.handlers.client_handlers import GradingConfigHandler, GradingRunHandler
+from src.handlers.schedulers import on_job_update
 from src.handlers.worker_handlers import WorkerRegisterHandler, GradingJobHandler, HeartBeatHandler
-from src.utilities import get_time, job_update_callback
+from src.utilities import get_time
 
 # setting up logger
 os.makedirs(LOGS_DIR, exist_ok=True)
@@ -62,8 +63,8 @@ def handle_lost_worker_node(db_resolver, worker_node):
         "$set": {key.FINISHED: get_time(), key.SUCCESS: False,
                  key.RESULTS: [{"result": "Worker died while executing this job"}]}})
 
-    tornado.ioloop.IOLoop.current().add_callback(job_update_callback, db_resolver, app.settings.get(consts.APP_QUEUE),
-                                                 running_job_id, job.get(key.GRADING_RUN_ID), False)
+    tornado.ioloop.IOLoop.current().add_callback(on_job_update, db_resolver, app.settings.get(consts.APP_QUEUE),
+                                                 running_job_id, job.get(key.GRADING_RUN_ID))
 
 
 def heartbeat_validator(db_resolver):

@@ -17,18 +17,18 @@ class EndpointTestRegisterGrader(BaseEndpointTest):
 class EndpointTestPollGradingJob(BaseEndpointTest):
     def test_unauthorized(self):
         worker_id = self.register_worker(self.grader_header)
-        self.poll_job(worker_id, None, UNAUTHORIZED_REQUEST_CODE)
+        self.assertEqual(self.poll_job(worker_id, None), UNAUTHORIZED_REQUEST_CODE)
 
     def test_wrong_token(self):
         worker_id = self.register_worker(self.grader_header)
-        self.poll_job(worker_id, get_header("fake"), UNAUTHORIZED_REQUEST_CODE)
+        self.assertEqual(self.poll_job(worker_id, get_header("fake")), UNAUTHORIZED_REQUEST_CODE)
 
     def test_invalid_worker_id(self):
-        self.poll_job("1234", self.grader_header, BAD_REQUEST_CODE)
+        self.assertEqual(self.poll_job("1234", self.grader_header), BAD_REQUEST_CODE)
 
     def test_empty_poll(self):
         worker_id = self.register_worker(self.grader_header)
-        self.poll_job(worker_id, self.grader_header, QUEUE_EMPTY_CODE)
+        self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)
 
 
 class EndpointTestUpdateGradingJob(BaseEndpointTest):

@@ -105,6 +105,15 @@ class BaseEndpointTest(BaseTest, AsyncHTTPTestCase):
             response_body = json.loads(response.body)
             return response_body["data"][key.GRADING_RUN_ID]
 
+    def get_grading_run_state(self, course_id, assignment_name, grading_run_id, header):
+        response = self.fetch(
+            self.get_url("{}/{}/{}/{}".format(GRADING_RUN_ENDPOINT, course_id, assignment_name, grading_run_id)),
+            method='GET', headers=header)
+        self.assertEqual(response.code, OK_REQUEST_CODE)
+
+        response_body = json.loads(response.body)
+        return response_body["data"].get(key.STATE)
+
     def check_grading_run_status(self, course_id, assignment_name, grading_run_id, header, expected_code,
                                  expected_state=None):
         response = self.fetch(
@@ -128,35 +137,18 @@ class BaseEndpointTest(BaseTest, AsyncHTTPTestCase):
             self.assertIn(key.WORKER_ID, response_body["data"])
             return response_body["data"].get(key.WORKER_ID)
 
-    def poll_job(self, worker_id, header, expected_code=OK_REQUEST_CODE):
+    def poll_job(self, worker_id, header):
         response = self.fetch(self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)), method='GET',
                               headers=header)
 
-        self.assertEqual(response.code, expected_code)
-        if expected_code == OK_REQUEST_CODE:
+        if response.code == OK_REQUEST_CODE:
             self.assertEqual(response.code, OK_REQUEST_CODE)
             response_body = json.loads(response.body)
             self.assertIn(key.GRADING_JOB_ID, response_body["data"])
             self.assertIn(key.STAGES, response_body["data"])
             return response_body["data"]
 
-    def safe_poll_job(self, worker_id):
-        while True:
-            response = self.fetch(
-                self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)), method='GET', headers=self.grader_header,
-                body=None
-            )
-
-            if response.code == OK_REQUEST_CODE:
-                break
-
-            self.assertEqual(response.code, QUEUE_EMPTY_CODE)
-            time.sleep(1)
-
-        response_body = json.loads(response.body)
-        self.assertIn(key.GRADING_JOB_ID, response_body["data"])
-        self.assertIn(key.STAGES, response_body["data"])
-        return response_body["data"]
+        return response.code
 
     def post_job_result(self, worker_id, header, job_id, job_success=True, expected_code=OK_REQUEST_CODE):
         body = {key.GRADING_JOB_ID: job_id,

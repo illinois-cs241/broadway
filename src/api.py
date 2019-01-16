@@ -101,8 +101,14 @@ def make_app(cluster_token, db_resolver, course_tokens):
         (r"{}/{}/{}".format(GRADING_CONFIG_ENDPOINT, consts.ID_REGEX.format(key.COURSE_ID_PARAM),
                             consts.ID_REGEX.format(key.ASSIGNMENT_NAME_PARAM)), GradingConfigHandler),
 
+        # POST to start grading run
         (r"{}/{}/{}".format(GRADING_RUN_ENDPOINT, consts.ID_REGEX.format(key.COURSE_ID_PARAM),
                             consts.ID_REGEX.format(key.ASSIGNMENT_NAME_PARAM)), GradingRunHandler),
+
+        # GET to get grading run status
+        (r"{}/{}/{}/{}".format(GRADING_RUN_ENDPOINT, consts.ID_REGEX.format(key.COURSE_ID_PARAM),
+                               consts.ID_REGEX.format(key.ASSIGNMENT_NAME_PARAM),
+                               consts.ID_REGEX.format(key.RUN_ID_PARAM)), GradingRunHandler),
         # ----------------------------------
 
         # ------- Worker Endpoints ---------

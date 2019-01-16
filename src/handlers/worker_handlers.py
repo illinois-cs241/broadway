@@ -73,7 +73,7 @@ class GradingJobHandler(BaseAPIHandler):
 
         try:
             grading_job_id = job_queue.get_nowait()
-            grading_job = grading_job_collection.find_one({key.ID: ObjectId(grading_job_id)})
+            grading_job = self.get_grading_job(grading_job_id)
             grading_job_collection.update_one({key.ID: ObjectId(grading_job_id)},
                                               {"$set": {key.STARTED: get_time(), key.WORKER_ID: worker_id}})
 

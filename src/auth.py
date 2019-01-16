@@ -72,7 +72,8 @@ def authenticate_worker(func):
     def wrapper(*args, **kwargs):
         base_handler_instance = args[0]
         worker_id = kwargs.get(key.WORKER_ID_PARAM)
-        if base_handler_instance.get_worker_node(worker_id) is None:  # this call aborts if it returns None
+        if base_handler_instance.get_worker_node(worker_id) is None:
+            # get_worker_node() internally aborts the request so return
             return
         else:
             return func(*args, **kwargs)
@@ -106,7 +107,7 @@ def authenticate_cluster_token(func):
 
         if (request_token is None) or not request_token.startswith("Bearer ") or len(request_token.split(" ")) != 2:
             base_handler_instance.abort({"message": "Cluster token in wrong format. Expect format \'Bearer <token>\'"},
-                                        BAD_REQUEST_CODE)
+                                        UNAUTHORIZED_REQUEST_CODE)
         elif expected_token != request_token.split(" ")[1]:
             base_handler_instance.abort({"message": "Not authorized. Wrong token."}, UNAUTHORIZED_REQUEST_CODE)
         else:
@@ -122,7 +123,7 @@ def authenticate_course(func):
         request_token = base_handler_instance.request.headers.get(key.AUTH)
         if (request_token is None) or not request_token.startswith("Bearer ") or len(request_token.split(" ")) != 2:
             base_handler_instance.abort({"message": "Cluster token in wrong format. Expect format \'Bearer <token>\'"},
-                                        BAD_REQUEST_CODE)
+                                        UNAUTHORIZED_REQUEST_CODE)
             return
 
         request_token = request_token.split(" ")[1]
@@ -130,7 +131,7 @@ def authenticate_course(func):
         course_id = kwargs.get(key.COURSE_ID_PARAM)
         course = base_handler_instance.get_course(course_id)
         if course is None:
-            # get_course() internally aborts the request so return\
+            # get_course() internally aborts the request so return
             return
 
         for token_id in course.get(key.TOKEN_IDS):

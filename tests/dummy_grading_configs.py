@@ -1,232 +1,241 @@
-import src.constants.keys as api_key
+import src.constants.keys as key
 
 valid_configs = [
     {
-        api_key.STUDENT_PIPELINE: [
+        key.STUDENT_PIPELINE: [
             {
-                api_key.IMAGE: "alpine:3.5",
-                api_key.TIMEOUT: 20
+                key.IMAGE: "alpine:3.5",
+                key.TIMEOUT: 20
             },
             {
-                api_key.IMAGE: "alpine:3.5",
-                api_key.HOST_NAME: "123456"
+                key.IMAGE: "alpine:3.5",
+                key.HOST_NAME: "123456"
             },
             {
-                api_key.IMAGE: "alpine:3.5",
-                api_key.NETWORKING: True
+                key.IMAGE: "alpine:3.5",
+                key.NETWORKING: True
             },
             {
-                api_key.IMAGE: "alpine:3.5",
-                api_key.ENV: {"var1": "val1", "var2": "val2"}
+                key.IMAGE: "alpine:3.5",
+                key.ENV: {"var1": "val1", "var2": "val2"}
             },
             {
-                api_key.IMAGE: "alpine:3.5",
-                api_key.ENTRY_POINT: ["echo", "student-job"]
+                key.IMAGE: "alpine:3.5",
+                key.ENTRY_POINT: ["echo", "student-job"]
             }
         ],
-        api_key.PRE_PROCESSING_PIPELINE: [
+        key.PRE_PROCESSING_PIPELINE: [
             {
-                api_key.IMAGE: "alpine:3.5",
-                api_key.ENV: {"STAGE": "pre"},
-                api_key.ENTRY_POINT: [
+                key.IMAGE: "alpine:3.5",
+                key.ENV: {"STAGE": "pre"},
+                key.ENTRY_POINT: [
                     "echo", "pre-processing-job"
                 ],
-                api_key.TIMEOUT: 20,
-                api_key.HOST_NAME: "123456",
-                api_key.NETWORKING: False
+                key.TIMEOUT: 20,
+                key.HOST_NAME: "123456",
+                key.NETWORKING: False
             }
         ],
-        api_key.POST_PROCESSING_PIPELINE: [
+        key.POST_PROCESSING_PIPELINE: [
             {
-                api_key.IMAGE: "alpine:3.5",
-                api_key.ENV: {"STAGE": "post"},
-                api_key.ENTRY_POINT: [
+                key.IMAGE: "alpine:3.5",
+                key.ENV: {"STAGE": "post"},
+                key.ENTRY_POINT: [
                     "echo", "post-processing-job"
                 ],
-                api_key.TIMEOUT: 20,
-                api_key.HOST_NAME: "123456",
-                api_key.NETWORKING: False
+                key.TIMEOUT: 20,
+                key.HOST_NAME: "123456",
+                key.NETWORKING: False
             }
         ],
-        api_key.ENV: {"TEST": "testing", "temp": "val3"}
+        key.ENV: {"TEST": "testing", "temp": "val3"}
     },
     {
-        api_key.STUDENT_PIPELINE: [
+        key.STUDENT_PIPELINE: [
             {
-                api_key.IMAGE: "alpine:3.5",
+                key.IMAGE: "alpine:3.5",
             }
         ]
     },
     {
-        api_key.STUDENT_PIPELINE: [
+        key.STUDENT_PIPELINE: [
             {
-                api_key.IMAGE: "alpine:3.5",
-                api_key.TIMEOUT: 20
+                key.IMAGE: "alpine:3.5",
+                key.TIMEOUT: 20
             },
             {
-                api_key.IMAGE: "alpine:3.5",
-                api_key.HOST_NAME: "123456"
+                key.IMAGE: "alpine:3.5",
+                key.HOST_NAME: "123456"
             },
             {
-                api_key.IMAGE: "alpine:3.5",
-                api_key.ENTRY_POINT: ["echo", "student-job"]
+                key.IMAGE: "alpine:3.5",
+                key.ENTRY_POINT: ["echo", "student-job"]
             }
         ],
-        api_key.ENV: {"TEST": "testing", "temp": "val3"}
+        key.ENV: {"TEST": "testing", "temp": "val3"}
     },
     {
-        api_key.STUDENT_PIPELINE: [
+        key.STUDENT_PIPELINE: [
             {
-                api_key.IMAGE: "alpine:3.5",
-                api_key.ENTRY_POINT: ["echo", "student-job"]
+                key.IMAGE: "alpine:3.5",
+                key.ENTRY_POINT: ["echo", "student-job"]
             }
         ],
-        api_key.PRE_PROCESSING_PIPELINE: [
+        key.PRE_PROCESSING_PIPELINE: [
             {
-                api_key.IMAGE: "alpine:3.5",
-                api_key.ENV: {"STAGE": "pre"},
-                api_key.ENTRY_POINT: [
+                key.IMAGE: "alpine:3.5",
+                key.ENV: {"STAGE": "pre"},
+                key.ENTRY_POINT: [
                     "echo", "pre-processing-job"
                 ],
-                api_key.TIMEOUT: 20,
-                api_key.HOST_NAME: "123456",
-                api_key.NETWORKING: False
+                key.TIMEOUT: 20,
+                key.HOST_NAME: "123456",
+                key.NETWORKING: False
             }
         ]
     },
     {
-        api_key.STUDENT_PIPELINE: [
+        key.STUDENT_PIPELINE: [
             {
-                api_key.IMAGE: "alpine:3.5",
-                api_key.HOST_NAME: "123456"
+                key.IMAGE: "alpine:3.5",
+                key.HOST_NAME: "123456"
             }
         ],
-        api_key.POST_PROCESSING_PIPELINE: [
+        key.POST_PROCESSING_PIPELINE: [
             {
-                api_key.IMAGE: "alpine:3.5",
-                api_key.ENV: {"STAGE": "post"},
-                api_key.ENTRY_POINT: [
+                key.IMAGE: "alpine:3.5",
+                key.ENV: {"STAGE": "post"},
+                key.ENTRY_POINT: [
                     "echo", "post-processing-job"
                 ],
-                api_key.TIMEOUT: 20,
-                api_key.HOST_NAME: "123456",
-                api_key.NETWORKING: False
+                key.TIMEOUT: 20,
+                key.HOST_NAME: "123456",
+                key.NETWORKING: False
             }
         ],
-        api_key.ENV: {"TEST": "testing", "temp": "val3"}
+        key.ENV: {"TEST": "testing", "temp": "val3"}
     }
 ]
 
 invalid_configs = [
     {
-        api_key.STUDENT_PIPELINE: [
+        key.STUDENT_PIPELINE: [
             {
-                api_key.HOST_NAME: "123456"
+                key.HOST_NAME: "123456"
             },
             {
-                api_key.IMAGE: "alpine:3.5",
-                api_key.NETWORKING: True
+                key.IMAGE: "alpine:3.5",
+                key.NETWORKING: True
             },
             {
-                api_key.IMAGE: "alpine:3.5",
-                api_key.ENV: {"var1": "val1", "var2": "val2"}
+                key.IMAGE: "alpine:3.5",
+                key.ENV: {"var1": "val1", "var2": "val2"}
             },
             {
-                api_key.IMAGE: "alpine:3.5",
-                api_key.ENTRY_POINT: ["echo", "student-job"]
+                key.IMAGE: "alpine:3.5",
+                key.ENTRY_POINT: ["echo", "student-job"]
             }
         ],
-        api_key.PRE_PROCESSING_PIPELINE: [
+        key.PRE_PROCESSING_PIPELINE: [
             {
-                api_key.IMAGE: "alpine:3.5",
-                api_key.ENV: {"STAGE": "pre"},
-                api_key.ENTRY_POINT: [
+                key.IMAGE: "alpine:3.5",
+                key.ENV: {"STAGE": "pre"},
+                key.ENTRY_POINT: [
                     "echo", "pre-processing-job"
                 ],
-                api_key.TIMEOUT: 20,
-                api_key.HOST_NAME: "123456",
-                api_key.NETWORKING: False
+                key.TIMEOUT: 20,
+                key.HOST_NAME: "123456",
+                key.NETWORKING: False
             }
         ],
-        api_key.POST_PROCESSING_PIPELINE: [
+        key.POST_PROCESSING_PIPELINE: [
             {
-                api_key.IMAGE: "alpine:3.5",
-                api_key.ENV: {"STAGE": "post"},
-                api_key.ENTRY_POINT: [
+                key.IMAGE: "alpine:3.5",
+                key.ENV: {"STAGE": "post"},
+                key.ENTRY_POINT: [
                     "echo", "post-processing-job"
                 ],
-                api_key.TIMEOUT: 20,
-                api_key.HOST_NAME: "123456",
-                api_key.NETWORKING: False
+                key.TIMEOUT: 20,
+                key.HOST_NAME: "123456",
+                key.NETWORKING: False
             }
         ],
-        api_key.ENV: {"TEST": "testing", "temp": "val3"}
+        key.ENV: {"TEST": "testing", "temp": "val3"}
     },
     {
-        api_key.PRE_PROCESSING_PIPELINE: [
+        key.PRE_PROCESSING_PIPELINE: [
             {
-                api_key.IMAGE: "alpine:3.5",
-                api_key.ENV: {"STAGE": "pre"},
-                api_key.ENTRY_POINT: [
+                key.IMAGE: "alpine:3.5",
+                key.ENV: {"STAGE": "pre"},
+                key.ENTRY_POINT: [
                     "echo", "pre-processing-job"
                 ],
-                api_key.TIMEOUT: 20,
-                api_key.HOST_NAME: "123456",
-                api_key.NETWORKING: False
+                key.TIMEOUT: 20,
+                key.HOST_NAME: "123456",
+                key.NETWORKING: False
             }
         ],
-        api_key.POST_PROCESSING_PIPELINE: [
+        key.POST_PROCESSING_PIPELINE: [
             {
-                api_key.IMAGE: "alpine:3.5",
-                api_key.ENV: {"STAGE": "post"},
-                api_key.ENTRY_POINT: [
+                key.IMAGE: "alpine:3.5",
+                key.ENV: {"STAGE": "post"},
+                key.ENTRY_POINT: [
                     "echo", "post-processing-job"
                 ],
-                api_key.TIMEOUT: 20,
-                api_key.HOST_NAME: "123456",
-                api_key.NETWORKING: False
+                key.TIMEOUT: 20,
+                key.HOST_NAME: "123456",
+                key.NETWORKING: False
             }
         ],
-        api_key.ENV: {"TEST": "testing", "temp": "val3"}
+        key.ENV: {"TEST": "testing", "temp": "val3"}
     },
     {
-        api_key.STUDENT_PIPELINE: [
+        key.STUDENT_PIPELINE: [
             {
-                api_key.IMAGE: "alpine:3.5",
-                api_key.TIMEOUT: 20
+                key.IMAGE: "alpine:3.5",
+                key.TIMEOUT: 20
             }
         ],
-        api_key.PRE_PROCESSING_PIPELINE: [
+        key.PRE_PROCESSING_PIPELINE: [
             {
-                api_key.ENV: {"STAGE": "pre"},
-                api_key.ENTRY_POINT: [
+                key.ENV: {"STAGE": "pre"},
+                key.ENTRY_POINT: [
                     "echo", "pre-processing-job"
                 ],
-                api_key.TIMEOUT: 20,
-                api_key.HOST_NAME: "123456",
-                api_key.NETWORKING: False
+                key.TIMEOUT: 20,
+                key.HOST_NAME: "123456",
+                key.NETWORKING: False
             }
         ]
     },
     {
-        api_key.STUDENT_PIPELINE: [
+        key.STUDENT_PIPELINE: [
             {
-                api_key.IMAGE: "alpine:3.5",
+                key.IMAGE: "alpine:3.5",
                 "hello": "world"
             }
         ]
     },
     {
-        api_key.STUDENT_PIPELINE: [
+        key.STUDENT_PIPELINE: [
             {
-                api_key.IMAGE: "alpine:3.5",
-                api_key.TIMEOUT: 20
+                key.IMAGE: "alpine:3.5",
+                key.TIMEOUT: 20
             }
         ],
         "hello": "world"
     },
     {
-        api_key.STUDENT_PIPELINE: "hello"
+        key.STUDENT_PIPELINE: "hello"
     },
     {}
 ]
+
+only_student_config = {
+    key.STUDENT_PIPELINE: [
+        {
+            key.IMAGE: "alpine:3.5",
+        }
+    ]
+}
+

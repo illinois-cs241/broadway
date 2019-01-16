@@ -24,9 +24,7 @@ class GradingConfigHandler(BaseAPIHandler):
         assignment_collection = self.get_db().get_assignment_collection()
 
         # if the assignment config already exists then delete it and replace it with the new one
-        if assignment_collection.find_one({key.ID: assignment_id}) is not None:
-            assignment_collection.delete_one({key.ID: assignment_id})
-
+        assignment_collection.delete_one({key.ID: assignment_id})
         assignment_collection.insert_one({key.ID: assignment_id, **self.body})
 
     @authenticate_course
@@ -35,7 +33,9 @@ class GradingConfigHandler(BaseAPIHandler):
         output_schema=consts.GRADING_CONFIG_DEF
     )
     def get(self, *args, **kwargs):
-        assignment = self.get_assignment(kwargs.get(key.COURSE_ID_PARAM), kwargs.get(key.ASSIGNMENT_NAME_PARAM))
+        assignment = self.get_assignment(
+            self.get_assignment_id(kwargs.get(key.COURSE_ID_PARAM), kwargs.get(key.ASSIGNMENT_NAME_PARAM)))
+
         if assignment is not None:
             del assignment[key.ID]
             return assignment
@@ -65,9 +65,8 @@ class GradingRunHandler(BaseAPIHandler):
         on_empty_404=True
     )
     def post(self, *args, **kwargs):
-        course_id = kwargs.get(key.COURSE_ID_PARAM)
-        assignment_name = kwargs.get(key.ASSIGNMENT_NAME_PARAM)
-        assignment = self.get_assignment(course_id, assignment_name)
+        assignment_id = self.get_assignment_id(kwargs.get(key.COURSE_ID_PARAM), kwargs.get(key.ASSIGNMENT_NAME_PARAM))
+        assignment = self.get_assignment(assignment_id)
         if assignment is None:
             return
 
@@ -83,7 +82,7 @@ class GradingRunHandler(BaseAPIHandler):
 
         # create grading run document
         grading_run = {key.STATE: consts.GradingRunState.READY.value,
-                       key.ASSIGNMENT_ID: self.get_assignment_id(course_id, assignment_name),
+                       key.ASSIGNMENT_ID: assignment_id,
                        key.STARTED: get_time(),
                        key.STUDENT_JOBS_LEFT: len(self.body.get(key.STUDENTS_ENV)),
                        **self.body}
@@ -92,3 +91,30 @@ class GradingRunHandler(BaseAPIHandler):
         # schedule jobs
         progress_grading_run(self.get_db(), self.get_queue(), grading_run_id)
         return {key.GRADING_RUN_ID: grading_run_id}
+
+    @authenticate_course
+    @schema.validate(
+        output_schema={
+            "type": "object",
+            "properties": {
+                key.STATE: {"type": "string"}
+            },
+            "required": [key.STATE],
+            "additionalProperties": False
+        },
+        on_empty_404=True
+    )
+    def get(self, *args, **kwargs):
+        assignment_id = self.get_assignment_id(kwargs.get(key.COURSE_ID_PARAM), kwargs.get(key.ASSIGNMENT_NAME_PARAM))
+        grading_run_id = kwargs.get(key.RUN_ID_PARAM)
+
+        grading_run = self.get_grading_run(grading_run_id)
+        if grading_run is None:
+            return
+
+        if grading_run.get(key.ASSIGNMENT_ID) != assignment_id:
+            self.abort({"message": "Grading run {} does not belong to {}".format(grading_run_id, assignment_id)},
+                       BAD_REQUEST_CODE)
+            return
+
+        return {key.STATE: grading_run.get(key.STATE)}

@@ -22,6 +22,7 @@ HOSTNAME_PARAM = "hostname"
 WORKER_ID_PARAM = "worker_id"
 COURSE_ID_PARAM = "course_id"
 ASSIGNMENT_NAME_PARAM = "assignment_name"
+RUN_ID_PARAM = "grading_run_id"
 
 # these let us specify the stage specs
 IMAGE = "image"

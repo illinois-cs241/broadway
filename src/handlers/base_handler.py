@@ -21,6 +21,10 @@ class BaseAPIHandler(APIHandler):
 
         return True
 
+    @staticmethod
+    def get_assignment_id(course_id, assignment_name):
+        return "{}/{}".format(course_id, assignment_name)
+
     def get_db(self):
         """
         Extracts the DatabaseResolver instance attached to the application setting
@@ -67,18 +71,11 @@ class BaseAPIHandler(APIHandler):
         else:
             return course
 
-    @staticmethod
-    def get_assignment_id(course_id, assignment_name):
-        return "{}/{}".format(course_id, assignment_name)
-
-    def get_assignment(self, course_id, assignment_name):
-        assignment = self.get_db().get_assignment_collection().find_one(
-            {key.ID: self.get_assignment_id(course_id, assignment_name)})
+    def get_assignment(self, id_):
+        assignment = self.get_db().get_assignment_collection().find_one({key.ID: id_})
 
         if assignment is None:
-            self.abort(
-                {"message": "Course {} has not uploaded a config for assignment {}".format(course_id, assignment_name)},
-                BAD_REQUEST_CODE)
+            self.abort({"message": "Assignment with id {} does not exist".format(id_)}, BAD_REQUEST_CODE)
         else:
             return assignment
 

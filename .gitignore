@@ -111,5 +111,6 @@ venv.bak/
 dmypy.json
 
 ngrok
+courses.json
 .idea/
 logs/

@@ -4,25 +4,33 @@ import sys
 
 HOST = ""
 PORT = ""
+COURSE = ""
+ASSIGNMENT = ""
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python start_run_script.py <path to config json> <token>")
+    if len(sys.argv) != 4:
+        print("Usage: python start_run_script.py <path to config json> <path to roster json> <token>")
         exit(-1)
-    token = sys.argv[2]
+    token = sys.argv[3]
+    headers = {"Authorization": "Bearer {}".format(token)}
+
     with open(sys.argv[1]) as f:
-        headers = {"Authorization": "Bearer ".format(token)}
         config = json.load(f)
-        r = requests.post("http://{}:{}/api/v1/grading_run".format(HOST, PORT), headers=headers,
-                          data=json.dumps(config))
-        if r.status_code != 200:
-            print("Error in uploading config: {}".format(r.text))
-            exit(-1)
 
-        id_ = json.loads(r.text)["data"]["grading_run_id"]
-        r = requests.post("http://{}:{}/api/v1/grading_run/{}".format(HOST, PORT, id_), headers=headers)
-        if r.status_code != 200:
-            print("Error in starting run: {}".format(r.text))
-            exit(-1)
+    r = requests.post("http://{}:{}/api/v1/grading_config/{}/{}".format(HOST, PORT, COURSE, ASSIGNMENT),
+                      headers=headers, data=json.dumps(config))
+    if r.status_code != 200:
+        print("Error in uploading config: {}".format(r.text))
+        exit(-1)
 
-        print("Grading run with id {} started!".format(id_))
+    with open(sys.argv[2]) as f:
+        roster = json.load(f)
+
+    r = requests.post("http://{}:{}/api/v1/grading_run/{}/{}".format(HOST, PORT, COURSE, ASSIGNMENT),
+                      headers=headers, data=json.dumps(roster))
+    if r.status_code != 200:
+        print("Error in starting run: {}".format(r.text))
+        exit(-1)
+
+    id_ = json.loads(r.text)["data"]["grading_run_id"]
+    print("Grading run with id {} started!".format(id_))

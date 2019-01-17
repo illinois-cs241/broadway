@@ -83,8 +83,8 @@ class DatabaseResolver(object):
         Returns a collection of documents containing all assignment configs belonging to various courses.
         Document format:
             _id (unique: course_id + '/' + assignment_name)
-            pre_processing_pipeline
-            post_processing_pipeline
+            pre_processing_pipeline (optional)
+            post_processing_pipeline (optional)
             student_pipeline
             env
 
@@ -104,8 +104,8 @@ class DatabaseResolver(object):
             assignment_id
             started_at
             finished_at
-            pre_processing_env
-            post_processing_env
+            pre_processing_env (optional)
+            post_processing_env (optional)
             students_env
             student_jobs_left
             success

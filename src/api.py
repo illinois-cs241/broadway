@@ -43,6 +43,11 @@ def signal_handler(sig, frame):
 
 
 def handle_lost_worker_node(db_resolver, worker_node):
+    # update worker node
+    worker_nodes_collection = db_resolver.get_worker_node_collection()
+    worker_nodes_collection.update_one({key.ID: worker_node.get(key.ID)},
+                                       {"$set": {key.ALIVE: False, key.RUNNING_JOB: None}})
+
     running_job_id = worker_node.get(key.RUNNING_JOB)
     worker_id = str(worker_node.get(key.ID))
     logger.critical("Worker with hostname {} and id {} executing {} went offline unexpectedly".format(
@@ -63,6 +68,7 @@ def handle_lost_worker_node(db_resolver, worker_node):
         "$set": {key.FINISHED: get_time(), key.SUCCESS: False,
                  key.RESULTS: [{"result": "Worker died while executing this job"}]}})
 
+    # take action for this job completion
     tornado.ioloop.IOLoop.current().add_callback(on_job_update, db_resolver, app.settings.get(consts.APP_QUEUE),
                                                  running_job_id, job.get(key.GRADING_RUN_ID))
 
@@ -76,13 +82,12 @@ def heartbeat_validator(db_resolver):
     worker_nodes_collection = db_resolver.get_worker_node_collection()
 
     cur_time = get_time()
-    for worker_node in worker_nodes_collection.find():
+    for worker_node in worker_nodes_collection.find({key.ALIVE: True}):
         last_seen_time = worker_node.get(key.LAST_SEEN)
 
         # the worker node dead if it does not send a heartbeat for 2 intervals
         if (cur_time - last_seen_time).total_seconds() >= 2 * HEARTBEAT_INTERVAL:
             handle_lost_worker_node(db_resolver, worker_node)
-            worker_nodes_collection.delete_one({key.ID: worker_node.get(key.ID)})
 
 
 def make_app(cluster_token, db_resolver, course_tokens):

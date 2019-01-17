@@ -34,7 +34,8 @@ class WorkerRegisterHandler(BaseAPIHandler):
         db_resolver = self.get_db()
         worker_nodes_collection = db_resolver.get_worker_node_collection()
 
-        worker_node = {key.WORKER_HOSTNAME: hostname, key.LAST_SEEN: get_time(), key.RUNNING_JOB: None}
+        worker_node = {key.WORKER_HOSTNAME: hostname, key.LAST_SEEN: get_time(), key.RUNNING_JOB: None, key.ALIVE: True,
+                       key.JOB_PROCESSED: 0}
         worker_id = str(worker_nodes_collection.insert_one(worker_node).inserted_id)
         logger.info("Worker with hostname {} joined as id {}".format(hostname, worker_id))
 
@@ -78,7 +79,8 @@ class GradingJobHandler(BaseAPIHandler):
                                               {"$set": {key.STARTED: get_time(), key.WORKER_ID: worker_id}})
 
             db_resolver.get_worker_node_collection().update_one({key.ID: ObjectId(worker_id)},
-                                                                {"$set": {key.RUNNING_JOB: grading_job_id}})
+                                                                {"$set": {key.RUNNING_JOB: grading_job_id},
+                                                                 "$inc": {key.JOB_PROCESSED: 1}})
 
             worker_job = {key.GRADING_JOB_ID: grading_job_id, key.STAGES: grading_job.get(key.STAGES)}
             if key.STUDENTS in grading_job:

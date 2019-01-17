@@ -218,3 +218,79 @@ class EndpointTestIntegration(BaseEndpointTest):
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
                                       OK_REQUEST_CODE, GradingRunState.FINISHED.value)
         self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)
+
+    def test_abort_pre_processing_fail(self):
+        worker_id = self.register_worker(self.grader_header)
+        self.upload_grading_config(self.course1, "assignment1", self.client_header1,
+                                   dummy_configs.pre_processing_config, OK_REQUEST_CODE)
+        grading_run_id = self.start_grading_run(self.course1, "assignment1", self.client_header1,
+                                                dummy_runs.one_student_and_pre, OK_REQUEST_CODE)
+
+        pre_processing_job = self.poll_job(worker_id, self.grader_header)
+        self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
+                                      OK_REQUEST_CODE, GradingRunState.PRE_PROCESSING_STAGE.value)
+        self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)
+
+        self.post_job_result(worker_id, self.grader_header, pre_processing_job.get(key.GRADING_JOB_ID), False)
+        self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
+                                      OK_REQUEST_CODE, GradingRunState.FAILED.value)
+        self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)
+
+    def test_no_abort_student_fail(self):
+        worker_id = self.register_worker(self.grader_header)
+        self.upload_grading_config(self.course1, "assignment1", self.client_header1,
+                                   dummy_configs.both_config, OK_REQUEST_CODE)
+        grading_run_id = self.start_grading_run(self.course1, "assignment1", self.client_header1,
+                                                dummy_runs.one_student_and_both, OK_REQUEST_CODE)
+
+        pre_processing_job = self.poll_job(worker_id, self.grader_header)
+        self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
+                                      OK_REQUEST_CODE, GradingRunState.PRE_PROCESSING_STAGE.value)
+        self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)
+
+        self.post_job_result(worker_id, self.grader_header, pre_processing_job.get(key.GRADING_JOB_ID))
+        self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
+                                      OK_REQUEST_CODE, GradingRunState.STUDENTS_STAGE.value)
+
+        student_job = self.poll_job(worker_id, self.grader_header)
+        self.assertNotIn(key.STUDENTS, student_job)
+        self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)
+        self.post_job_result(worker_id, self.grader_header, student_job.get(key.GRADING_JOB_ID), False)
+
+        self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
+                                      OK_REQUEST_CODE, GradingRunState.POST_PROCESSING_STAGE.value)
+        post_processing_job = self.poll_job(worker_id, self.grader_header)
+        self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)
+
+        self.post_job_result(worker_id, self.grader_header, post_processing_job.get(key.GRADING_JOB_ID))
+        self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
+                                      OK_REQUEST_CODE, GradingRunState.FINISHED.value)
+        self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)
+
+    def test_abort_post_processing_fail(self):
+        worker_id = self.register_worker(self.grader_header)
+        self.upload_grading_config(self.course1, "assignment1", self.client_header1,
+                                   dummy_configs.both_config, OK_REQUEST_CODE)
+        grading_run_id = self.start_grading_run(self.course1, "assignment1", self.client_header1,
+                                                dummy_runs.one_student_and_both, OK_REQUEST_CODE)
+        self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1, OK_REQUEST_CODE,
+                                      GradingRunState.PRE_PROCESSING_STAGE.value)
+
+        pre_processing_job = self.poll_job(worker_id, self.grader_header)
+        self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)
+        self.post_job_result(worker_id, self.grader_header, pre_processing_job.get(key.GRADING_JOB_ID))
+        self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1, OK_REQUEST_CODE,
+                                      GradingRunState.STUDENTS_STAGE.value)
+
+        student_job = self.poll_job(worker_id, self.grader_header)
+        self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)
+        self.post_job_result(worker_id, self.grader_header, student_job.get(key.GRADING_JOB_ID))
+        self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1, OK_REQUEST_CODE,
+                                      GradingRunState.POST_PROCESSING_STAGE.value)
+
+        post_processing_job = self.poll_job(worker_id, self.grader_header)
+        self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)
+        self.post_job_result(worker_id, self.grader_header, post_processing_job.get(key.GRADING_JOB_ID), False)
+        self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1, OK_REQUEST_CODE,
+                                      GradingRunState.FAILED.value)
+        self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)

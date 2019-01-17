@@ -2,20 +2,20 @@ import json
 import logging
 import os
 import signal
+import socket
 import sys
 import time
-import socket
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 from logging.handlers import TimedRotatingFileHandler
 from subprocess import Popen, PIPE
 
-from tornado import httpclient, escape
+from tornado import httpclient
 
 import api_keys as api_key
 from config import GRADER_REGISTER_ENDPOINT, HEARTBEAT_ENDPOINT, GRADING_JOB_ENDPOINT, HEARTBEAT_INTERVAL, \
     JOB_POLL_INTERVAL, VERBOSE
 from config import LOGS_DIR, GRADING_RUN_RES_FILE, QUEUE_EMPTY_CODE
-from utils import get_time, get_url, print_usage
+from utils import get_time, get_url, print_usage, convert_env_format
 
 # globals
 worker_id = None
@@ -76,6 +76,11 @@ def worker_routine():
 
         # we successfully polled a job
         job = json.loads(response.body.decode('utf-8')).get('data')
+
+        # convert env var format to list of strings
+        for stage in job.get(api_key.STAGES):
+            stage[api_key.ENV] = convert_env_format(stage.get(api_key.ENV, {}))
+
         job_id = job.get(api_key.GRADING_JOB_ID)
         logger.info("Starting job {}".format(job_id))
 

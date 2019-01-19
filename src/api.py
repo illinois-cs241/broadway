@@ -6,6 +6,7 @@ import signal
 from logging.handlers import TimedRotatingFileHandler
 from queue import Queue
 
+import tornado.httpserver
 import tornado
 import tornado.ioloop
 import tornado.web
@@ -14,7 +15,8 @@ from bson import ObjectId
 import src.constants.constants as consts
 import src.constants.keys as key
 from src.auth import initialize_cluster_token, configure_course_tokens
-from src.config import PORT, HEARTBEAT_INTERVAL, LOGS_DIR, LOGS_ROTATE_WHEN, LOGS_BACKUP_COUNT
+from src.config import PORT, HEARTBEAT_INTERVAL, LOGS_DIR, LOGS_ROTATE_WHEN, LOGS_BACKUP_COUNT, SSL_CERT_PATH, \
+    SSL_KEY_PATH
 from src.config import WORKER_REGISTER_ENDPOINT, GRADING_JOB_ENDPOINT, GRADING_CONFIG_ENDPOINT, GRADING_RUN_ENDPOINT, \
     HEARTBEAT_ENDPOINT
 from src.database import DatabaseResolver
@@ -150,9 +152,10 @@ if __name__ == "__main__":
 
     db_object = DatabaseResolver()
     app = make_app(cluster_token=initialize_cluster_token(), db_resolver=db_object, course_tokens=courses)
-
+    http_server = tornado.httpserver.HTTPServer(app, ssl_options={"certfile": SSL_CERT_PATH,
+                                                                  "keyfile": SSL_KEY_PATH})
     logger.info("listening on port {}".format(PORT))
-    app.listen(PORT)
+    http_server.listen(PORT)
 
     signal.signal(signal.SIGINT, signal_handler)
 

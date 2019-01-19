@@ -4,8 +4,8 @@ import uuid
 
 import jsonschema
 
-import src.constants.keys as key
 import src.constants.constants as consts
+import src.constants.keys as key
 from src.config import UNAUTHORIZED_REQUEST_CODE, BAD_REQUEST_CODE, CLUSTER_TOKEN_ENV_VAR
 from src.database import DatabaseResolver
 
@@ -25,25 +25,37 @@ def initialize_cluster_token():
 
 def configure_course_tokens(db_resolver, course_tokens):
     """
-    Creates course and token documents in the DB correctly and links them together.
+    The courses and their tokens have a many-to-many relationship. A course can own multiple tokens (for instance the
+    course has multiple services pinging the API and wants to keep their tokens independent) and a token can be
+    owned by multiple courses (there can be many versions of a course which register as separate courses but use the
+    same token).
+
+    This function aims to understand that relationship and feed it into the DB in the desired format.
+    Example config:
+    {
+       "tokens":{
+          "token1":"abcd",
+          "token2":"efgh"
+       },
+       "courses":{
+          "cs241-honors":[
+             "token1"
+          ],
+          "cs241":[
+             "token1",
+             "token2"
+          ]
+       }
+    }
 
     :param db_resolver: DatabaseResolver object
     :type db_resolver: DatabaseResolver
     :param course_tokens: object containing the configuration of courses and their tokens
     :type course_tokens: dict
+
+    :raises ValidationError: if the course config is invalid according to the schema defined
     """
-    # Expected format specified below
-    jsonschema.validate(course_tokens, {
-        "type": "object",
-        "properties": {
-            consts.CONFIG_TOKENS: {"type": "object",
-                                   "patternProperties": {"": {"type": "string"}}},
-            consts.CONFIG_COURSES: {"type": "object",
-                                    "patternProperties": {
-                                        "": {"type": "array", "items": {"type": "string"}}}}
-        },
-        "additionalProperties": False
-    })
+    jsonschema.validate(course_tokens, consts.COURSE_CONFIG_DEF)
 
     courses_collection = db_resolver.get_course_collection()
     courses_collection.drop()

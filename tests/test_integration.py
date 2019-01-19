@@ -1,6 +1,3 @@
-from threading import Thread
-from time import sleep
-
 import src.constants.keys as key
 import tests.dummy_grading_configs as dummy_configs
 import tests.dummy_grading_runs as dummy_runs

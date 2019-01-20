@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import signal
+import sys
 from logging.handlers import TimedRotatingFileHandler
 from queue import Queue
 
@@ -15,8 +16,7 @@ from bson import ObjectId
 import src.constants.constants as consts
 import src.constants.keys as key
 from src.auth import initialize_cluster_token, configure_course_tokens
-from src.config import PORT, HEARTBEAT_INTERVAL, LOGS_DIR, LOGS_ROTATE_WHEN, LOGS_BACKUP_COUNT, SSL_CERT_PATH, \
-    SSL_KEY_PATH
+from src.config import PORT, HEARTBEAT_INTERVAL, LOGS_DIR, LOGS_ROTATE_WHEN, LOGS_BACKUP_COUNT
 from src.config import WORKER_REGISTER_ENDPOINT, GRADING_JOB_ENDPOINT, GRADING_CONFIG_ENDPOINT, GRADING_RUN_ENDPOINT, \
     HEARTBEAT_ENDPOINT
 from src.database import DatabaseResolver
@@ -140,8 +140,16 @@ if __name__ == "__main__":
     parser.add_argument("--course-config",
                         help="A JSON file that will configure the courses and their tokens on the DB")
     parser.add_argument("--https", action="store_true", help="Make the API only serve HTTPS requests")
+    parser.add_argument("--ssl-certificate", help="Path to the SSL certificate")
+    parser.add_argument("--ssl-key", help="Path to the SSL private key file")
     args = parser.parse_args()
 
+    # validate args
+    if args.https and (not args.ssl_certificate or not args.ssl_key):
+        logger.critical("Both the ssl certificate path and ssl private key path should be provided through args.")
+        sys.exit(1)
+
+    # configure course tokens
     logger.info("initializing application")
     if args.course_config and os.path.isfile(args.course_config):
         logger.info("Initializing courses and tokens. Overwriting previous DB contents.")
@@ -151,11 +159,12 @@ if __name__ == "__main__":
         logger.info("No courses config file found. Retaining previous DB contents.")
         courses = None
 
+    # build the app and start the api server
     db_object = DatabaseResolver()
     app = make_app(cluster_token=initialize_cluster_token(), db_resolver=db_object, course_tokens=courses)
     if args.https:
-        http_server = tornado.httpserver.HTTPServer(app, ssl_options={"certfile": SSL_CERT_PATH,
-                                                                      "keyfile": SSL_KEY_PATH})
+        http_server = tornado.httpserver.HTTPServer(app, ssl_options={"certfile": args.ssl_certificate,
+                                                                      "keyfile": args.ssl_key})
         http_server.listen(PORT)
     else:
         app.listen(PORT)

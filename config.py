@@ -1,5 +1,4 @@
 API_HOSTNAME = "127.0.0.1"
-API_PORT = "1470"
 LOGS_DIR = "logs"
 VERBOSE = True
 GRADING_RUN_RES_FILE = "grading_job_result.json"

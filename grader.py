@@ -90,8 +90,8 @@ def worker_routine():
         containers_stdout, containers_stderr = docker_runner.communicate()
         logger.info("Finished job {}".format(job_id))
         if VERBOSE:
-            print("Job stdout:\n{}".format(containers_stdout))
-            print("Job stderr:\n{}".format(containers_stderr))
+            logger.info("Job stdout:\n{}".format(containers_stdout))
+            logger.info("Job stderr:\n{}".format(containers_stderr))
 
         # send back the results to the server
         if not os.path.isfile(GRADING_RUN_RES_FILE):

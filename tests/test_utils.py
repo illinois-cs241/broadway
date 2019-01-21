@@ -1,13 +1,12 @@
-from jsonschema import ValidationError
-
-from src.database import DatabaseResolver
-from src.utilities import PeriodicCallbackThread, build_pipeline
-from src.auth import configure_course_tokens
-import src.constants.constants as consts
-import src.constants.keys as key
 import time
 import unittest
 
+from jsonschema import ValidationError
+
+import src.constants.keys as key
+from src.auth import configure_course_tokens
+from src.database import DatabaseResolver
+from src.utilities import PeriodicCallbackThread, build_pipeline
 from tests.base import BaseTest
 
 
@@ -37,90 +36,44 @@ class TestCourseConfig(unittest.TestCase):
         self.db_resolver.shutdown()
 
     def test_valid_course_course(self):
-        course_tokens = {
-            consts.CONFIG_TOKENS: {"token1": "123", "token2": "456"},
-            consts.CONFIG_COURSES: {"cs125": ["token1", "token2"],
-                                    "cs225": ["token2", "token1"],
-                                    "cs233": ["token1"],
-                                    "cs241": ["token2"]}
-        }
+        course_tokens = {"cs125": ["token1", "token2"],
+                         "cs225": ["token2", "token1"],
+                         "cs233": ["token1"],
+                         "cs241": ["token2"]}
         configure_course_tokens(self.db_resolver, course_tokens)
-        token1_id = str(self.db_resolver.get_token_collection().find_one({key.TOKEN: "123"}).get(key.ID))
-        token2_id = str(self.db_resolver.get_token_collection().find_one({key.TOKEN: "456"}).get(key.ID))
 
         cs125 = self.db_resolver.get_course_collection().find_one({key.ID: "cs125"})
         cs225 = self.db_resolver.get_course_collection().find_one({key.ID: "cs225"})
         cs233 = self.db_resolver.get_course_collection().find_one({key.ID: "cs233"})
         cs241 = self.db_resolver.get_course_collection().find_one({key.ID: "cs241"})
 
-        assert cs125 is not None
-        assert cs225 is not None
-        assert cs233 is not None
-        assert cs241 is not None
+        self.assertIsNotNone(cs125)
+        self.assertIsNotNone(cs225)
+        self.assertIsNotNone(cs233)
+        self.assertIsNotNone(cs241)
 
-        assert token1_id in cs125.get(key.TOKEN_IDS)
-        assert token2_id in cs125.get(key.TOKEN_IDS)
-        assert len(cs125.get(key.TOKEN_IDS)) == 2
+        assert "token1" in cs125.get(key.TOKENS)
+        assert "token2" in cs125.get(key.TOKENS)
+        assert len(cs125.get(key.TOKENS)) == 2
 
-        assert token1_id in cs225.get(key.TOKEN_IDS)
-        assert token2_id in cs225.get(key.TOKEN_IDS)
-        assert len(cs225.get(key.TOKEN_IDS)) == 2
+        assert "token1" in cs225.get(key.TOKENS)
+        assert "token2" in cs225.get(key.TOKENS)
+        assert len(cs225.get(key.TOKENS)) == 2
 
-        assert token1_id in cs233.get(key.TOKEN_IDS)
-        assert len(cs233.get(key.TOKEN_IDS)) == 1
+        assert "token1" in cs233.get(key.TOKENS)
+        assert len(cs233.get(key.TOKENS)) == 1
 
-        assert token2_id in cs241.get(key.TOKEN_IDS)
-        assert len(cs241.get(key.TOKEN_IDS)) == 1
-
-    def test_missing_token(self):
-        course_tokens = {
-            consts.CONFIG_COURSES: {"cs125": ["token1", "token2"],
-                                    "cs225": ["token2", "token1"],
-                                    "cs233": ["token1"],
-                                    "cs241": ["token2"]}
-        }
-
-        with self.assertRaises(KeyError):
-            configure_course_tokens(self.db_resolver, course_tokens)
-
-    def test_wrong_token(self):
-        course_tokens = {
-            consts.CONFIG_TOKENS: {"token": "123"},
-            consts.CONFIG_COURSES: {"cs125": ["token1"]}
-        }
-
-        with self.assertRaises(KeyError):
-            configure_course_tokens(self.db_resolver, course_tokens)
-
-    def test_wrong_token_format(self):
-        course_tokens = {
-            consts.CONFIG_TOKENS: {"token1": 1},
-            consts.CONFIG_COURSES: {"cs125": ["token1"]}
-        }
-
-        with self.assertRaises(ValidationError):
-            configure_course_tokens(self.db_resolver, course_tokens)
+        assert "token2" in cs241.get(key.TOKENS)
+        assert len(cs241.get(key.TOKENS)) == 1
 
     def test_wrong_config_format_1(self):
-        course_tokens = {
-            consts.CONFIG_COURSES: {"cs125": [1]}
-        }
+        course_tokens = {"cs125": [1]}
 
         with self.assertRaises(ValidationError):
             configure_course_tokens(self.db_resolver, course_tokens)
 
     def test_wrong_config_format_2(self):
-        course_tokens = {
-            consts.CONFIG_COURSES: {"cs125": 1}
-        }
-
-        with self.assertRaises(ValidationError):
-            configure_course_tokens(self.db_resolver, course_tokens)
-
-    def test_wrong_config_format_3(self):
-        course_tokens = {
-            consts.CONFIG_COURSES: {"cs125": "hello"}
-        }
+        course_tokens = {"cs125": 1}
 
         with self.assertRaises(ValidationError):
             configure_course_tokens(self.db_resolver, course_tokens)

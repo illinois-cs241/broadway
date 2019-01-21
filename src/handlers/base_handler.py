@@ -53,16 +53,6 @@ class BaseAPIHandler(APIHandler):
         """
         return self.settings.get(consts.CLUSTER_TOKEN)
 
-    def get_token(self, id_):
-        if not self.is_id_valid(id_):
-            return None
-
-        token = self.get_db().get_token_collection().find_one({key.ID: ObjectId(id_)})
-        if token is None:
-            self.abort({"message": "Token with id {} does not exist".format(id_)}, BAD_REQUEST_CODE)
-        else:
-            return token
-
     def get_course(self, id_):
         # does NOT have an auto id. So we will not be using ObjectId
         course = self.get_db().get_course_collection().find_one({key.ID: id_})

@@ -53,25 +53,12 @@ class DatabaseResolver(object):
         """
         return self.db.worker_node
 
-    def get_token_collection(self):
-        """
-        Returns a collection of tokens used to authenticate requests. A token can be owned by multiple courses and a
-        course can own multiple tokens. Courses and tokens have a many to many relationship.
-        Document format:
-            _id (auto)
-            token
-
-        :rtype: collection.Collection
-        :return: collection of work node documents
-        """
-        return self.db.token
-
     def get_course_collection(self):
         """
         Returns a collection of documents representing all courses registered into the system.
         Document format:
             _id (unique, specified by clients)
-            token_ids = [id,...]
+            tokens = [token1,...]
 
         :rtype: collection.Collection
         :return: collection of work node documents

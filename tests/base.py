@@ -70,10 +70,8 @@ class BaseEndpointTest(BaseTest, AsyncHTTPTestCase):
     def get_app(self):
         self.db_resolver = DatabaseResolver(db_name='__test', logs_db_name='__test_logs')
         return make_app(cluster_token=MOCK_CLUSTER_TOKEN, db_resolver=self.db_resolver,
-                        course_tokens={
-                            consts.CONFIG_TOKENS: {"token1": MOCK_CLIENT_TOKEN1, "token2": MOCK_CLIENT_TOKEN2},
-                            consts.CONFIG_COURSES: {MOCK_COURSE1: ["token1"],
-                                                    MOCK_COURSE2: ["token1", "token2"]}})
+                        course_tokens={MOCK_COURSE1: [MOCK_CLIENT_TOKEN1],
+                                       MOCK_COURSE2: [MOCK_CLIENT_TOKEN1, MOCK_CLIENT_TOKEN2]})
 
     def tearDown(self):
         super().tearDown()

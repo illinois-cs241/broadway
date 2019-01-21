@@ -25,27 +25,11 @@ def initialize_cluster_token():
 
 def configure_course_tokens(db_resolver, course_tokens):
     """
-    The courses and their tokens have a many-to-many relationship. A course can own multiple tokens (for instance the
-    course has multiple services pinging the API and wants to keep their tokens independent) and a token can be
-    owned by multiple courses (there can be many versions of a course which register as separate courses but use the
-    same token).
-
-    This function aims to understand that relationship and feed it into the DB in the desired format.
+    Each course can have any number of tokens. This functions aims in resolving that.
     Example config:
     {
-       "tokens":{
-          "token1":"abcd",
-          "token2":"efgh"
-       },
-       "courses":{
-          "cs241-honors":[
-             "token1"
-          ],
-          "cs241":[
-             "token1",
-             "token2"
-          ]
-       }
+       "course1": ["token1", "token2"],
+       "course2": ["token3"]
     }
 
     :param db_resolver: DatabaseResolver object
@@ -60,23 +44,8 @@ def configure_course_tokens(db_resolver, course_tokens):
     courses_collection = db_resolver.get_course_collection()
     courses_collection.drop()
 
-    tokens_collection = db_resolver.get_token_collection()
-    tokens_collection.drop()
-
-    token_name_to_id = {}
-    for token_name in course_tokens.get(consts.CONFIG_TOKENS, {}):
-        token_name_to_id[token_name] = str(
-            tokens_collection.insert_one({key.TOKEN: course_tokens[consts.CONFIG_TOKENS][token_name]}).inserted_id)
-
-    for course_id in course_tokens.get(consts.CONFIG_COURSES, {}):
-        course = {key.ID: course_id, key.TOKEN_IDS: []}
-        for token_name in course_tokens[consts.CONFIG_COURSES][course_id]:
-            if token_name not in token_name_to_id:
-                logger.critical("Token name {} does not exist in course tokens config".format(token_name))
-                raise KeyError
-
-            course[key.TOKEN_IDS].append(token_name_to_id[token_name])
-
+    for course_id, tokens in course_tokens.items():
+        course = {key.ID: course_id, key.TOKENS: tokens}
         courses_collection.insert_one(course)
 
 
@@ -146,11 +115,9 @@ def authenticate_course(func):
             # get_course() internally aborts the request so return
             return
 
-        for token_id in course.get(key.TOKEN_IDS):
-            cur_token = base_handler_instance.get_token(token_id).get(key.TOKEN)
-            if cur_token == request_token:
-                return func(*args, **kwargs)
-
-        base_handler_instance.abort({"message": "Not authorized. Wrong token."}, UNAUTHORIZED_REQUEST_CODE)
+        if request_token in course.get(key.TOKENS):
+            return func(*args, **kwargs)
+        else:
+            base_handler_instance.abort({"message": "Not authorized. Wrong token."}, UNAUTHORIZED_REQUEST_CODE)
 
     return wrapper

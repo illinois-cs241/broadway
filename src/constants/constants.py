@@ -35,21 +35,13 @@ CLUSTER_TOKEN = "cluster_token"
 APP_DB = "db_object"
 APP_QUEUE = "job_queue"
 
-# course config constants
-CONFIG_TOKENS = "tokens"
-CONFIG_COURSES = "courses"
 
 # json validation formats
 COURSE_CONFIG_DEF = {
     "type": "object",
-    "properties": {
-        CONFIG_TOKENS: {"type": "object",
-                        "patternProperties": {"": {"type": "string"}}},
-        CONFIG_COURSES: {"type": "object",
-                         "patternProperties": {
-                             "": {"type": "array", "items": {"type": "string"}}}}
-    },
-    "additionalProperties": False
+    "patternProperties": {
+        "": {"type": "array", "items": {"type": "string"}}
+    }
 }
 
 GRADING_STAGE_DEF = {

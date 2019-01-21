@@ -4,7 +4,7 @@ DB_PATH = "/tmp/mongo/data"
 LOGS_DIR = "logs"
 LOGS_ROTATE_WHEN = 'midnight'
 LOGS_BACKUP_COUNT = 7
-TOKEN_ENV_VAR = "API_TOKEN"
+CLUSTER_TOKEN_ENV_VAR = "CLUSTER_TOKEN"
 
 # request codes
 OK_REQUEST_CODE = 200
@@ -13,6 +13,7 @@ UNAUTHORIZED_REQUEST_CODE = 401
 QUEUE_EMPTY_CODE = 498
 
 # endpoints
+GRADING_CONFIG_ENDPOINT = "/api/v1/grading_config"
 GRADING_RUN_ENDPOINT = "/api/v1/grading_run"
 WORKER_REGISTER_ENDPOINT = "/api/v1/worker_register"
 GRADING_JOB_ENDPOINT = "/api/v1/grading_job"

@@ -1,111 +1,165 @@
 import json
 import time
+import unittest
 
+import jsonschema
 from tornado.testing import AsyncHTTPTestCase
 
-import src.constants.api_keys as api_key
-import tests.configs
+import src.constants.constants as consts
+import src.constants.keys as key
 from src.api import make_app
-from src.config import OK_REQUEST_CODE, QUEUE_EMPTY_CODE, GRADING_JOB_ENDPOINT, WORKER_REGISTER_ENDPOINT, \
-    GRADING_RUN_ENDPOINT
+from src.config import GRADING_JOB_ENDPOINT, WORKER_REGISTER_ENDPOINT, GRADING_CONFIG_ENDPOINT, GRADING_RUN_ENDPOINT, \
+    HEARTBEAT_ENDPOINT
+from src.config import OK_REQUEST_CODE, QUEUE_EMPTY_CODE
 from src.database import DatabaseResolver
 from src.utilities import get_header
 
-MOCK_TOKEN = "testing"
+MOCK_CLUSTER_TOKEN = "testing"
+
+MOCK_COURSE1 = "mock_course1"
+MOCK_COURSE2 = "mock_course2"
+
+MOCK_CLIENT_TOKEN1 = "12345"
+MOCK_CLIENT_TOKEN2 = "67890"
 
 
-class BaseTest(AsyncHTTPTestCase):
+class BaseTest(unittest.TestCase):
+    def assert_equal_grading_config(self, actual_config, expected_config):
+        jsonschema.validate(actual_config, consts.GRADING_CONFIG_DEF)
+        jsonschema.validate(expected_config, consts.GRADING_CONFIG_DEF)
+
+        self.assertEqual(set(actual_config.keys()), set(expected_config.keys()))
+
+        for config_key in expected_config:
+            if config_key == key.ENV:
+                self.assertEqual(sorted(actual_config.get(config_key)), sorted(expected_config.get(config_key)))
+            else:
+                self.assert_equal_grading_pipeline(actual_config.get(config_key), expected_config.get(config_key))
+
+    def assert_equal_grading_pipeline(self, actual_pipeline, expected_pipeline):
+        jsonschema.validate(actual_pipeline, consts.GRADING_PIPELINE_DEF)
+        jsonschema.validate(expected_pipeline, consts.GRADING_PIPELINE_DEF)
+
+        self.assertEqual(len(actual_pipeline), len(expected_pipeline))
+
+        for i in range(len(expected_pipeline)):
+            self.assert_equal_grading_stage(actual_pipeline[i], expected_pipeline[i])
+
+    def assert_equal_grading_stage(self, actual_stage, expected_stage):
+        jsonschema.validate(actual_stage, consts.GRADING_STAGE_DEF)
+        jsonschema.validate(expected_stage, consts.GRADING_STAGE_DEF)
+
+        self.assertEqual(set(actual_stage.keys()), set(expected_stage.keys()))
+
+        for stage_key in expected_stage:
+            if stage_key == key.ENV or stage_key == key.ENTRY_POINT:
+                self.assertEqual(sorted(actual_stage.get(stage_key)), sorted(expected_stage.get(stage_key)))
+            else:
+                self.assertEqual(actual_stage.get(stage_key), expected_stage.get(stage_key))
+
+
+class BaseEndpointTest(BaseTest, AsyncHTTPTestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.header = get_header(MOCK_TOKEN)
+        self.grader_header = get_header(MOCK_CLUSTER_TOKEN)
+        self.client_header1 = get_header(MOCK_CLIENT_TOKEN1)
+        self.client_header2 = get_header(MOCK_CLIENT_TOKEN2)
+        self.course1 = MOCK_COURSE1
+        self.course2 = MOCK_COURSE2
 
     def get_app(self):
         self.db_resolver = DatabaseResolver(db_name='__test', logs_db_name='__test_logs')
-        return make_app(token=MOCK_TOKEN, db_object=self.db_resolver)
+        return make_app(cluster_token=MOCK_CLUSTER_TOKEN, db_resolver=self.db_resolver,
+                        course_tokens={MOCK_COURSE1: [MOCK_CLIENT_TOKEN1],
+                                       MOCK_COURSE2: [MOCK_CLIENT_TOKEN1, MOCK_CLIENT_TOKEN2]})
 
     def tearDown(self):
         super().tearDown()
         self.db_resolver.clear_db()
         # self.db_resolver.shutdown()
 
-    def add_grading_run(self, config_obj=tests.configs.valid_config):
+    # ------------ CLIENT HELPER METHODS ------------
+
+    def upload_grading_config(self, course_id, assignment_name, header, grading_config, expected_code):
+        response = self.fetch(self.get_url("{}/{}/{}".format(GRADING_CONFIG_ENDPOINT, course_id, assignment_name)),
+                              method='POST', body=json.dumps(grading_config), headers=header)
+        self.assertEqual(response.code, expected_code)
+
+    def get_grading_config(self, course_id, assignment_name, header, expected_code):
+        response = self.fetch(self.get_url("{}/{}/{}".format(GRADING_CONFIG_ENDPOINT, course_id, assignment_name)),
+                              method='GET', headers=header)
+        self.assertEqual(response.code, expected_code)
+
+        if response.code == OK_REQUEST_CODE:
+            response_body = json.loads(response.body)
+            return response_body["data"]
+
+    def start_grading_run(self, course_id, assignment_name, header, students, expected_code):
+        response = self.fetch(self.get_url("{}/{}/{}".format(GRADING_RUN_ENDPOINT, course_id, assignment_name)),
+                              method='POST', headers=header, body=json.dumps(students))
+        self.assertEqual(response.code, expected_code)
+
+        if response.code == OK_REQUEST_CODE:
+            response_body = json.loads(response.body)
+            return response_body["data"][key.GRADING_RUN_ID]
+
+    def get_grading_run_state(self, course_id, assignment_name, grading_run_id, header):
         response = self.fetch(
-            self.get_url(GRADING_RUN_ENDPOINT), method='POST', headers=self.header, body=json.dumps(config_obj)
-        )
+            self.get_url("{}/{}/{}/{}".format(GRADING_RUN_ENDPOINT, course_id, assignment_name, grading_run_id)),
+            method='GET', headers=header)
         self.assertEqual(response.code, OK_REQUEST_CODE)
-        response_body = json.loads(response.body)
-        self.assertIn(api_key.RUN_ID, response_body["data"])
-        return response_body["data"].get(api_key.RUN_ID)
 
-    def start_run(self, run_id):
+        response_body = json.loads(response.body)
+        return response_body["data"].get(key.STATE)
+
+    def check_grading_run_status(self, course_id, assignment_name, grading_run_id, header, expected_code,
+                                 expected_state=None):
         response = self.fetch(
-            self.get_url("{}/{}".format(GRADING_RUN_ENDPOINT, run_id)), method='POST', headers=self.header, body=""
-        )
-        self.assertEqual(response.code, OK_REQUEST_CODE)
+            self.get_url("{}/{}/{}/{}".format(GRADING_RUN_ENDPOINT, course_id, assignment_name, grading_run_id)),
+            method='GET', headers=header)
+        self.assertEqual(response.code, expected_code)
 
-    def register_worker(self):
-        response = self.fetch(self.get_url("{}/{}".format(WORKER_REGISTER_ENDPOINT, "mock_hostname")), method='GET',
-                              headers=self.header, body=None)
-        self.assertEqual(response.code, OK_REQUEST_CODE)
-        response_body = json.loads(response.body)
-        self.assertIn(api_key.WORKER_ID, response_body["data"])
-        return response_body["data"].get(api_key.WORKER_ID)
+        if response.code == OK_REQUEST_CODE:
+            response_body = json.loads(response.body)
+            self.assertEqual(response_body["data"].get(key.STATE), expected_state)
 
-    def poll_job(self, worker_id, empty_job=False):
+    # ------------ GRADER HELPER METHODS ------------
+
+    def register_worker(self, header, expected_code=OK_REQUEST_CODE, hostname="mock_hostname"):
+        response = self.fetch(self.get_url("{}/{}".format(WORKER_REGISTER_ENDPOINT, hostname)), method='GET',
+                              headers=header)
+        self.assertEqual(response.code, expected_code)
+
+        if expected_code == OK_REQUEST_CODE:
+            response_body = json.loads(response.body)
+            self.assertIn(key.WORKER_ID, response_body["data"])
+            return response_body["data"].get(key.WORKER_ID)
+
+    def poll_job(self, worker_id, header):
+        response = self.fetch(self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)), method='GET',
+                              headers=header)
+
+        if response.code == OK_REQUEST_CODE:
+            self.assertEqual(response.code, OK_REQUEST_CODE)
+            response_body = json.loads(response.body)
+            self.assertIn(key.GRADING_JOB_ID, response_body["data"])
+            self.assertIn(key.STAGES, response_body["data"])
+            return response_body["data"]
+
+        return response.code
+
+    def post_job_result(self, worker_id, header, job_id, job_success=True, expected_code=OK_REQUEST_CODE):
+        body = {key.GRADING_JOB_ID: job_id,
+                key.SUCCESS: job_success,
+                key.RESULTS: [{"res": "container 1 res"}, {"res": "container 2 res"}],
+                key.LOGS: {"logs": "test logs"}}
         response = self.fetch(
-            self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)), method='GET', headers=self.header, body=None
-        )
-
-        self.assertEqual(response.code, QUEUE_EMPTY_CODE if empty_job else OK_REQUEST_CODE)
-        response_body = json.loads(response.body)
-        self.assertIn(api_key.JOB_ID, response_body["data"])
-        self.assertIn(api_key.STAGES, response_body["data"])
-        return response_body["data"]
-
-    def safe_poll_job(self, worker_id):
-        while True:
-            response = self.fetch(
-                self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)), method='GET', headers=self.header,
-                body=None
-            )
-
-            if response.code == OK_REQUEST_CODE:
-                break
-
-            self.assertEqual(response.code, QUEUE_EMPTY_CODE)
-            time.sleep(1)
-
-        response_body = json.loads(response.body)
-        self.assertIn(api_key.JOB_ID, response_body["data"])
-        self.assertIn(api_key.STAGES, response_body["data"])
-        return response_body["data"]
-
-    def post_job_result(self, worker_id, job_id):
-        body = {api_key.JOB_ID: job_id,
-                api_key.SUCCESS: True,
-                api_key.RESULTS: [{"res": "container 1 success"}, {"res": "container 2 success"}],
-                api_key.LOGS: {"logs": "test logs"}}
-        response = self.fetch(
-            self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)), method='POST', headers=self.header,
+            self.get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)), method='POST', headers=header,
             body=json.dumps(body)
         )
-        self.assertEqual(response.code, OK_REQUEST_CODE)
+        self.assertEqual(response.code, expected_code)
 
-    def assert_equal_job(self, actual_job, expected_job):
-        self.assertEqual(type(actual_job), list)
-        self.assertEqual(type(expected_job), list)
-        self.assertEqual(len(actual_job), len(expected_job))
-
-        for i in range(len(actual_job)):
-            self.assert_equal_stage(actual_job[i], expected_job[i])
-
-    def assert_equal_stage(self, actual_stage, expected_stage):
-        # type: (dict, dict) -> None
-        self.assertEqual(type(actual_stage), dict)
-        self.assertEqual(type(expected_stage), dict)
-        self.assertEqual(set(actual_stage.keys()), set(expected_stage.keys()))
-        for key in expected_stage:
-            if key == api_key.ENV or key == api_key.ENTRY_POINT:
-                self.assertEqual(sorted(actual_stage.get(key)), sorted(expected_stage.get(key)))
-            else:
-                self.assertEqual(actual_stage.get(key), expected_stage.get(key))
+    def send_heartbeat(self, worker_id, header, expected_code=OK_REQUEST_CODE):
+        response = self.fetch(self.get_url("{}/{}".format(HEARTBEAT_ENDPOINT, worker_id)), method='POST', body='',
+                              headers=header)
+        self.assertEqual(response.code, expected_code)

@@ -33,7 +33,7 @@ class GradingConfigHandler(BaseAPIHandler):
         output_schema=consts.GRADING_CONFIG_DEF
     )
     def get(self, *args, **kwargs):
-        assignment = self.get_assignment(
+        assignment = self.get_assignment_or_abort(
             self.get_assignment_id(kwargs.get(key.COURSE_ID_PARAM), kwargs.get(key.ASSIGNMENT_NAME_PARAM)))
 
         if assignment is not None:
@@ -66,7 +66,7 @@ class GradingRunHandler(BaseAPIHandler):
     )
     def post(self, *args, **kwargs):
         assignment_id = self.get_assignment_id(kwargs.get(key.COURSE_ID_PARAM), kwargs.get(key.ASSIGNMENT_NAME_PARAM))
-        assignment = self.get_assignment(assignment_id)
+        assignment = self.get_assignment_or_abort(assignment_id)
         if assignment is None:
             return
 
@@ -108,7 +108,7 @@ class GradingRunHandler(BaseAPIHandler):
         assignment_id = self.get_assignment_id(kwargs.get(key.COURSE_ID_PARAM), kwargs.get(key.ASSIGNMENT_NAME_PARAM))
         grading_run_id = kwargs.get(key.RUN_ID_PARAM)
 
-        grading_run = self.get_grading_run(grading_run_id)
+        grading_run = self.get_grading_run_or_abort(grading_run_id)
         if grading_run is None:
             return
 

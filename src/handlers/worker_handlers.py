@@ -74,7 +74,7 @@ class GradingJobHandler(BaseAPIHandler):
 
         try:
             grading_job_id = job_queue.get_nowait()
-            grading_job = self.get_grading_job(grading_job_id)
+            grading_job = self.get_grading_job_or_abort(grading_job_id)
             grading_job_collection.update_one({key.ID: ObjectId(grading_job_id)},
                                               {"$set": {key.STARTED: get_time(), key.WORKER_ID: worker_id}})
 
@@ -120,7 +120,7 @@ class GradingJobHandler(BaseAPIHandler):
 
         # check if the job exists
         job_id = self.body.get(key.GRADING_JOB_ID)
-        job = self.get_grading_job(job_id)
+        job = self.get_grading_job_or_abort(job_id)
         if job is None:
             return
 

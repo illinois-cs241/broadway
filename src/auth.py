@@ -53,8 +53,7 @@ def authenticate_worker(func):
     def wrapper(*args, **kwargs):
         base_handler_instance = args[0]
         worker_id = kwargs.get(key.WORKER_ID_PARAM)
-        if base_handler_instance.get_worker_node(worker_id) is None:
-            # get_worker_node() internally aborts the request so return
+        if base_handler_instance.get_worker_node_or_abort(worker_id) is None:
             return
         else:
             return func(*args, **kwargs)
@@ -67,14 +66,8 @@ def validate_assignment(func):
         base_handler_instance = args[0]
         course_id = kwargs.get(key.COURSE_ID_PARAM)
         assignment_name = kwargs.get(key.ASSIGNMENT_NAME_PARAM)
-        assignment_id = "{}/{}".format(course_id, assignment_name)
-        assignment = base_handler_instance.get_db().get_assignment_collection().find_one({key.ID: assignment_id})
-        if assignment is None:
-            base_handler_instance.abort(
-                {"message": "Course {} has not uploaded a config for assignment {}".format(course_id, assignment_name)},
-                BAD_REQUEST_CODE)
-            return
-        else:
+        if base_handler_instance.get_assignment_or_abort(
+                base_handler_instance.get_assignment_id(course_id, assignment_name)) is not None:
             return func(*args, **kwargs)
 
     return wrapper
@@ -110,9 +103,8 @@ def authenticate_course(func):
         request_token = request_token.split(" ")[1]
 
         course_id = kwargs.get(key.COURSE_ID_PARAM)
-        course = base_handler_instance.get_course(course_id)
+        course = base_handler_instance.get_course_or_abort(course_id)
         if course is None:
-            # get_course() internally aborts the request so return
             return
 
         if request_token in course.get(key.TOKENS):

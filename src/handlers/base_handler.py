@@ -53,7 +53,7 @@ class BaseAPIHandler(APIHandler):
         """
         return self.settings.get(consts.CLUSTER_TOKEN)
 
-    def get_course(self, id_):
+    def get_course_or_abort(self, id_):
         # does NOT have an auto id. So we will not be using ObjectId
         course = self.get_db().get_course_collection().find_one({key.ID: id_})
         if course is None:
@@ -61,7 +61,8 @@ class BaseAPIHandler(APIHandler):
         else:
             return course
 
-    def get_assignment(self, id_):
+    def get_assignment_or_abort(self, id_):
+        # does NOT have an auto id. So we will not be using ObjectId
         assignment = self.get_db().get_assignment_collection().find_one({key.ID: id_})
 
         if assignment is None:
@@ -69,7 +70,7 @@ class BaseAPIHandler(APIHandler):
         else:
             return assignment
 
-    def get_worker_node(self, id_):
+    def get_worker_node_or_abort(self, id_):
         if not self.is_id_valid(id_):
             return None
 
@@ -79,7 +80,7 @@ class BaseAPIHandler(APIHandler):
         else:
             return worker_node
 
-    def get_grading_run(self, id_):
+    def get_grading_run_or_abort(self, id_):
         if not self.is_id_valid(id_):
             return None
 
@@ -89,7 +90,7 @@ class BaseAPIHandler(APIHandler):
         else:
             return grading_run
 
-    def get_grading_job(self, id_):
+    def get_grading_job_or_abort(self, id_):
         if not self.is_id_valid(id_):
             return None
 

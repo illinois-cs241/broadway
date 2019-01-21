@@ -3,7 +3,6 @@ import requests
 import sys
 
 HOST = ""
-PORT = ""
 COURSE = ""
 ASSIGNMENT = ""
 
@@ -17,7 +16,7 @@ if __name__ == "__main__":
     with open(sys.argv[1]) as f:
         config = json.load(f)
 
-    r = requests.post("http://{}:{}/api/v1/grading_config/{}/{}".format(HOST, PORT, COURSE, ASSIGNMENT),
+    r = requests.post("https://{}/api/v1/grading_config/{}/{}".format(HOST, COURSE, ASSIGNMENT),
                       headers=headers, data=json.dumps(config))
     if r.status_code != 200:
         print("Error in uploading config: {}".format(r.text))
@@ -26,7 +25,7 @@ if __name__ == "__main__":
     with open(sys.argv[2]) as f:
         roster = json.load(f)
 
-    r = requests.post("http://{}:{}/api/v1/grading_run/{}/{}".format(HOST, PORT, COURSE, ASSIGNMENT),
+    r = requests.post("https://{}/api/v1/grading_run/{}/{}".format(HOST, COURSE, ASSIGNMENT),
                       headers=headers, data=json.dumps(roster))
     if r.status_code != 200:
         print("Error in starting run: {}".format(r.text))

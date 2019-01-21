@@ -3,9 +3,11 @@ import json
 import logging
 import os
 import signal
+import sys
 from logging.handlers import TimedRotatingFileHandler
 from queue import Queue
 
+import tornado.httpserver
 import tornado
 import tornado.ioloop
 import tornado.web
@@ -137,8 +139,17 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--course-config",
                         help="A JSON file that will configure the courses and their tokens on the DB")
+    parser.add_argument("--https", action="store_true", help="Make the API only serve HTTPS requests")
+    parser.add_argument("--ssl-certificate", help="Path to the SSL certificate")
+    parser.add_argument("--ssl-key", help="Path to the SSL private key file")
     args = parser.parse_args()
 
+    # validate args
+    if args.https and (not args.ssl_certificate or not args.ssl_key):
+        logger.critical("Both the ssl certificate path and ssl private key path should be provided through args.")
+        sys.exit(1)
+
+    # configure course tokens
     logger.info("initializing application")
     if args.course_config and os.path.isfile(args.course_config):
         logger.info("Initializing courses and tokens. Overwriting previous DB contents.")
@@ -148,12 +159,17 @@ if __name__ == "__main__":
         logger.info("No courses config file found. Retaining previous DB contents.")
         courses = None
 
+    # build the app and start the api server
     db_object = DatabaseResolver()
     app = make_app(cluster_token=initialize_cluster_token(), db_resolver=db_object, course_tokens=courses)
+    if args.https:
+        http_server = tornado.httpserver.HTTPServer(app, ssl_options={"certfile": args.ssl_certificate,
+                                                                      "keyfile": args.ssl_key})
+        http_server.listen(PORT)
+    else:
+        app.listen(PORT)
 
     logger.info("listening on port {}".format(PORT))
-    app.listen(PORT)
-
     signal.signal(signal.SIGINT, signal_handler)
 
     # Checks if any worker node disconnected every HEARTBEAT_INTERVAL seconds.

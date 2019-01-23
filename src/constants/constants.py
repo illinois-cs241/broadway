@@ -52,7 +52,8 @@ GRADING_STAGE_DEF = {
         api_key.ENTRY_POINT: {"type": "array", "items": {"type": "string"}},
         api_key.NETWORKING: {"type": "boolean"},
         api_key.HOST_NAME: {"type": "string"},
-        api_key.TIMEOUT: {"type": "number"}
+        api_key.TIMEOUT: {"type": "number"},
+        api_key.CAPABILITIES: {"type": "array", "items": {"enum": ["SYS_ADMIN", "NET_ADMIN"]}}
     },
     "required": [api_key.IMAGE],
     "additionalProperties": False

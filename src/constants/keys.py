@@ -31,6 +31,7 @@ ENTRY_POINT = "entry_point"
 NETWORKING = "enable_networking"
 HOST_NAME = "host_name"
 TIMEOUT = "timeout"
+CAPABILITIES = "capabilities"
 
 # database related keys
 ID = "_id"

@@ -149,10 +149,10 @@ async function runContainer(docker, options) {
                 CpuPeriod: 100000, // microseconds
                 CpuQuota: 90000, // portion of the CpuPeriod for this container
                 PidsLimit: 1024,
+                CapAdd: capabilities
             },
             Env: environment,
-            Cmd: entryPoint,
-            CapAdd: capabilities
+            Cmd: entryPoint
         });
         const stream = await container.attach({
             stream: true,

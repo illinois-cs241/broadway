@@ -71,6 +71,7 @@ module.exports = async function (job) {
             tmpDir: tmpDir.path,
             enableNetworking: stage.enable_networking,
             hostName: stage.host_name,
+            capabilities: stage.capabilities
         };
         const stageResult = await runContainer(docker, options);
         jobResult.results.push(stageResult);
@@ -119,6 +120,7 @@ async function runContainer(docker, options) {
         tmpDir,
         enableNetworking,
         hostName,
+        capabilities
     } = options;
 
     let results = {
@@ -147,9 +149,10 @@ async function runContainer(docker, options) {
                 CpuPeriod: 100000, // microseconds
                 CpuQuota: 90000, // portion of the CpuPeriod for this container
                 PidsLimit: 1024,
+                CapAdd: capabilities
             },
             Env: environment,
-            Cmd: entryPoint,
+            Cmd: entryPoint
         });
         const stream = await container.attach({
             stream: true,

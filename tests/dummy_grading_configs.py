@@ -114,10 +114,98 @@ valid_configs = [
             }
         ],
         key.ENV: {"TEST": "testing", "temp": "val3"}
+    },
+    {
+        key.STUDENT_PIPELINE: [
+            {
+                key.IMAGE: "alpine:3.5",
+                key.HOST_NAME: "654321",
+                key.CAPABILITIES: ["SYS_ADMIN", "NET_ADMIN"]
+            }
+        ],
+        key.POST_PROCESSING_PIPELINE: [
+            {
+                key.IMAGE: "alpine:3.5",
+                key.ENV: {"STAGE": "post"},
+                key.ENTRY_POINT: [
+                    "echo", "post-processing-job"
+                ],
+                key.TIMEOUT: 20,
+                key.HOST_NAME: "654321",
+                key.NETWORKING: False
+            }
+        ],
+        key.ENV: {"TEST": "testing", "temp": "val3"}
+    },
+    {
+        key.STUDENT_PIPELINE: [
+            {
+                key.IMAGE: "alpine:3.5",
+                key.HOST_NAME: "654321",
+                key.CAPABILITIES: ["SYS_ADMIN", "SYS_ADMIN"]
+            }
+        ],
+        key.POST_PROCESSING_PIPELINE: [
+            {
+                key.IMAGE: "alpine:3.5",
+                key.ENV: {"STAGE": "post"},
+                key.ENTRY_POINT: [
+                    "echo", "post-processing-job"
+                ],
+                key.TIMEOUT: 20,
+                key.HOST_NAME: "654321",
+                key.NETWORKING: False
+            }
+        ],
+        key.ENV: {"TEST": "testing", "temp": "val3"}
     }
 ]
 
 invalid_configs = [
+    {
+        key.STUDENT_PIPELINE: [
+            {
+                key.IMAGE: "alpine:3.5",
+                key.HOST_NAME: "654321",
+                key.CAPABILITIES: ["SYS_HACKER"]
+            }
+        ],
+        key.POST_PROCESSING_PIPELINE: [
+            {
+                key.IMAGE: "alpine:3.5",
+                key.ENV: {"STAGE": "post"},
+                key.ENTRY_POINT: [
+                    "echo", "post-processing-job"
+                ],
+                key.TIMEOUT: 20,
+                key.HOST_NAME: "654321",
+                key.NETWORKING: False
+            }
+        ],
+        key.ENV: {"TEST": "testing", "temp": "val3"}
+    },
+    {
+        key.STUDENT_PIPELINE: [
+            {
+                key.IMAGE: "alpine:3.5",
+                key.HOST_NAME: "654321",
+                key.CAPABILITIES: ["NET_CRACKER"]
+            }
+        ],
+        key.POST_PROCESSING_PIPELINE: [
+            {
+                key.IMAGE: "alpine:3.5",
+                key.ENV: {"STAGE": "post"},
+                key.ENTRY_POINT: [
+                    "echo", "post-processing-job"
+                ],
+                key.TIMEOUT: 20,
+                key.HOST_NAME: "654321",
+                key.NETWORKING: False
+            }
+        ],
+        key.ENV: {"TEST": "testing", "temp": "val3"}
+    },
     {
         key.STUDENT_PIPELINE: [
             {

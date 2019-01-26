@@ -1,5 +1,4 @@
 import json
-import time
 import unittest
 
 import jsonschema
@@ -10,7 +9,7 @@ import src.constants.keys as key
 from src.api import make_app
 from src.config import GRADING_JOB_ENDPOINT, WORKER_REGISTER_ENDPOINT, GRADING_CONFIG_ENDPOINT, GRADING_RUN_ENDPOINT, \
     HEARTBEAT_ENDPOINT
-from src.config import OK_REQUEST_CODE, QUEUE_EMPTY_CODE
+from src.config import OK_REQUEST_CODE
 from src.database import DatabaseResolver
 from src.utilities import get_header
 
@@ -110,7 +109,7 @@ class BaseEndpointTest(BaseTest, AsyncHTTPTestCase):
         self.assertEqual(response.code, OK_REQUEST_CODE)
 
         response_body = json.loads(response.body)
-        return response_body["data"].get(key.STATE)
+        return response_body["data"]
 
     def check_grading_run_status(self, course_id, assignment_name, grading_run_id, header, expected_code,
                                  expected_state=None):

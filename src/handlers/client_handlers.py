@@ -124,17 +124,11 @@ class GradingRunHandler(BaseAPIHandler):
         run_state = {key.STUDENTS_STATE: [], key.STATE: grading_run.get(key.STATE)}
 
         for grading_job in grading_jobs:
-            def get_job_state_string():
-                if key.SUCCESS in grading_job:
-                    return "Job successful" if grading_job[key.SUCCESS] else "Job failed"
-                else:
-                    return get_job_status(grading_job).value
-
             if grading_job[key.TYPE] == consts.GradingJobType.PRE_PROCESSING.value:
-                run_state[key.PRE_PROCESSING_STATE] = get_job_state_string()
+                run_state[key.PRE_PROCESSING_STATE] = get_job_status(grading_job).value
             elif grading_job[key.TYPE] == consts.GradingJobType.POST_PROCESSING.value:
-                run_state[key.POST_PROCESSING_STATE] = get_job_state_string()
+                run_state[key.POST_PROCESSING_STATE] = get_job_status(grading_job).value
             else:
-                run_state[key.STUDENTS_STATE].append(get_job_state_string())
+                run_state[key.STUDENTS_STATE].append(get_job_status(grading_job).value)
 
         return run_state

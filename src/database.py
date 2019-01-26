@@ -28,7 +28,7 @@ class DatabaseResolver(object):
 
         Document format:
             _id (auto)
-            job_id
+            grading_job_id
             stderr
             stdout
 

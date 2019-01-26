@@ -16,6 +16,10 @@ GRADING_RUN_ID = "grading_run_id"
 RESULTS = "results"
 SUCCESS = "success"
 LOGS = "logs"
+PRE_PROCESSING_STATE = "pre_processing_job_state"
+POST_PROCESSING_STATE = "post_processing_job_state"
+STUDENTS_STATE = "student_jobs_state"
+
 
 # these define url parameters
 HOSTNAME_PARAM = "hostname"

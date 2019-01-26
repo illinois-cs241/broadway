@@ -96,6 +96,8 @@ class EndpointTestIntegration(BaseEndpointTest):
 
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
                                       OK_REQUEST_CODE, GradingRunState.STUDENTS_STAGE.value)
+        run_state = self.get_grading_run_state(self.course1, "assignment1", grading_run_id, self.client_header1)
+        self.assertEqual(run_state[key.STUDENTS_STATE][0], GradingJobState.QUEUED.value)
         student_job = self.poll_job(worker_id, self.grader_header)
         self.assertNotIn(key.STUDENTS, student_job)
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
@@ -105,16 +107,25 @@ class EndpointTestIntegration(BaseEndpointTest):
         self.post_job_result(worker_id, self.grader_header, student_job.get(key.GRADING_JOB_ID))
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
                                       OK_REQUEST_CODE, GradingRunState.POST_PROCESSING_STAGE.value)
+        run_state = self.get_grading_run_state(self.course1, "assignment1", grading_run_id, self.client_header1)
+        self.assertEqual(run_state[key.POST_PROCESSING_STATE], GradingJobState.QUEUED.value)
+        self.assertEqual(run_state[key.STUDENTS_STATE][0], GradingJobState.SUCCEEDED.value)
+
         post_processing_job = self.poll_job(worker_id, self.grader_header)
         self.assertIn(key.STUDENTS, post_processing_job)
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
                                       OK_REQUEST_CODE, GradingRunState.POST_PROCESSING_STAGE.value)
+
         self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)
+        run_state = self.get_grading_run_state(self.course1, "assignment1", grading_run_id, self.client_header1)
+        self.assertEqual(run_state[key.POST_PROCESSING_STATE], GradingJobState.STARTED.value)
 
         self.post_job_result(worker_id, self.grader_header, post_processing_job.get(key.GRADING_JOB_ID))
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
                                       OK_REQUEST_CODE, GradingRunState.FINISHED.value)
         self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)
+        run_state = self.get_grading_run_state(self.course1, "assignment1", grading_run_id, self.client_header1)
+        self.assertEqual(run_state[key.POST_PROCESSING_STATE], GradingJobState.SUCCEEDED.value)
 
     def test_complete_run(self):
         worker_id = self.register_worker(self.grader_header)

@@ -8,7 +8,7 @@ from src.auth import authenticate_course
 from src.config import BAD_REQUEST_CODE
 from src.handlers.base_handler import BaseAPIHandler
 from src.handlers.schedulers import progress_grading_run
-from src.utilities import get_time
+from src.utilities import get_time, get_job_status
 
 logger = logging.getLogger()
 
@@ -97,7 +97,10 @@ class GradingRunHandler(BaseAPIHandler):
         output_schema={
             "type": "object",
             "properties": {
-                key.STATE: {"type": "string"}
+                key.STATE: {"type": "string"},
+                key.PRE_PROCESSING_STATE: {"type": "string"},
+                key.POST_PROCESSING_STATE: {"type": "string"},
+                key.STUDENTS_STATE: {"type": "array", "items": {"type": "string"}}
             },
             "required": [key.STATE],
             "additionalProperties": False
@@ -117,4 +120,15 @@ class GradingRunHandler(BaseAPIHandler):
                        BAD_REQUEST_CODE)
             return
 
-        return {key.STATE: grading_run.get(key.STATE)}
+        grading_jobs = self.get_db().get_grading_job_collection().find({key.GRADING_RUN_ID: grading_run_id})
+        run_state = {key.STUDENTS_STATE: [], key.STATE: grading_run.get(key.STATE)}
+
+        for grading_job in grading_jobs:
+            if grading_job[key.TYPE] == consts.GradingJobType.PRE_PROCESSING.value:
+                run_state[key.PRE_PROCESSING_STATE] = get_job_status(grading_job).value
+            elif grading_job[key.TYPE] == consts.GradingJobType.POST_PROCESSING.value:
+                run_state[key.POST_PROCESSING_STATE] = get_job_status(grading_job).value
+            else:
+                run_state[key.STUDENTS_STATE].append(get_job_status(grading_job).value)
+
+        return run_state

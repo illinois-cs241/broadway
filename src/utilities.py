@@ -69,20 +69,23 @@ def get_string_from_time():
     return get_time().strftime(TIMESTAMP_FORMAT)
 
 
-def get_job_status(student_job):
+def get_job_status(grading_job):
     """
     Given a student job, gives a string description of what state the job is in.
 
-    :type student_job: dict
-    :param student_job: dictionary representing student job
+    :type grading_job: dict
+    :param grading_job: dictionary representing student job
     :rtype: GradingJobState
     :return: state description
     """
-    if key.FINISHED in student_job:
-        return GradingJobState.FINISHED
-    elif key.STARTED in student_job:
+    if key.FINISHED in grading_job:
+        if grading_job[key.SUCCESS]:
+            return GradingJobState.SUCCEEDED
+        else:
+            return GradingJobState.FAILED
+    elif key.STARTED in grading_job:
         return GradingJobState.STARTED
-    elif key.QUEUED in student_job:
+    elif key.QUEUED in grading_job:
         return GradingJobState.QUEUED
     else:
         logger.critical("Grading job document passed is invalid")

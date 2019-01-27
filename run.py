@@ -5,17 +5,17 @@ import signal
 import socket
 import sys
 import time
+
+from chainlink import Chainlink
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 from logging.handlers import TimedRotatingFileHandler
 from subprocess import Popen, PIPE
-
 from tornado import httpclient
 
-import api_keys as api_key
-from config import GRADER_REGISTER_ENDPOINT, HEARTBEAT_ENDPOINT, GRADING_JOB_ENDPOINT, HEARTBEAT_INTERVAL, \
-    JOB_POLL_INTERVAL, VERBOSE
-from config import LOGS_DIR, GRADING_RUN_RES_FILE, QUEUE_EMPTY_CODE
-from utils import get_time, get_url, print_usage, convert_env_format
+import grader.api_keys as api_key
+from grader.utils import get_time, get_url, print_usage, convert_env_format
+
+from config import *
 
 # globals
 worker_id = None
@@ -84,14 +84,16 @@ def worker_routine():
         job_id = job.get(api_key.GRADING_JOB_ID)
         logger.info("Starting job {}".format(job_id))
 
-        # execute the job runner with job as json string
-        docker_runner = Popen(['node', 'src/jobRunner.js', json.dumps(job), GRADING_RUN_RES_FILE], stderr=PIPE,
-                              stdout=PIPE, universal_newlines=True)
-        containers_stdout, containers_stderr = docker_runner.communicate()
+        # execute job
+        chain = Chainlink(job)
+        job_results = chain.run({})
+        job_stdout = "\n".join([r["logs"]["stdout"].decode("utf-8") for r in job_results]
+        job_stderr = "\n".join(r["logs"]["stderr"].decode("utf-8") for r in job_results]
+
         logger.info("Finished job {}".format(job_id))
         if VERBOSE:
-            logger.info("Job stdout:\n{}".format(containers_stdout))
-            logger.info("Job stderr:\n{}".format(containers_stderr))
+            logger.info("Job stdout:\n" + job_stdout)
+            logger.info("Job stderr:\n" + job_stderr)
 
         # send back the results to the server
         if not os.path.isfile(GRADING_RUN_RES_FILE):
@@ -103,8 +105,8 @@ def worker_routine():
 
         assert api_key.RESULTS in grading_job_result
         assert api_key.SUCCESS in grading_job_result
-        grading_job_result[api_key.LOGS] = {'stdout': containers_stdout,
-                                            'stderr': containers_stderr}
+        grading_job_result[api_key.LOGS] = {'stdout': job_stdout,
+                                            'stderr': job_stderr}
         grading_job_result[api_key.GRADING_JOB_ID] = job_id
         update_request = httpclient.HTTPRequest(get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)),
                                                 headers=header, method="POST", body=json.dumps(grading_job_result))

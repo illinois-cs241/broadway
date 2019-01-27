@@ -63,17 +63,17 @@ def worker_routine():
 
         # we successfully polled a job
         job = response.json()["data"]
-
-        # convert env var format to list of strings
-        for stage in job.get(api_key.STAGES):
-            stage[api_key.ENV] = convert_env_format(stage.get(api_key.ENV, {}))
-
         job_id = job.get(api_key.GRADING_JOB_ID)
         logger.info("Starting job {}".format(job_id))
 
         # execute job
-        chain = Chainlink(job)
-        job_results = chain.run({})
+        try:
+            chain = Chainlink(job)
+            job_results = chain.run({})
+        except Exception as ex:
+            logger.critical("Grading job failed with exception:\n{}", ex)
+            raise ex
+
         job_stdout = "\n".join([r["logs"]["stdout"].decode("utf-8") for r in job_results])
         job_stderr = "\n".join([r["logs"]["stderr"].decode("utf-8") for r in job_results])
 

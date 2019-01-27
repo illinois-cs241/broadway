@@ -1,7 +1,7 @@
 import datetime as dt
 import time
 
-from config import TIMESTAMP_FORMAT, API_HOSTNAME
+from config import TIMESTAMP_FORMAT, API_HOSTNAME, API_PORT
 
 
 def convert_env_format(env):
@@ -16,7 +16,7 @@ def get_time():
 
 
 def get_url(endpoint):
-    return "https://{}{}".format(API_HOSTNAME, endpoint)
+    return "http://{}:{}{}".format(API_HOSTNAME, API_PORT, endpoint)
 
 
 def print_usage():

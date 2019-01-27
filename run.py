@@ -87,8 +87,8 @@ def worker_routine():
         # execute job
         chain = Chainlink(job)
         job_results = chain.run({})
-        job_stdout = "\n".join([r["logs"]["stdout"].decode("utf-8") for r in job_results]
-        job_stderr = "\n".join(r["logs"]["stderr"].decode("utf-8") for r in job_results]
+        job_stdout = "\n".join([r["logs"]["stdout"].decode("utf-8") for r in job_results])
+        job_stderr = "\n".join(r["logs"]["stderr"].decode("utf-8") for r in job_results])
 
         logger.info("Finished job {}".format(job_id))
         if VERBOSE:

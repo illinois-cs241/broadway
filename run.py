@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import signal
@@ -8,12 +7,12 @@ import time
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 from logging.handlers import TimedRotatingFileHandler
 
+import requests
 from chainlink import Chainlink
-from tornado import httpclient
 
 import grader.api_keys as api_key
 from config import *
-from grader.utils import get_time, get_url, print_usage, convert_env_format
+from grader.utils import get_url, print_usage, convert_env_format
 
 # globals
 worker_id = None
@@ -39,41 +38,31 @@ def signal_handler(sig, frame):
 
 
 def heartbeat_routine():
-    http_client = httpclient.HTTPClient()
-    heartbeat_request = httpclient.HTTPRequest(get_url("{}/{}".format(HEARTBEAT_ENDPOINT, worker_id)), headers=header,
-                                               method="POST", body="")
-
     while heartbeat_running:
-        try:
-            http_client.fetch(heartbeat_request)
-            time.sleep(HEARTBEAT_INTERVAL)
-        except httpclient.HTTPClientError as e:
-            logger.critical("Heartbeat failed!\nError: {}".format(e.response.body.decode('utf-8')))
+        response = requests.post(get_url("{}/{}".format(HEARTBEAT_ENDPOINT, worker_id)), headers=header, data='')
+        if response.status_code != SUCCESS_CODE:
+            logger.critical("Heartbeat failed!\nError: {}".format(response.text))
             return
-    http_client.close()
+
+        time.sleep(HEARTBEAT_INTERVAL)
 
 
 def worker_routine():
-    http_client = httpclient.HTTPClient()
-    job_request = httpclient.HTTPRequest(get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)), method="GET",
-                                         headers=header)
-
     while worker_running:
         # poll from queue
-        try:
-            response = http_client.fetch(job_request)
-        except httpclient.HTTPClientError as e:
-            if e.code == QUEUE_EMPTY_CODE:
-                time.sleep(JOB_POLL_INTERVAL)
-                continue
-            else:
-                logger.critical("Bad server response while trying to poll job.")
-                if e.response.body is not None:
-                    logger.critical("Error: {}".format(e.response.body.decode('utf-8')))
-                return
+        response = requests.get(get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)), headers=header)
+
+        # if the queue is empty then sleep for a while
+        if response.status_code == QUEUE_EMPTY_CODE:
+            time.sleep(JOB_POLL_INTERVAL)
+            continue
+
+        if response.status_code != SUCCESS_CODE:
+            logger.critical("Bad server response while trying to poll job.\nError: {}".format(response.text))
+            return
 
         # we successfully polled a job
-        job = json.loads(response.body.decode('utf-8')).get('data')
+        job = response.json()["data"]
 
         # convert env var format to list of strings
         for stage in job.get(api_key.STAGES):
@@ -100,18 +89,13 @@ def worker_routine():
         grading_job_result = {api_key.RESULTS: job_results, api_key.SUCCESS: job_results[-1]["success"],
                               api_key.LOGS: {'stdout': job_stdout, 'stderr': job_stderr},
                               api_key.GRADING_JOB_ID: job_id}
-        update_request = httpclient.HTTPRequest(get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)),
-                                                headers=header, method="POST", body=json.dumps(grading_job_result))
 
-        try:
-            logger.info("Sending job results")
-            http_client.fetch(update_request)
-        except httpclient.HTTPClientError as e:
-            logger.critical("Bad server response while updating about job status.\nError: {}".format(
-                e.response.body.decode('utf-8')))
+        logger.info("Sending job results")
+        response = requests.post(get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)), json=grading_job_result,
+                                 headers=header)
+        if response.status_code != SUCCESS_CODE:
+            logger.critical("Bad server response while updating about job status.\nError: {}".format(response.text))
             return
-
-    http_client.close()
 
 
 def register_node():
@@ -119,28 +103,23 @@ def register_node():
     global worker_running
     global heartbeat_running
 
-    http_client = httpclient.HTTPClient()
-    req = httpclient.HTTPRequest(get_url("{}/{}".format(GRADER_REGISTER_ENDPOINT, socket.gethostname())),
-                                 headers=header, method="GET")
-
-    try:
-        response = http_client.fetch(req)
-        logger.info("Registered to server at {}".format(get_time()))
-        server_response = json.loads(response.body.decode('utf-8')).get('data')
-
-        # read worker id
-        if api_key.WORKER_ID in server_response:
-            worker_id = server_response.get(api_key.WORKER_ID)
-        else:
-            logger.critical("Bad server response on registration. Missing argument \'{}\'.".format(api_key.WORKER_ID))
-            raise Exception("Invalid response")
-    except Exception as e:
-        logger.critical("Registration failed!\nError: {}".format(str(e)))
+    response = requests.get(get_url("{}/{}".format(GRADER_REGISTER_ENDPOINT, socket.gethostname())), headers=header)
+    if response.status_code != SUCCESS_CODE:
+        logger.critical("Registration failed!\nError: {}".format(response.text))
         worker_running = False
         heartbeat_running = False
         exit(-1)
 
-    http_client.close()
+    logger.info("Registered to server")
+    server_response = response.json()["data"]
+    # read worker id
+    if api_key.WORKER_ID in server_response:
+        worker_id = server_response.get(api_key.WORKER_ID)
+    else:
+        logger.critical("Bad server response on registration. Missing argument \'{}\'.".format(api_key.WORKER_ID))
+        worker_running = False
+        heartbeat_running = False
+        exit(-1)
 
 
 if __name__ == "__main__":

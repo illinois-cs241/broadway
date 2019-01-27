@@ -12,7 +12,7 @@ from chainlink import Chainlink
 
 import grader.api_keys as api_key
 from config import *
-from grader.utils import get_url, print_usage, convert_env_format
+from grader.utils import get_url, print_usage
 
 # globals
 worker_id = None

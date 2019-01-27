@@ -1,28 +1,48 @@
 # broadway-grader
 
-## Starting Grader Instance
-- Requires Python 3.5+
-- To install virtual env:
-```shell
-sudo apt-get install python-pip
+## Installation
+
+The Braodway grader instances require Python 3.5+. 
+
+### Environment
+
+The following environment variables need to be set before continuing:
+
+```sh
 export LC_ALL="en_US.UTF-8"
 export LC_CTYPE="en_US.UTF-8"
-sudo pip install virtualenv
-virtualenv -p python3 venv
 ```
-- Install the required packages specified in [requirements.txt](requirements.txt) by:
-```shell
-pip install -r requirements.txt
+
+### Python Packages
+
+We recommend installing packages inside a virtualenv. To create one, run:
+
+```sh
+sudo apt-get install python3-pip python3-venv
+python3 -m venv venv
 ```
-- Install Docker using this [convinience script](https://get.docker.com/)
-- Complete [post-installation steps](https://docs.docker.com/install/linux/linux-postinstall/)
-- Install Node [guide](https://websiteforstudents.com/install-the-latest-node-js-and-nmp-packages-on-ubuntu-16-04-18-04-lts/)
-- Install node packages specified in [package.json](package.json) by:
-```shell
-npm install
+
+Then activate the virtualenv and install the packages from requirements.txt:
+
+```sh
+source venv/bin/activate
+pip3 install -r requirements.txt
 ```
-- Make sure `API_HOST` and `API_PORT` in the [config file](config.py) is pointing to the [API](https://github.com/illinois-cs241/broadway-api). Start the [grader](grader.py) using:
-```shell
-nohup sudo venv/bin/python grader.py <cluster token> &
+
+### Additional Software
+
+Docker is needed to containerize incoming job requests. We recommend using the [convinience script](https://get.docker.com/) on docker.com and completing the suggested [post-installation steps](https://docs.docker.com/install/linux/linux-postinstall/).
+
+## Configuration
+
+Ensure `API_HOST` and `API_PORT` in the config file (config.py) is pointing to the [Broadway API](https://github.com/illinois-cs241/broadway-api) instance you have set up.
+
+## Running
+
+Start the grader using:
+
+```sh
+nohup sudo venv/bin/python run.py <cluster token> &
 ```
-Note that under `sudo` the python interpreter path changes to `/usr/bin/python` even when inside a virtual environment. So the above command is required.
+
+Note that under `sudo` the python interpreter path changes to `/usr/bin/python` even when inside a virtual environment.

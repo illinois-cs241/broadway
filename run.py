@@ -68,7 +68,7 @@ def worker_routine():
 
         # execute job
         try:
-            chain = Chainlink(job)
+            chain = Chainlink(job[api_key.STAGES])
             job_results = chain.run({})
         except Exception as ex:
             logger.critical("Grading job failed with exception:\n{}", ex)

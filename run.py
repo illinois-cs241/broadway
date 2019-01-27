@@ -1,4 +1,5 @@
 import logging
+import asyncio
 import os
 import signal
 import socket
@@ -19,6 +20,7 @@ worker_id = None
 worker_thread = None
 heartbeat_running = True
 worker_running = True
+event_loop = asyncio.new_event_loop()
 
 # setting up logger
 os.makedirs(LOGS_DIR, exist_ok=True)
@@ -48,6 +50,8 @@ def heartbeat_routine():
 
 
 def worker_routine():
+    asyncio.set_event_loop(event_loop)
+
     while worker_running:
         # poll from queue
         response = requests.get(get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)), headers=header)
@@ -72,7 +76,9 @@ def worker_routine():
             job_results = chain.run({})
         except Exception as ex:
             logger.critical("Grading job failed with exception:\n{}", ex)
-            raise ex
+            job_results = [
+                {"logs": {"stdout": b"The container crashed", "stderr": bytes(str(ex), "utf-8")}, "success": False}
+            ]
 
         job_stdout = "\n".join([r["logs"]["stdout"].decode("utf-8") for r in job_results])
         job_stderr = "\n".join([r["logs"]["stderr"].decode("utf-8") for r in job_results])

@@ -5,17 +5,15 @@ import signal
 import socket
 import sys
 import time
-
-from chainlink import Chainlink
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 from logging.handlers import TimedRotatingFileHandler
-from subprocess import Popen, PIPE
+
+from chainlink import Chainlink
 from tornado import httpclient
 
 import grader.api_keys as api_key
-from grader.utils import get_time, get_url, print_usage, convert_env_format
-
 from config import *
+from grader.utils import get_time, get_url, print_usage, convert_env_format
 
 # globals
 worker_id = None
@@ -88,26 +86,20 @@ def worker_routine():
         chain = Chainlink(job)
         job_results = chain.run({})
         job_stdout = "\n".join([r["logs"]["stdout"].decode("utf-8") for r in job_results])
-        job_stderr = "\n".join(r["logs"]["stderr"].decode("utf-8") for r in job_results])
+        job_stderr = "\n".join([r["logs"]["stderr"].decode("utf-8") for r in job_results])
+
+        # remove logs from result array because logs can be bulky we will store then separately
+        for r in job_results:
+            del r["logs"]
 
         logger.info("Finished job {}".format(job_id))
         if VERBOSE:
             logger.info("Job stdout:\n" + job_stdout)
             logger.info("Job stderr:\n" + job_stderr)
 
-        # send back the results to the server
-        if not os.path.isfile(GRADING_RUN_RES_FILE):
-            logger.critical("Grading run result file did not get generated.")
-            return
-
-        with open(GRADING_RUN_RES_FILE) as res_file:
-            grading_job_result = json.load(res_file)
-
-        assert api_key.RESULTS in grading_job_result
-        assert api_key.SUCCESS in grading_job_result
-        grading_job_result[api_key.LOGS] = {'stdout': job_stdout,
-                                            'stderr': job_stderr}
-        grading_job_result[api_key.GRADING_JOB_ID] = job_id
+        grading_job_result = {api_key.RESULTS: job_results, api_key.SUCCESS: job_results[-1]["success"],
+                              api_key.LOGS: {'stdout': job_stdout, 'stderr': job_stderr},
+                              api_key.GRADING_JOB_ID: job_id}
         update_request = httpclient.HTTPRequest(get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)),
                                                 headers=header, method="POST", body=json.dumps(grading_job_result))
 

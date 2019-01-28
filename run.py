@@ -1,5 +1,5 @@
-import logging
 import asyncio
+import logging
 import os
 import signal
 import socket
@@ -72,7 +72,7 @@ def worker_routine():
 
         # execute job
         try:
-            chain = Chainlink(job[api_key.STAGES])
+            chain = Chainlink(job[api_key.STAGES], workdir=os.getcwd())
             job_results = chain.run({})
         except Exception as ex:
             logger.critical("Grading job failed with exception:\n{}", ex)

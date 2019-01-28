@@ -55,10 +55,6 @@ class GradingJobHandler(BaseAPIHandler):
                 key.STAGES: {
                     "type": "array",
                     "items": consts.GRADING_STAGE_DEF,
-                },
-                key.STUDENTS: {
-                    "type": "array",
-                    "items": {"type": "object"},
                 }
             },
             "required": [key.GRADING_JOB_ID, key.STAGES],
@@ -83,8 +79,6 @@ class GradingJobHandler(BaseAPIHandler):
                                                                  "$inc": {key.JOB_PROCESSED: 1}})
 
             worker_job = {key.GRADING_JOB_ID: grading_job_id, key.STAGES: grading_job.get(key.STAGES)}
-            if key.STUDENTS in grading_job:
-                worker_job[key.STUDENTS] = grading_job.get(key.STUDENTS)
             return worker_job
         except Empty:
             self.abort({"message": "The grading job queue is empty. No jobs available."}, QUEUE_EMPTY_CODE)

@@ -38,7 +38,6 @@ def progress_grading_run(db_resolver, job_queue, grading_run_id):
 
         pre_processing_job = {key.TYPE: GradingJobType.PRE_PROCESSING.value,
                               key.GRADING_RUN_ID: grading_run_id,
-                              key.STUDENTS: grading_run.get(key.STUDENTS_ENV),
                               key.QUEUED: get_time(),
                               key.STAGES: build_pipeline(assignment.get(key.PRE_PROCESSING_PIPELINE),
                                                          assignment.get(key.ENV, {}),
@@ -65,7 +64,6 @@ def progress_grading_run(db_resolver, job_queue, grading_run_id):
 
         post_processing_job = {key.TYPE: GradingJobType.POST_PROCESSING.value,
                                key.GRADING_RUN_ID: grading_run_id,
-                               key.STUDENTS: grading_run.get(key.STUDENTS_ENV),
                                key.QUEUED: get_time(),
                                key.STAGES: build_pipeline(assignment.get(key.POST_PROCESSING_PIPELINE),
                                                           assignment.get(key.ENV, {}),

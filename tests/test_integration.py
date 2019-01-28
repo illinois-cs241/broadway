@@ -35,7 +35,6 @@ class EndpointTestIntegration(BaseEndpointTest):
         self.assertEqual(run_state[key.STUDENTS_STATE][0], GradingJobState.QUEUED.value)
 
         student_job = self.poll_job(worker_id, self.grader_header)
-        self.assertNotIn(key.STUDENTS, student_job)
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
                                       OK_REQUEST_CODE, GradingRunState.STUDENTS_STAGE.value)
         self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)
@@ -61,7 +60,6 @@ class EndpointTestIntegration(BaseEndpointTest):
         run_state = self.get_grading_run_state(self.course1, "assignment1", grading_run_id, self.client_header1)
         self.assertEqual(run_state[key.PRE_PROCESSING_STATE], GradingJobState.QUEUED.value)
         pre_processing_job = self.poll_job(worker_id, self.grader_header)
-        self.assertIn(key.STUDENTS, pre_processing_job)
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
                                       OK_REQUEST_CODE, GradingRunState.PRE_PROCESSING_STAGE.value)
         self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)
@@ -72,7 +70,6 @@ class EndpointTestIntegration(BaseEndpointTest):
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
                                       OK_REQUEST_CODE, GradingRunState.STUDENTS_STAGE.value)
         student_job = self.poll_job(worker_id, self.grader_header)
-        self.assertNotIn(key.STUDENTS, student_job)
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
                                       OK_REQUEST_CODE, GradingRunState.STUDENTS_STAGE.value)
         self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)
@@ -99,7 +96,6 @@ class EndpointTestIntegration(BaseEndpointTest):
         run_state = self.get_grading_run_state(self.course1, "assignment1", grading_run_id, self.client_header1)
         self.assertEqual(run_state[key.STUDENTS_STATE][0], GradingJobState.QUEUED.value)
         student_job = self.poll_job(worker_id, self.grader_header)
-        self.assertNotIn(key.STUDENTS, student_job)
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
                                       OK_REQUEST_CODE, GradingRunState.STUDENTS_STAGE.value)
         self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)
@@ -112,7 +108,6 @@ class EndpointTestIntegration(BaseEndpointTest):
         self.assertEqual(run_state[key.STUDENTS_STATE][0], GradingJobState.SUCCEEDED.value)
 
         post_processing_job = self.poll_job(worker_id, self.grader_header)
-        self.assertIn(key.STUDENTS, post_processing_job)
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
                                       OK_REQUEST_CODE, GradingRunState.POST_PROCESSING_STAGE.value)
 
@@ -140,7 +135,6 @@ class EndpointTestIntegration(BaseEndpointTest):
         self.assertEqual(run_state[key.PRE_PROCESSING_STATE], GradingJobState.QUEUED.value)
 
         pre_processing_job = self.poll_job(worker_id, self.grader_header)
-        self.assertIn(key.STUDENTS, pre_processing_job)
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
                                       OK_REQUEST_CODE, GradingRunState.PRE_PROCESSING_STAGE.value)
         self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)
@@ -155,7 +149,6 @@ class EndpointTestIntegration(BaseEndpointTest):
         self.assertEqual(run_state[key.STUDENTS_STATE][0], GradingJobState.QUEUED.value)
 
         student_job = self.poll_job(worker_id, self.grader_header)
-        self.assertNotIn(key.STUDENTS, student_job)
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
                                       OK_REQUEST_CODE, GradingRunState.STUDENTS_STAGE.value)
         self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)
@@ -170,7 +163,6 @@ class EndpointTestIntegration(BaseEndpointTest):
         self.assertEqual(run_state[key.STUDENTS_STATE][0], GradingJobState.SUCCEEDED.value)
 
         post_processing_job = self.poll_job(worker_id, self.grader_header)
-        self.assertIn(key.STUDENTS, post_processing_job)
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
                                       OK_REQUEST_CODE, GradingRunState.POST_PROCESSING_STAGE.value)
         self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)
@@ -199,7 +191,6 @@ class EndpointTestIntegration(BaseEndpointTest):
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
                                       OK_REQUEST_CODE, GradingRunState.PRE_PROCESSING_STAGE.value)
         pre_processing_job = self.poll_job(worker_id, self.grader_header)
-        self.assertIn(key.STUDENTS, pre_processing_job)
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
                                       OK_REQUEST_CODE, GradingRunState.PRE_PROCESSING_STAGE.value)
         self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)
@@ -219,7 +210,6 @@ class EndpointTestIntegration(BaseEndpointTest):
         for ind in range(num_students):
             worker_id = self.register_worker(self.grader_header)
             student_job = self.poll_job(worker_id, self.grader_header)
-            self.assertNotIn(key.STUDENTS, student_job)
 
             student_pipeline = dummy_configs.complete_config.get(key.STUDENT_PIPELINE).copy()
             for stage in student_pipeline:
@@ -243,7 +233,6 @@ class EndpointTestIntegration(BaseEndpointTest):
         post_processing_job = self.poll_job(worker_id, self.grader_header)
 
         self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)
-        self.assertIn(key.STUDENTS, post_processing_job)
 
         post_processing_pipeline = dummy_configs.complete_config.get(key.POST_PROCESSING_PIPELINE).copy()
         for stage in post_processing_pipeline:
@@ -252,7 +241,6 @@ class EndpointTestIntegration(BaseEndpointTest):
                 stage[key.ENV].update({"type": "post"})
         self.assert_equal_grading_pipeline(post_processing_job.get(key.STAGES), post_processing_pipeline)
 
-        self.assertIn(key.STUDENTS, post_processing_job)
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
                                       OK_REQUEST_CODE, GradingRunState.POST_PROCESSING_STAGE.value)
         self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)
@@ -296,7 +284,6 @@ class EndpointTestIntegration(BaseEndpointTest):
                                       OK_REQUEST_CODE, GradingRunState.STUDENTS_STAGE.value)
 
         student_job = self.poll_job(worker_id, self.grader_header)
-        self.assertNotIn(key.STUDENTS, student_job)
         self.assertEqual(self.poll_job(worker_id, self.grader_header), QUEUE_EMPTY_CODE)
         self.post_job_result(worker_id, self.grader_header, student_job.get(key.GRADING_JOB_ID), False)
 

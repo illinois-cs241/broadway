@@ -7,6 +7,7 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 from logging.handlers import TimedRotatingFileHandler
+from os import path
 
 import requests
 from chainlink import Chainlink
@@ -24,6 +25,7 @@ event_loop = asyncio.new_event_loop()
 
 # setting up logger
 os.makedirs(LOGS_DIR, exist_ok=True)
+os.makedirs(JOBS_DIR, exist_ok=True)
 logging.basicConfig(
     handlers=[
         TimedRotatingFileHandler('{}/log'.format(LOGS_DIR), when='midnight', backupCount=7),
@@ -72,7 +74,7 @@ def worker_routine():
 
         # execute job
         try:
-            chain = Chainlink(job[api_key.STAGES])
+            chain = Chainlink(job[api_key.STAGES], workdir=path.join(os.getcwd(), JOBS_DIR))
             job_results = chain.run({})
         except Exception as ex:
             logger.critical("Grading job failed with exception:\n{}", ex)

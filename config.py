@@ -1,6 +1,7 @@
 API_HOSTNAME = "127.0.0.1"
 API_PORT = 1470
 LOGS_DIR = "logs"
+JOBS_DIR = "grading_jobs"
 VERBOSE = True
 TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
 SUCCESS_CODE = 200

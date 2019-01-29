@@ -199,8 +199,10 @@ class EndpointTestIntegration(BaseEndpointTest):
         for stage in pre_processing_pipeline:
             if key.ENV in stage:
                 stage[key.ENV].update(dummy_configs.complete_config.get(key.ENV, {}))
-                stage[key.ENV].update({"type": "pre"})
+                stage[key.ENV].update({"type": "pre", key.RUN_ENV: grading_run_id})
         self.assert_equal_grading_pipeline(pre_processing_job.get(key.STAGES), pre_processing_pipeline)
+        for stage in pre_processing_job.get(key.STAGES):
+            self.assertIn(key.JOB_ENV, stage[key.ENV])
 
         self.post_job_result(worker_id, self.grader_header, pre_processing_job.get(key.GRADING_JOB_ID))
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
@@ -215,8 +217,10 @@ class EndpointTestIntegration(BaseEndpointTest):
             for stage in student_pipeline:
                 if key.ENV in stage:
                     stage[key.ENV].update(dummy_configs.complete_config.get(key.ENV, {}))
-                    stage[key.ENV].update({"netid": "test net id {}".format(ind)})
+                    stage[key.ENV].update({"netid": "test net id {}".format(ind), key.RUN_ENV: grading_run_id})
             self.assert_equal_grading_pipeline(student_job.get(key.STAGES), student_pipeline)
+            for stage in student_job.get(key.STAGES):
+                self.assertIn(key.JOB_ENV, stage[key.ENV])
 
             self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
                                           OK_REQUEST_CODE, GradingRunState.STUDENTS_STAGE.value)
@@ -238,8 +242,10 @@ class EndpointTestIntegration(BaseEndpointTest):
         for stage in post_processing_pipeline:
             if key.ENV in stage:
                 stage[key.ENV].update(dummy_configs.complete_config.get(key.ENV, {}))
-                stage[key.ENV].update({"type": "post"})
+                stage[key.ENV].update({"type": "post", key.RUN_ENV: grading_run_id})
         self.assert_equal_grading_pipeline(post_processing_job.get(key.STAGES), post_processing_pipeline)
+        for stage in post_processing_job.get(key.STAGES):
+            self.assertIn(key.JOB_ENV, stage[key.ENV])
 
         self.check_grading_run_status(self.course1, "assignment1", grading_run_id, self.client_header1,
                                       OK_REQUEST_CODE, GradingRunState.POST_PROCESSING_STAGE.value)

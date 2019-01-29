@@ -51,8 +51,10 @@ class BaseTest(unittest.TestCase):
         self.assertEqual(set(actual_stage.keys()), set(expected_stage.keys()))
 
         for stage_key in expected_stage:
-            if stage_key == key.ENV or stage_key == key.ENTRY_POINT:
-                self.assertEqual(sorted(actual_stage.get(stage_key)), sorted(expected_stage.get(stage_key)))
+            if stage_key == key.ENV:
+                self.assertTrue(set(expected_stage[key.ENV].keys()).issubset(set(actual_stage[key.ENV].keys())))
+                for env_key in expected_stage.get(stage_key):
+                    self.assertEqual(actual_stage[key.ENV][env_key], expected_stage[key.ENV][env_key])
             else:
                 self.assertEqual(actual_stage.get(stage_key), expected_stage.get(stage_key))
 

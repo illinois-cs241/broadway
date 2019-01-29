@@ -18,7 +18,8 @@ LOGS = "logs"
 PRE_PROCESSING_STATE = "pre_processing_job_state"
 POST_PROCESSING_STATE = "post_processing_job_state"
 STUDENTS_STATE = "student_jobs_state"
-
+RUN_ENV = "GRADING_RUN_ENV"
+JOB_ENV = "GRADING_JOB_ENV"
 
 # these define url parameters
 HOSTNAME_PARAM = "hostname"

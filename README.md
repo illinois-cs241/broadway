@@ -1,6 +1,8 @@
 # Broadway Grader
 A worker node in a distributed autograding system which runs a pipeline of docker containers and communicates with the master node ([Broadway API](https://github.com/illinois-cs241/broadway-api)). More information about the distributed autograder and the grader's role and responsibilities are on the API's [Wiki page](https://github.com/illinois-cs241/broadway-api/wiki).
 
+The grader uses the [Chainlink library](https://github.com/illinois-cs241/chainlink) to sequencially run docker containers and aggregate results.
+
 ## Installation
 
 The Braodway grader instances require Python 3.5+. 

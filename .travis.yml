@@ -4,6 +4,8 @@ sudo: required
 language: python
 python:
     - "3.6"
+services:
+    - mongodb
 cache: pip
 branches:
     only:
@@ -11,12 +13,12 @@ branches:
 before_install:
     - sudo apt-get update
 install:
-    - sudo apt-get install -y mongodb
     - pip install --upgrade pip
     - pip install -r requirements.txt
     - pip install -r requirements_test.txt
 script:
-    - py.test --cov=src/ tests/ --doctest-modules -v --cov coveralls --cov-report term-missing
+    - black --check broadway_api/ tests/ api.py
+    - flake8 --count --config=setup.cfg
+    - py.test -v --cov=broadway_api/ tests/ --cov coveralls --cov-report term-missing --doctest-modules
 after_success:
     - coveralls
-

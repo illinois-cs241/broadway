@@ -114,3 +114,4 @@ ngrok
 courses.json
 .idea/
 logs/
+test_logs/

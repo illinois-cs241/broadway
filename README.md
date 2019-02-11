@@ -1,4 +1,5 @@
-# broadway-grader
+# Broadway Grader
+A worker node in a distributed autograding system which runs a pipeline of docker containers and communicates with the master node ([Broadway API](https://github.com/illinois-cs241/broadway-api)). More information about the distributed autograder and the grader's role and responsibilities are on the API's [Wiki page](https://github.com/illinois-cs241/broadway-api/wiki).
 
 ## Installation
 

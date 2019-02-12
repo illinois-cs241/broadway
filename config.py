@@ -8,7 +8,7 @@ DEBUG = False
 # the path in which logs will be stored
 LOGS_DIR = "logs"
 # the time of day when logs will be rotated
-LOGS_ROTATE_WHEN = 'midnight'
+LOGS_ROTATE_WHEN = "midnight"
 # the number of logs to keep on disk
 LOGS_BACKUP_COUNT = 7
 

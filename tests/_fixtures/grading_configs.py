@@ -69,11 +69,7 @@ valid_configs = [
     },
     {
         "student_pipeline": [
-            {
-                "image": "alpine:3.5",
-                "hostname": "654321",
-                "capabilities": ["SYS_ADMIN", "NET_ADMIN"],
-            }
+            {"image": "alpine:3.5", "hostname": "654321", "privileged": True}
         ],
         "post_processing_pipeline": [
             {
@@ -89,11 +85,7 @@ valid_configs = [
     },
     {
         "student_pipeline": [
-            {
-                "image": "alpine:3.5",
-                "hostname": "654321",
-                "capabilities": ["SYS_ADMIN", "SYS_ADMIN"],
-            }
+            {"image": "alpine:3.5", "hostname": "654321", "privileged": True}
         ],
         "post_processing_pipeline": [
             {
@@ -115,7 +107,7 @@ invalid_configs = [
             {
                 "image": "alpine:3.5",
                 "hostname": "654321",
-                "capabilities": ["SYS_HACKER"],
+                "privileged": "neither true or false",
             }
         ],
         "post_processing_pipeline": [
@@ -132,11 +124,7 @@ invalid_configs = [
     },
     {
         "student_pipeline": [
-            {
-                "image": "alpine:3.5",
-                "hostname": "654321",
-                "capabilities": ["NET_CRACKER"],
-            }
+            {"image": "alpine:3.5", "hostname": "654321", "privileged": "very high"}
         ],
         "post_processing_pipeline": [
             {

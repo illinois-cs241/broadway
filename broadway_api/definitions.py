@@ -10,12 +10,9 @@ grading_stage = {
         "env": {"type": "object"},
         "entrypoint": {"type": "array", "items": {"type": "string"}},
         "networking": {"type": "boolean"},
+        "privileged": {"type": "boolean"},
         "hostname": {"type": "string"},
         "timeout": {"type": "number"},
-        "capabilities": {
-            "type": "array",
-            "items": {"enum": ["SYS_ADMIN", "NET_ADMIN"]},
-        },
     },
     "required": ["image"],
     "additionalProperties": False,

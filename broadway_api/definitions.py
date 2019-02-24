@@ -13,6 +13,7 @@ grading_stage = {
         "privileged": {"type": "boolean"},
         "hostname": {"type": "string"},
         "timeout": {"type": "number"},
+        "memory": {"type": "string"},
     },
     "required": ["image"],
     "additionalProperties": False,

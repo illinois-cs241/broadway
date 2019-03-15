@@ -29,6 +29,10 @@ class GradingJobLogDao(BaseDao):
             self._collection.find_one({GradingJobLogDao.ID: ObjectId(id)})
         )
 
+    def find_by_job_id(self, job_id):
+        found = self._collection.find_one({GradingJobLogDao.GRADING_JOB_ID: job_id})
+        return self._from_store(found)
+
     def _from_store(self, obj):
         if obj is None:
             return None

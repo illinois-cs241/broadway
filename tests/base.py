@@ -107,9 +107,7 @@ class ClientMixin(AsyncHTTPMixin):
     def get_grading_run_state(self, course_id, assignment_name, grading_run_id, header):
         response = self.fetch(
             self.get_url(
-                "/api/v1/grading_run/{}/{}/{}".format(
-                    course_id, assignment_name, grading_run_id
-                )
+                "/api/v1/grading_run_status/{}/{}".format(course_id, grading_run_id)
             ),
             method="GET",
             headers=header,
@@ -130,9 +128,7 @@ class ClientMixin(AsyncHTTPMixin):
     ):
         response = self.fetch(
             self.get_url(
-                "/api/v1/grading_run/{}/{}/{}".format(
-                    course_id, assignment_name, grading_run_id
-                )
+                "/api/v1/grading_run_status/{}/{}".format(course_id, grading_run_id)
             ),
             method="GET",
             headers=header,
@@ -142,6 +138,18 @@ class ClientMixin(AsyncHTTPMixin):
         if response.code == 200:
             response_body = json.loads(response.body.decode("utf-8"))
             self.assertEqual(response_body["data"].get("state"), expected_state)
+
+    def get_grading_job_log(self, course_id, job_id, header, expected_code):
+        response = self.fetch(
+            self.get_url("/api/v1/grading_job_log/{}/{}".format(course_id, job_id)),
+            method="GET",
+            headers=header,
+        )
+        self.assertEqual(response.code, expected_code)
+
+        if response.code == 200:
+            response_body = json.loads(response.body.decode("utf-8"))
+            return response_body["data"]
 
 
 class GraderMixin(AsyncHTTPMixin):

@@ -278,3 +278,11 @@ class GradingRunEndpointsTest(BaseTest):
             grading_runs.one_student_job,
             400,
         )
+
+
+class GradingJobLogEndpointTest(BaseTest):
+    def test_no_token(self):
+        self.get_grading_job_log(self.course1, "weird", None, 401)
+
+    def test_invalid_job_id(self):
+        self.get_grading_job_log(self.course1, "weird", self.client_header1, 400)

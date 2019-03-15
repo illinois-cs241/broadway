@@ -9,32 +9,12 @@ from tests.base import BaseTest
 logging.disable(logging.WARNING)
 
 
+# get status of the first job
+def get_first_status(map):
+    return list(map.values())[0]
+
+
 class EndpointIntegrationTest(BaseTest):
-    def test_grading_run_ownership(self):
-        # courses can not check AG run status of other courses
-        worker_id = self.register_worker(self.get_header())
-        self.upload_grading_config(
-            self.course1,
-            "assignment1",
-            self.client_header1,
-            grading_configs.only_student_config,
-            200,
-        )
-        grading_run_id = self.start_grading_run(
-            self.course1,
-            "assignment1",
-            self.client_header1,
-            grading_runs.one_student_job,
-            200,
-        )
-
-        self.check_grading_run_status(
-            self.course2, "assignment1", grading_run_id, self.client_header2, 400
-        )
-        job = self.poll_job(worker_id, self.get_header())
-        self.post_job_result(worker_id, self.get_header(), job.get("grading_job_id"))
-        self.assertEqual(self.poll_job(worker_id, self.get_header()), 498)
-
     def test_single_student_job(self):
         worker_id = self.register_worker(self.get_header())
         self.upload_grading_config(
@@ -64,8 +44,13 @@ class EndpointIntegrationTest(BaseTest):
             self.course1, "assignment1", grading_run_id, self.client_header1
         )
         self.assertEqual(
-            run_state["student_jobs_state"][0], GradingJobState.QUEUED.value
+            get_first_status(run_state["student_jobs_state"]),
+            GradingJobState.QUEUED.value,
         )
+
+        # job logs should not exist at this point
+        for job_id in run_state["student_jobs_state"]:
+            self.get_grading_job_log(self.course1, job_id, self.client_header1, 400)
 
         student_job = self.poll_job(worker_id, self.get_header())
         self.check_grading_run_status(
@@ -80,9 +65,15 @@ class EndpointIntegrationTest(BaseTest):
         run_state = self.get_grading_run_state(
             self.course1, "assignment1", grading_run_id, self.client_header1
         )
+
         self.assertEqual(
-            run_state["student_jobs_state"][0], GradingJobState.STARTED.value
+            get_first_status(run_state["student_jobs_state"]),
+            GradingJobState.STARTED.value,
         )
+
+        # job logs should not exist at this point
+        for job_id in run_state["student_jobs_state"]:
+            self.get_grading_job_log(self.course1, job_id, self.client_header1, 400)
 
         self.post_job_result(
             worker_id, self.get_header(), student_job.get("grading_job_id")
@@ -99,9 +90,14 @@ class EndpointIntegrationTest(BaseTest):
         run_state = self.get_grading_run_state(
             self.course1, "assignment1", grading_run_id, self.client_header1
         )
+
         self.assertEqual(
-            run_state["student_jobs_state"][0], GradingJobState.SUCCEEDED.value
+            get_first_status(run_state["student_jobs_state"]),
+            GradingJobState.SUCCEEDED.value,
         )
+
+        for job_id in run_state["student_jobs_state"]:
+            self.get_grading_job_log(self.course1, job_id, self.client_header1, 200)
 
     def test_pre_processing_job(self):
         worker_id = self.register_worker(self.get_header())
@@ -131,9 +127,12 @@ class EndpointIntegrationTest(BaseTest):
         run_state = self.get_grading_run_state(
             self.course1, "assignment1", grading_run_id, self.client_header1
         )
+
         self.assertEqual(
-            run_state["pre_processing_job_state"], GradingJobState.QUEUED.value
+            get_first_status(run_state["pre_processing_job_state"]),
+            GradingJobState.QUEUED.value,
         )
+
         pre_processing_job = self.poll_job(worker_id, self.get_header())
         self.check_grading_run_status(
             self.course1,
@@ -148,7 +147,8 @@ class EndpointIntegrationTest(BaseTest):
             self.course1, "assignment1", grading_run_id, self.client_header1
         )
         self.assertEqual(
-            run_state["pre_processing_job_state"], GradingJobState.STARTED.value
+            get_first_status(run_state["pre_processing_job_state"]),
+            GradingJobState.STARTED.value,
         )
 
         self.post_job_result(
@@ -176,10 +176,12 @@ class EndpointIntegrationTest(BaseTest):
             self.course1, "assignment1", grading_run_id, self.client_header1
         )
         self.assertEqual(
-            run_state["pre_processing_job_state"], GradingJobState.SUCCEEDED.value
+            get_first_status(run_state["pre_processing_job_state"]),
+            GradingJobState.SUCCEEDED.value,
         )
         self.assertEqual(
-            run_state["student_jobs_state"][0], GradingJobState.STARTED.value
+            get_first_status(run_state["student_jobs_state"]),
+            GradingJobState.STARTED.value,
         )
 
         self.post_job_result(
@@ -198,7 +200,8 @@ class EndpointIntegrationTest(BaseTest):
             self.course1, "assignment1", grading_run_id, self.client_header1
         )
         self.assertEqual(
-            run_state["student_jobs_state"][0], GradingJobState.SUCCEEDED.value
+            get_first_status(run_state["student_jobs_state"]),
+            GradingJobState.SUCCEEDED.value,
         )
 
     def test_post_processing_job(self):
@@ -229,9 +232,12 @@ class EndpointIntegrationTest(BaseTest):
         run_state = self.get_grading_run_state(
             self.course1, "assignment1", grading_run_id, self.client_header1
         )
+
         self.assertEqual(
-            run_state["student_jobs_state"][0], GradingJobState.QUEUED.value
+            get_first_status(run_state["student_jobs_state"]),
+            GradingJobState.QUEUED.value,
         )
+
         student_job = self.poll_job(worker_id, self.get_header())
         self.check_grading_run_status(
             self.course1,
@@ -258,10 +264,12 @@ class EndpointIntegrationTest(BaseTest):
             self.course1, "assignment1", grading_run_id, self.client_header1
         )
         self.assertEqual(
-            run_state["post_processing_job_state"], GradingJobState.QUEUED.value
+            get_first_status(run_state["post_processing_job_state"]),
+            GradingJobState.QUEUED.value,
         )
         self.assertEqual(
-            run_state["student_jobs_state"][0], GradingJobState.SUCCEEDED.value
+            get_first_status(run_state["student_jobs_state"]),
+            GradingJobState.SUCCEEDED.value,
         )
 
         post_processing_job = self.poll_job(worker_id, self.get_header())
@@ -279,7 +287,8 @@ class EndpointIntegrationTest(BaseTest):
             self.course1, "assignment1", grading_run_id, self.client_header1
         )
         self.assertEqual(
-            run_state["post_processing_job_state"], GradingJobState.STARTED.value
+            get_first_status(run_state["post_processing_job_state"]),
+            GradingJobState.STARTED.value,
         )
 
         self.post_job_result(
@@ -298,7 +307,8 @@ class EndpointIntegrationTest(BaseTest):
             self.course1, "assignment1", grading_run_id, self.client_header1
         )
         self.assertEqual(
-            run_state["post_processing_job_state"], GradingJobState.SUCCEEDED.value
+            get_first_status(run_state["post_processing_job_state"]),
+            GradingJobState.SUCCEEDED.value,
         )
 
     def test_complete_run(self):
@@ -330,7 +340,8 @@ class EndpointIntegrationTest(BaseTest):
             self.course1, "assignment1", grading_run_id, self.client_header1
         )
         self.assertEqual(
-            run_state["pre_processing_job_state"], GradingJobState.QUEUED.value
+            get_first_status(run_state["pre_processing_job_state"]),
+            GradingJobState.QUEUED.value,
         )
 
         pre_processing_job = self.poll_job(worker_id, self.get_header())
@@ -346,8 +357,10 @@ class EndpointIntegrationTest(BaseTest):
         run_state = self.get_grading_run_state(
             self.course1, "assignment1", grading_run_id, self.client_header1
         )
+
         self.assertEqual(
-            run_state["pre_processing_job_state"], GradingJobState.STARTED.value
+            get_first_status(run_state["pre_processing_job_state"]),
+            GradingJobState.STARTED.value,
         )
 
         self.post_job_result(
@@ -365,10 +378,12 @@ class EndpointIntegrationTest(BaseTest):
             self.course1, "assignment1", grading_run_id, self.client_header1
         )
         self.assertEqual(
-            run_state["pre_processing_job_state"], GradingJobState.SUCCEEDED.value
+            get_first_status(run_state["pre_processing_job_state"]),
+            GradingJobState.SUCCEEDED.value,
         )
         self.assertEqual(
-            run_state["student_jobs_state"][0], GradingJobState.QUEUED.value
+            get_first_status(run_state["student_jobs_state"]),
+            GradingJobState.QUEUED.value,
         )
 
         student_job = self.poll_job(worker_id, self.get_header())
@@ -385,7 +400,8 @@ class EndpointIntegrationTest(BaseTest):
             self.course1, "assignment1", grading_run_id, self.client_header1
         )
         self.assertEqual(
-            run_state["student_jobs_state"][0], GradingJobState.STARTED.value
+            get_first_status(run_state["student_jobs_state"]),
+            GradingJobState.STARTED.value,
         )
 
         self.post_job_result(
@@ -403,10 +419,12 @@ class EndpointIntegrationTest(BaseTest):
             self.course1, "assignment1", grading_run_id, self.client_header1
         )
         self.assertEqual(
-            run_state["post_processing_job_state"], GradingJobState.QUEUED.value
+            get_first_status(run_state["post_processing_job_state"]),
+            GradingJobState.QUEUED.value,
         )
         self.assertEqual(
-            run_state["student_jobs_state"][0], GradingJobState.SUCCEEDED.value
+            get_first_status(run_state["student_jobs_state"]),
+            GradingJobState.SUCCEEDED.value,
         )
 
         post_processing_job = self.poll_job(worker_id, self.get_header())
@@ -423,7 +441,8 @@ class EndpointIntegrationTest(BaseTest):
             self.course1, "assignment1", grading_run_id, self.client_header1
         )
         self.assertEqual(
-            run_state["post_processing_job_state"], GradingJobState.STARTED.value
+            get_first_status(run_state["post_processing_job_state"]),
+            GradingJobState.STARTED.value,
         )
 
         self.post_job_result(
@@ -442,7 +461,8 @@ class EndpointIntegrationTest(BaseTest):
             self.course1, "assignment1", grading_run_id, self.client_header1
         )
         self.assertEqual(
-            run_state["post_processing_job_state"], GradingJobState.SUCCEEDED.value
+            get_first_status(run_state["post_processing_job_state"]),
+            GradingJobState.SUCCEEDED.value,
         )
 
     def test_stress(self):

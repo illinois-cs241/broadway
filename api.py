@@ -80,12 +80,16 @@ def initialize_app():
                 client_handlers.GradingRunHandler,
             ),
             (
-                r"/api/v1/grading_run/{}/{}/{}".format(
-                    ID_REGEX.format("course_id"),
-                    ID_REGEX.format("assignment_name"),
-                    ID_REGEX.format("grading_run_id"),
+                r"/api/v1/grading_run_status/{}/{}".format(
+                    ID_REGEX.format("course_id"), ID_REGEX.format("run_id")
                 ),
-                client_handlers.GradingRunHandler,
+                client_handlers.GradingRunStatusHandler,
+            ),
+            (
+                r"/api/v1/grading_job_log/{}/{}".format(
+                    ID_REGEX.format("course_id"), ID_REGEX.format("job_id")
+                ),
+                client_handlers.GradingJobLogHandler,
             ),
             # ----------------------------------
             # ------- Worker Endpoints ---------

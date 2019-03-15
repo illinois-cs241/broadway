@@ -97,59 +97,6 @@ class GradingRunHandler(ClientAPIHandler):
             return
         return {"grading_run_id": run.id}
 
-    @authenticate_course
-    @schema.validate(
-        output_schema={
-            "type": "object",
-            "properties": {
-                "state": {"type": "string"},
-                "pre_processing_job_state": {"type": ["null", "string"]},
-                "post_processing_job_state": {"type": ["null", "string"]},
-                "student_jobs_state": {"type": "array", "items": {"type": "string"}},
-            },
-            "required": ["state"],
-            "additionalProperties": False,
-        },
-        on_empty_404=True,
-    )
-    def get(self, *args, **kwargs):
-        assignment_id = self.get_assignment_id(**kwargs)
-        grading_run_id = kwargs.get("grading_run_id")
-
-        grading_run_dao = daos.GradingRunDao(self.settings)
-        grading_run = grading_run_dao.find_by_id(grading_run_id)
-        if grading_run is None:
-            self.abort({"message": "grading run with the given ID not found"})
-            return
-
-        if grading_run.assignment_id != assignment_id:
-            self.abort(
-                {"message": "grading run does not belong to specified assignment"}
-            )
-            return
-
-        grading_job_dao = daos.GradingJobDao(self.settings)
-        jobs = grading_job_dao.find_by_run_id(grading_run_id)
-        pre_processing_job = next(
-            filter(lambda j: j.type == models.GradingJobType.PRE_PROCESSING, jobs), None
-        )
-        post_processing_job = next(
-            filter(lambda j: j.type == models.GradingJobType.POST_PROCESSING, jobs),
-            None,
-        )
-        student_jobs = filter(lambda j: j.type == models.GradingJobType.STUDENT, jobs)
-
-        return {
-            "state": grading_run.state.value,
-            "pre_processing_job_state": (
-                pre_processing_job.get_state().value if pre_processing_job else None
-            ),
-            "post_processing_job_state": (
-                post_processing_job.get_state().value if post_processing_job else None
-            ),
-            "student_jobs_state": [j.get_state().value for j in student_jobs],
-        }
-
     def _assert_run_valid(self, config):
         if "pre_processing_env" in self.body and not config.pre_processing_pipeline:
             self.abort(
@@ -175,3 +122,87 @@ class GradingRunHandler(ClientAPIHandler):
             )
             return False
         return True
+
+
+class GradingRunStatusHandler(ClientAPIHandler):
+    @authenticate_course
+    @schema.validate(
+        output_schema={
+            "type": "object",
+            "properties": {
+                "state": {"type": "string"},
+                "pre_processing_job_state": {"type": ["null", "object"]},
+                "post_processing_job_state": {"type": ["null", "object"]},
+                "student_jobs_state": {"type": "object"},
+            },
+            "required": ["state"],
+            "additionalProperties": False,
+        },
+        on_empty_404=True,
+    )
+    def get(self, *args, **kwargs):
+        grading_run_id = kwargs.get("run_id")
+
+        grading_run_dao = daos.GradingRunDao(self.settings)
+        grading_run = grading_run_dao.find_by_id(grading_run_id)
+        if grading_run is None:
+            self.abort({"message": "grading run with the given ID not found"})
+            return
+
+        grading_job_dao = daos.GradingJobDao(self.settings)
+        jobs = grading_job_dao.find_by_run_id(grading_run_id)
+        pre_processing_job = next(
+            filter(lambda j: j.type == models.GradingJobType.PRE_PROCESSING, jobs), None
+        )
+        post_processing_job = next(
+            filter(lambda j: j.type == models.GradingJobType.POST_PROCESSING, jobs),
+            None,
+        )
+        student_jobs = filter(lambda j: j.type == models.GradingJobType.STUDENT, jobs)
+
+        # [jobs] -> { job_id: job_state }
+        def get_job_map(jobs):
+            if jobs is None:
+                return None
+            else:
+                return {job.id: job.get_state().value for job in jobs}
+
+        return {
+            "state": grading_run.state.value,
+            "pre_processing_job_state": get_job_map(
+                [pre_processing_job] if pre_processing_job else None
+            ),
+            "post_processing_job_state": get_job_map(
+                [post_processing_job] if post_processing_job else None
+            ),
+            "student_jobs_state": get_job_map(student_jobs),
+        }
+
+
+class GradingJobLogHandler(ClientAPIHandler):
+    @authenticate_course
+    @schema.validate(
+        output_schema={
+            "type": "object",
+            "properties": {"stderr": {"type": "string"}, "stdout": {"type": "string"}},
+            "required": ["stderr", "stdout"],
+            "additionalProperties": False,
+        },
+        on_empty_404=True,
+    )
+    def get(self, *args, **kwargs):
+        job_id = kwargs["job_id"]
+
+        job_log_dao = daos.GradingJobLogDao(self.settings)
+        job_log = job_log_dao.find_by_job_id(job_id)
+
+        if job_log is None:
+            self.abort(
+                {
+                    "message": "grading job with the given ID"
+                    "not found or has not finished"
+                }
+            )
+            return
+
+        return {"stderr": job_log.stderr, "stdout": job_log.stdout}

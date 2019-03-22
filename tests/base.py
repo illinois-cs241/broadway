@@ -104,7 +104,7 @@ class ClientMixin(AsyncHTTPMixin):
             response_body = json.loads(response.body.decode("utf-8"))
             return response_body["data"]["grading_run_id"]
 
-    def get_grading_run_state(self, course_id, assignment_name, grading_run_id, header):
+    def get_grading_run_state(self, course_id, grading_run_id, header):
         response = self.fetch(
             self.get_url(
                 "/api/v1/grading_run_status/{}/{}".format(course_id, grading_run_id)
@@ -120,7 +120,6 @@ class ClientMixin(AsyncHTTPMixin):
     def check_grading_run_status(
         self,
         course_id,
-        assignment_name,
         grading_run_id,
         header,
         expected_code,

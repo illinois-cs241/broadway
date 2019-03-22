@@ -181,7 +181,7 @@ class GradingRunEndpointsTest(BaseTest):
         self.start_grading_run(
             self.course1, "assignment1", None, grading_runs.one_student_job, 401
         )
-        self.check_grading_run_status(self.course1, "assignment1", "temp", None, 401)
+        self.check_grading_run_status(self.course1, "temp", None, 401)
 
     def test_wrong_token(self):
         # course 1 can only be authenticated with client header 1
@@ -194,7 +194,7 @@ class GradingRunEndpointsTest(BaseTest):
             401,
         )
         self.check_grading_run_status(
-            self.course1, "assignment1", "temp", self.client_header2, 401
+            self.course1, "temp", self.client_header2, 401
         )
 
     def test_invalid_course_id(self):
@@ -206,7 +206,7 @@ class GradingRunEndpointsTest(BaseTest):
             401,
         )
         self.check_grading_run_status(
-            "wrong_id", "assignment1", "temp", self.client_header1, 401
+            "wrong_id", "temp", self.client_header1, 401
         )
 
     def test_invalid_assignment_id(self):
@@ -227,7 +227,7 @@ class GradingRunEndpointsTest(BaseTest):
             200,
         )
         self.check_grading_run_status(
-            self.course1, "assignment1", "temp", self.client_header1, 400
+            self.course1, "temp", self.client_header1, 400
         )
 
     def test_invalid_run(self):

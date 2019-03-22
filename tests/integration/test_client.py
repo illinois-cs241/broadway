@@ -193,9 +193,7 @@ class GradingRunEndpointsTest(BaseTest):
             grading_runs.one_student_job,
             401,
         )
-        self.check_grading_run_status(
-            self.course1, "temp", self.client_header2, 401
-        )
+        self.check_grading_run_status(self.course1, "temp", self.client_header2, 401)
 
     def test_invalid_course_id(self):
         self.start_grading_run(
@@ -205,9 +203,7 @@ class GradingRunEndpointsTest(BaseTest):
             grading_runs.one_student_job,
             401,
         )
-        self.check_grading_run_status(
-            "wrong_id", "temp", self.client_header1, 401
-        )
+        self.check_grading_run_status("wrong_id", "temp", self.client_header1, 401)
 
     def test_invalid_assignment_id(self):
         self.start_grading_run(
@@ -226,9 +222,7 @@ class GradingRunEndpointsTest(BaseTest):
             grading_configs.valid_configs[0],
             200,
         )
-        self.check_grading_run_status(
-            self.course1, "temp", self.client_header1, 400
-        )
+        self.check_grading_run_status(self.course1, "temp", self.client_header1, 400)
 
     def test_invalid_run(self):
         # the config only has student env vars defined.

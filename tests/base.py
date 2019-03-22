@@ -118,12 +118,7 @@ class ClientMixin(AsyncHTTPMixin):
         return response_body["data"]
 
     def check_grading_run_status(
-        self,
-        course_id,
-        grading_run_id,
-        header,
-        expected_code,
-        expected_state=None,
+        self, course_id, grading_run_id, header, expected_code, expected_state=None
     ):
         response = self.fetch(
             self.get_url(

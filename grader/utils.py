@@ -6,4 +6,6 @@ def get_url(endpoint):
 
 
 def print_usage():
-    print("Wrong number of arguments provided. Usage:\n\tpython grader.py <cluster token>")
+    print(
+        "Wrong number of arguments provided. Usage:\n\tpython grader.py <cluster token>"
+    )

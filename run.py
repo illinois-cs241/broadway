@@ -26,10 +26,12 @@ event_loop = asyncio.new_event_loop()
 os.makedirs(LOGS_DIR, exist_ok=True)
 logging.basicConfig(
     handlers=[
-        TimedRotatingFileHandler('{}/log'.format(LOGS_DIR), when='midnight', backupCount=7),
-        logging.StreamHandler()
+        TimedRotatingFileHandler(
+            "{}/log".format(LOGS_DIR), when="midnight", backupCount=7
+        ),
+        logging.StreamHandler(),
     ],
-    level=logging.INFO
+    level=logging.INFO,
 )
 logger = logging.getLogger()
 
@@ -41,7 +43,11 @@ def signal_handler(sig, frame):
 
 def heartbeat_routine():
     while heartbeat_running:
-        response = requests.post(get_url("{}/{}".format(HEARTBEAT_ENDPOINT, worker_id)), headers=header, data='')
+        response = requests.post(
+            get_url("{}/{}".format(HEARTBEAT_ENDPOINT, worker_id)),
+            headers=header,
+            data="",
+        )
         if response.status_code != SUCCESS_CODE:
             logger.critical("Heartbeat failed!\nError: {}".format(response.text))
             return
@@ -54,7 +60,9 @@ def worker_routine():
 
     while worker_running:
         # poll from queue
-        response = requests.get(get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)), headers=header)
+        response = requests.get(
+            get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)), headers=header
+        )
 
         # if the queue is empty then sleep for a while
         if response.status_code == QUEUE_EMPTY_CODE:
@@ -62,7 +70,11 @@ def worker_routine():
             continue
 
         if response.status_code != SUCCESS_CODE:
-            logger.critical("Bad server response while trying to poll job.\nError: {}".format(response.text))
+            logger.critical(
+                "Bad server response while trying to poll job.\nError: {}".format(
+                    response.text
+                )
+            )
             return
 
         # we successfully polled a job
@@ -77,11 +89,21 @@ def worker_routine():
         except Exception as ex:
             logger.critical("Grading job failed with exception:\n{}", ex)
             job_results = [
-                {"logs": {"stdout": b"The container crashed", "stderr": bytes(str(ex), "utf-8")}, "success": False}
+                {
+                    "logs": {
+                        "stdout": b"The container crashed",
+                        "stderr": bytes(str(ex), "utf-8"),
+                    },
+                    "success": False,
+                }
             ]
 
-        job_stdout = "\n".join([r["logs"]["stdout"].decode("utf-8") for r in job_results])
-        job_stderr = "\n".join([r["logs"]["stderr"].decode("utf-8") for r in job_results])
+        job_stdout = "\n".join(
+            [r["logs"]["stdout"].decode("utf-8") for r in job_results]
+        )
+        job_stderr = "\n".join(
+            [r["logs"]["stderr"].decode("utf-8") for r in job_results]
+        )
 
         # remove logs from result array because logs can be bulky we will store then separately
         for r in job_results:
@@ -92,15 +114,25 @@ def worker_routine():
             logger.info("Job stdout:\n" + job_stdout)
             logger.info("Job stderr:\n" + job_stderr)
 
-        grading_job_result = {api_key.RESULTS: job_results, api_key.SUCCESS: job_results[-1]["success"],
-                              api_key.LOGS: {'stdout': job_stdout, 'stderr': job_stderr},
-                              api_key.GRADING_JOB_ID: job_id}
+        grading_job_result = {
+            api_key.RESULTS: job_results,
+            api_key.SUCCESS: job_results[-1]["success"],
+            api_key.LOGS: {"stdout": job_stdout, "stderr": job_stderr},
+            api_key.GRADING_JOB_ID: job_id,
+        }
 
         logger.info("Sending job results")
-        response = requests.post(get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)), json=grading_job_result,
-                                 headers=header)
+        response = requests.post(
+            get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)),
+            json=grading_job_result,
+            headers=header,
+        )
         if response.status_code != SUCCESS_CODE:
-            logger.critical("Bad server response while updating about job status.\nError: {}".format(response.text))
+            logger.critical(
+                "Bad server response while updating about job status.\nError: {}".format(
+                    response.text
+                )
+            )
             return
 
 
@@ -109,7 +141,10 @@ def register_node():
     global worker_running
     global heartbeat_running
 
-    response = requests.get(get_url("{}/{}".format(GRADER_REGISTER_ENDPOINT, socket.gethostname())), headers=header)
+    response = requests.get(
+        get_url("{}/{}".format(GRADER_REGISTER_ENDPOINT, socket.gethostname())),
+        headers=header,
+    )
     if response.status_code != SUCCESS_CODE:
         logger.critical("Registration failed!\nError: {}".format(response.text))
         worker_running = False
@@ -122,7 +157,11 @@ def register_node():
     if api_key.WORKER_ID in server_response:
         worker_id = server_response.get(api_key.WORKER_ID)
     else:
-        logger.critical("Bad server response on registration. Missing argument \'{}\'.".format(api_key.WORKER_ID))
+        logger.critical(
+            "Bad server response on registration. Missing argument '{}'.".format(
+                api_key.WORKER_ID
+            )
+        )
         worker_running = False
         heartbeat_running = False
         exit(-1)

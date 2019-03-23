@@ -278,5 +278,28 @@ class GradingJobLogEndpointTest(BaseTest):
     def test_no_token(self):
         self.get_grading_job_log(self.course1, "weird", None, 401)
 
+    def test_wrong_token(self):
+        # course 1 can only be authenticated with client header 1,
+        # course 2 can be authenticated with either
+        self.get_grading_job_log(self.course1, "weird", self.client_header2, 401)
+
     def test_invalid_job_id(self):
         self.get_grading_job_log(self.course1, "weird", self.client_header1, 400)
+
+
+class CourseWorkerNodeEndpointTest(BaseTest):
+    def test_no_token(self):
+        self.get_course_worker_nodes(self.course1, "all", None, 401)
+
+    def test_wrong_token(self):
+        # course 1 can only be authenticated with client header 1,
+        # course 2 can be authenticated with either
+        self.get_course_worker_nodes(self.course1, "all", self.client_header2, 401)
+
+    def test_invalid_course_id(self):
+        self.get_course_worker_nodes("wrong_id", "all", self.client_header1, 401)
+
+    def test_invalid_scope(self):
+        self.get_course_worker_nodes(
+            self.course1, "invalid_scope", self.client_header1, 404
+        )

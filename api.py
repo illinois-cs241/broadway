@@ -3,6 +3,9 @@ import argparse
 import os
 import logging
 import tornado
+import tornado.web
+import tornado.ioloop
+import tornado.httpserver
 import signal
 import sys
 
@@ -60,49 +63,55 @@ def initialize_app():
         "QUEUE": Queue(),
     }
 
-    HEX_REGEX = r"(?P<{}>[a-f0-9]+)"
-    ID_REGEX = r"(?P<{}>[-\w]+)"
-    STRING_REGEX = r"(?P<{}>[^()]+)"
+    hex_regex = r"(?P<{}>[a-f0-9]+)"
+    id_regex = r"(?P<{}>[-\w]+)"
+    string_regex = r"(?P<{}>[^()]+)"
 
     return tornado.web.Application(
         [
             # -------- Client Endpoints --------
             (
                 r"/api/v1/grading_config/{}/{}".format(
-                    ID_REGEX.format("course_id"), ID_REGEX.format("assignment_name")
+                    id_regex.format("course_id"), id_regex.format("assignment_name")
                 ),
                 client_handlers.GradingConfigHandler,
             ),
             (
                 r"/api/v1/grading_run/{}/{}".format(
-                    ID_REGEX.format("course_id"), ID_REGEX.format("assignment_name")
+                    id_regex.format("course_id"), id_regex.format("assignment_name")
                 ),
                 client_handlers.GradingRunHandler,
             ),
             (
                 r"/api/v1/grading_run_status/{}/{}".format(
-                    ID_REGEX.format("course_id"), ID_REGEX.format("run_id")
+                    id_regex.format("course_id"), id_regex.format("run_id")
                 ),
                 client_handlers.GradingRunStatusHandler,
             ),
             (
                 r"/api/v1/grading_job_log/{}/{}".format(
-                    ID_REGEX.format("course_id"), ID_REGEX.format("job_id")
+                    id_regex.format("course_id"), id_regex.format("job_id")
                 ),
                 client_handlers.GradingJobLogHandler,
+            ),
+            (
+                r"/api/v1/worker/{}/{}".format(
+                    id_regex.format("course_id"), string_regex.format("scope")
+                ),
+                client_handlers.CourseWorkerNodeHandler,
             ),
             # ----------------------------------
             # ------- Worker Endpoints ---------
             (
-                r"/api/v1/worker_register/{}".format(STRING_REGEX.format("hostname")),
+                r"/api/v1/worker/{}".format(string_regex.format("hostname")),
                 worker_handlers.WorkerRegisterHandler,
             ),
             (
-                r"/api/v1/grading_job/{}".format(HEX_REGEX.format("worker_id")),
+                r"/api/v1/grading_job/{}".format(hex_regex.format("worker_id")),
                 worker_handlers.GradingJobHandler,
             ),
             (
-                r"/api/v1/heartbeat/{}".format(HEX_REGEX.format("worker_id")),
+                r"/api/v1/heartbeat/{}".format(hex_regex.format("worker_id")),
                 worker_handlers.HeartBeatHandler,
             ),
             # ----------------------------------

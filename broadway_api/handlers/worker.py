@@ -149,7 +149,7 @@ class GradingJobHandler(BaseAPIHandler):
             return
 
         # clear the worker node's job
-        worker_node.running_job = None
+        worker_node.running_job_id = None
         worker_node_dao.update(worker_node)
 
         # finish the job

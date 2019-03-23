@@ -24,6 +24,9 @@ class WorkerNodeDao(BaseDao):
         del document[WorkerNodeDao.ID]
         return self._collection.insert_one(document)
 
+    def find_all(self):
+        return list(map(self._from_store, self._collection.find()))
+
     def find_by_id(self, id):
         if not ObjectId.is_valid(id):
             return None

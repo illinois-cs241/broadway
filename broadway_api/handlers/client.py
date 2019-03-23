@@ -206,3 +206,54 @@ class GradingJobLogHandler(ClientAPIHandler):
             return
 
         return {"stderr": job_log.stderr, "stdout": job_log.stdout}
+
+
+class CourseWorkerNodeHandler(ClientAPIHandler):
+    @authenticate_course
+    @schema.validate(
+        output_schema={
+            "type": "object",
+            "properties": {
+                "worker_nodes": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "hostname": {"type": "string"},
+                            "jobs_processed": {"type": "number"},
+                            "busy": {"type": "boolean"},
+                            "alive": {"type": "boolean"},
+                        },
+                        "required": ["hostname", "jobs_processed", "busy", "alive"],
+                        "additionalProperties": False,
+                    },
+                }
+            },
+            "required": ["worker_nodes"],
+            "additionalProperties": False,
+        },
+        on_empty_404=True,
+    )
+    def get(self, *args, **kwargs):
+        scope = kwargs.get("scope")
+        worker_node_dao = daos.WorkerNodeDao(self.settings)
+
+        if scope == "all":
+            return {
+                "worker_nodes": list(
+                    map(
+                        lambda worker_node: {
+                            "hostname": worker_node.hostname,
+                            "jobs_processed": worker_node.jobs_processed,
+                            "busy": (worker_node.running_job_id is not None),
+                            "alive": worker_node.is_alive,
+                        },
+                        worker_node_dao.find_all(),
+                    )
+                )
+            }
+        else:
+            self.abort(
+                {"message": "scope {} has not been implemented yet".format(scope)}, 404
+            )
+            return

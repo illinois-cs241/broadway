@@ -15,6 +15,123 @@ def get_first_status(map):
 
 
 class EndpointIntegrationTest(BaseTest):
+    def test_course_worker_nodes(self):
+        num_workers = 10
+        num_jobs = num_workers // 2
+        worker_node_ids = [
+            self.register_worker(self.get_header()) for _ in range(num_workers)
+        ]
+
+        # all worker nodes should be free
+        all_course_worker_nodes = self.get_course_worker_nodes(
+            self.course1, "all", self.client_header1, 200
+        )
+        self.assertEqual(len(all_course_worker_nodes["worker_nodes"]), num_workers)
+        for worker_node in all_course_worker_nodes["worker_nodes"]:
+            self.assertTrue(worker_node["alive"])
+            self.assertFalse(worker_node["busy"])
+            self.assertEqual(worker_node["jobs_processed"], 0)
+
+        # create some jobs
+        self.upload_grading_config(
+            self.course1,
+            "assignment1",
+            self.client_header1,
+            grading_configs.only_student_config,
+            200,
+        )
+
+        for _ in range(num_jobs):
+            self.start_grading_run(
+                self.course1,
+                "assignment1",
+                self.client_header1,
+                grading_runs.one_student_job,
+                200,
+            )
+
+        # workers poll those jobs
+        jobs = [
+            self.poll_job(worker_node_ids[i], self.get_header())
+            for i in range(num_jobs)
+        ]
+        all_course_worker_nodes = self.get_course_worker_nodes(
+            self.course1, "all", self.client_header1, 200
+        )
+        self.assertEqual(len(all_course_worker_nodes["worker_nodes"]), num_workers)
+
+        # those workers should be busy
+        num_workers_busy = 0
+        for worker_node in all_course_worker_nodes["worker_nodes"]:
+            self.assertTrue(worker_node["alive"])
+            if worker_node["busy"]:
+                num_workers_busy += 1
+        self.assertEqual(num_workers_busy, num_jobs)
+
+        # workers finish working on the jobs
+        for i in range(num_jobs):
+            self.post_job_result(
+                worker_node_ids[i], self.get_header(), jobs[i].get("grading_job_id")
+            )
+
+        # all worker nodes should be free again
+        all_course_worker_nodes = self.get_course_worker_nodes(
+            self.course1, "all", self.client_header1, 200
+        )
+
+        num_jobs_processed = 0
+        self.assertEqual(len(all_course_worker_nodes["worker_nodes"]), num_workers)
+        for worker_node in all_course_worker_nodes["worker_nodes"]:
+            self.assertTrue(worker_node["alive"])
+            self.assertFalse(worker_node["busy"])
+            num_jobs_processed += worker_node["jobs_processed"]
+        self.assertEqual(num_jobs_processed, num_jobs)
+
+    def test_job_logs(self):
+        worker_id = self.register_worker(self.get_header())
+        self.upload_grading_config(
+            self.course1,
+            "assignment1",
+            self.client_header1,
+            grading_configs.only_student_config,
+            200,
+        )
+        grading_run_id = self.start_grading_run(
+            self.course1,
+            "assignment1",
+            self.client_header1,
+            grading_runs.one_student_job,
+            200,
+        )
+
+        run_state = self.get_grading_run_state(
+            self.course1, grading_run_id, self.client_header1
+        )
+
+        # job logs should not exist at this point
+        for job_id in run_state["student_jobs_state"]:
+            self.get_grading_job_log(self.course1, job_id, self.client_header1, 400)
+
+        student_job = self.poll_job(worker_id, self.get_header())
+        run_state = self.get_grading_run_state(
+            self.course1, grading_run_id, self.client_header1
+        )
+
+        # job logs should not exist at this point
+        for job_id in run_state["student_jobs_state"]:
+            self.get_grading_job_log(self.course1, job_id, self.client_header1, 400)
+
+        self.post_job_result(
+            worker_id, self.get_header(), student_job.get("grading_job_id")
+        )
+        run_state = self.get_grading_run_state(
+            self.course1, grading_run_id, self.client_header1
+        )
+
+        # logs should have been generated now
+        for job_id in run_state["student_jobs_state"]:
+            self.get_grading_job_log(self.course1, job_id, self.client_header1, 200)
+
     def test_single_student_job(self):
         worker_id = self.register_worker(self.get_header())
         self.upload_grading_config(
@@ -47,10 +164,6 @@ class EndpointIntegrationTest(BaseTest):
             GradingJobState.QUEUED.value,
         )
 
-        # job logs should not exist at this point
-        for job_id in run_state["student_jobs_state"]:
-            self.get_grading_job_log(self.course1, job_id, self.client_header1, 400)
-
         student_job = self.poll_job(worker_id, self.get_header())
         self.check_grading_run_status(
             self.course1,
@@ -68,10 +181,6 @@ class EndpointIntegrationTest(BaseTest):
             get_first_status(run_state["student_jobs_state"]),
             GradingJobState.STARTED.value,
         )
-
-        # job logs should not exist at this point
-        for job_id in run_state["student_jobs_state"]:
-            self.get_grading_job_log(self.course1, job_id, self.client_header1, 400)
 
         self.post_job_result(
             worker_id, self.get_header(), student_job.get("grading_job_id")
@@ -92,9 +201,6 @@ class EndpointIntegrationTest(BaseTest):
             get_first_status(run_state["student_jobs_state"]),
             GradingJobState.SUCCEEDED.value,
         )
-
-        for job_id in run_state["student_jobs_state"]:
-            self.get_grading_job_log(self.course1, job_id, self.client_header1, 200)
 
     def test_pre_processing_job(self):
         worker_id = self.register_worker(self.get_header())

@@ -145,11 +145,23 @@ class ClientMixin(AsyncHTTPMixin):
             response_body = json.loads(response.body.decode("utf-8"))
             return response_body["data"]
 
+    def get_course_worker_nodes(self, course_id, scope, header, expected_code):
+        response = self.fetch(
+            self.get_url("/api/v1/worker/{}/{}".format(course_id, scope)),
+            method="GET",
+            headers=header,
+        )
+        self.assertEqual(response.code, expected_code)
+
+        if response.code == 200:
+            response_body = json.loads(response.body.decode("utf-8"))
+            return response_body["data"]
+
 
 class GraderMixin(AsyncHTTPMixin):
     def register_worker(self, header, expected_code=200, hostname="mock_hostname"):
         response = self.fetch(
-            self.get_url("/api/v1/worker_register/{}".format(hostname)),
+            self.get_url("/api/v1/worker/{}".format(hostname)),
             method="GET",
             headers=header,
         )

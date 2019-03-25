@@ -27,11 +27,11 @@ class WorkerNodeDao(BaseDao):
     def find_all(self):
         return list(map(self._from_store, self._collection.find()))
 
-    def find_by_id(self, id):
-        if not ObjectId.is_valid(id):
+    def find_by_id(self, id_):
+        if not ObjectId.is_valid(id_):
             return None
         return self._from_store(
-            self._collection.find_one({WorkerNodeDao.ID: ObjectId(id)})
+            self._collection.find_one({WorkerNodeDao.ID: ObjectId(id_)})
         )
 
     def find_by_hostname(self, hostname):
@@ -53,15 +53,15 @@ class WorkerNodeDao(BaseDao):
         if obj is None:
             return None
         attrs = {
-            "id": obj.get(WorkerNodeDao.ID),
+            "id_": obj.get(WorkerNodeDao.ID),
             "running_job_id": obj.get(WorkerNodeDao.RUNNING_JOB_ID),
             "last_seen": obj.get(WorkerNodeDao.LAST_SEEN),
             "hostname": obj.get(WorkerNodeDao.WORKER_HOSTNAME),
             "jobs_processed": obj.get(WorkerNodeDao.JOBS_PROCESSED),
             "is_alive": obj.get(WorkerNodeDao.ALIVE),
         }
-        if attrs["id"]:
-            attrs["id"] = str(attrs["id"])
+        if attrs["id_"]:
+            attrs["id_"] = str(attrs["id_"])
         return WorkerNode(**attrs)
 
     def _to_store(self, obj):

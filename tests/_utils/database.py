@@ -5,7 +5,7 @@ from broadway_api.daos.course import CourseDao
 def initialize_db(settings, course_config):
     course_dao = CourseDao(settings)
     for course_id, tokens in course_config.items():
-        course = Course(id=course_id, tokens=tokens)
+        course = Course(id_=course_id, tokens=tokens)
         course_dao.insert_or_update(course)
 
 

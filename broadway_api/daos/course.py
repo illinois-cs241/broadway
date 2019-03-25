@@ -19,8 +19,8 @@ class CourseDao(BaseDao):
             {CourseDao.ID: obj.id}, {"$set": document}, upsert=True
         )
 
-    def find_by_id(self, id):
-        return self._from_store(self._collection.find_one({CourseDao.ID: id}))
+    def find_by_id(self, id_):
+        return self._from_store(self._collection.find_one({CourseDao.ID: id_}))
 
     def drop_all(self):
         return self._collection.delete_many({})
@@ -28,7 +28,7 @@ class CourseDao(BaseDao):
     def _from_store(self, obj):
         if obj is None:
             return None
-        attrs = {"id": obj.get(CourseDao.ID), "tokens": obj.get(CourseDao.TOKENS)}
+        attrs = {"id_": obj.get(CourseDao.ID), "tokens": obj.get(CourseDao.TOKENS)}
         return Course(**attrs)
 
     def _to_store(self, obj):

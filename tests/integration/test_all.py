@@ -10,8 +10,8 @@ logging.disable(logging.WARNING)
 
 
 # get status of the first job
-def get_first_status(map):
-    return list(map.values())[0]
+def get_first_status(grading_job_map):
+    return list(grading_job_map.values())[0]
 
 
 class EndpointIntegrationTest(BaseTest):

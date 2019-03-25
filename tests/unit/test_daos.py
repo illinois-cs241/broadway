@@ -12,7 +12,7 @@ logging.disable(logging.WARNING)
 class AssignmentConfigDaoTest(BaseTest):
 
     DEFAULT_OBJECT = models.AssignmentConfig(
-        id="obj",
+        id_="obj",
         env={"key": "value"},
         pre_processing_pipeline=[{"image": "alpine"}],
         student_pipeline=[{"image": "alpine"}],
@@ -51,7 +51,7 @@ class AssignmentConfigDaoTest(BaseTest):
 
 class CourseDaoTest(BaseTest):
 
-    DEFAULT_OBJECT = models.Course(id="course", tokens=["value"])
+    DEFAULT_OBJECT = models.Course(id_="course", tokens=["value"])
 
     def setUp(self):
         super().setUp()
@@ -86,7 +86,7 @@ class CourseDaoTest(BaseTest):
 class GradingJobLogDaoTest(BaseTest):
 
     DEFAULT_OBJECT = models.GradingJobLog(
-        job_id="job_id", stdout=b"output", stderr=b"errors"
+        job_id="job_id", stdout="output", stderr="errors"
     )
 
     def setUp(self):
@@ -178,7 +178,7 @@ class GradingRunDaoTest(BaseTest):
     DEFAULT_OBJECT = models.GradingRun(
         assignment_id="assignment123",
         state=models.GradingRunState.READY,
-        students_env=[{"override": True}],
+        students_env=[{"override": "1"}],
         student_jobs_left=1,
     )
 

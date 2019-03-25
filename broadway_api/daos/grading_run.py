@@ -28,11 +28,11 @@ class GradingRunDao(BaseDao):
         del document[GradingRunDao.ID]
         return self._collection.insert_one(document)
 
-    def find_by_id(self, id):
-        if not ObjectId.is_valid(id):
+    def find_by_id(self, id_):
+        if not ObjectId.is_valid(id_):
             return None
         return self._from_store(
-            self._collection.find_one({GradingRunDao.ID: ObjectId(id)})
+            self._collection.find_one({GradingRunDao.ID: ObjectId(id_)})
         )
 
     def update(self, obj):
@@ -44,7 +44,7 @@ class GradingRunDao(BaseDao):
         if obj is None:
             return None
         attrs = {
-            "id": str(obj.get(GradingRunDao.ID)),
+            "id_": str(obj.get(GradingRunDao.ID)),
             "state": GradingRunState(obj.get(GradingRunDao.STATE)),
             "assignment_id": obj.get(GradingRunDao.ASSIGNMENT_ID),
             "started_at": obj.get(GradingRunDao.STARTED_AT),

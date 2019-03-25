@@ -25,7 +25,7 @@ class GradingConfigHandler(ClientAPIHandler):
     @schema.validate(input_schema=definitions.grading_config)
     def post(self, *args, **kwargs):
         assignment_id = self.get_assignment_id(**kwargs)
-        config = models.AssignmentConfig(id=assignment_id, **self.body)
+        config = models.AssignmentConfig(id_=assignment_id, **self.body)
         config.id = assignment_id
 
         config_dao = daos.AssignmentConfigDao(self.settings)
@@ -150,18 +150,25 @@ class GradingRunStatusHandler(ClientAPIHandler):
             return
 
         grading_job_dao = daos.GradingJobDao(self.settings)
-        jobs = grading_job_dao.find_by_run_id(grading_run_id)
+        grading_jobs = grading_job_dao.find_by_run_id(grading_run_id)
         pre_processing_job = next(
-            filter(lambda j: j.type == models.GradingJobType.PRE_PROCESSING, jobs), None
-        )
-        post_processing_job = next(
-            filter(lambda j: j.type == models.GradingJobType.POST_PROCESSING, jobs),
+            filter(
+                lambda j: j.type == models.GradingJobType.PRE_PROCESSING, grading_jobs
+            ),
             None,
         )
-        student_jobs = filter(lambda j: j.type == models.GradingJobType.STUDENT, jobs)
+        post_processing_job = next(
+            filter(
+                lambda j: j.type == models.GradingJobType.POST_PROCESSING, grading_jobs
+            ),
+            None,
+        )
+        student_jobs = filter(
+            lambda j: j.type == models.GradingJobType.STUDENT, grading_jobs
+        )
 
         # [jobs] -> { job_id: job_state }
-        def get_job_map(jobs):
+        def get_job_id_to_state_map(jobs):
             if jobs is None:
                 return None
             else:
@@ -169,13 +176,13 @@ class GradingRunStatusHandler(ClientAPIHandler):
 
         return {
             "state": grading_run.state.value,
-            "pre_processing_job_state": get_job_map(
+            "pre_processing_job_state": get_job_id_to_state_map(
                 [pre_processing_job] if pre_processing_job else None
             ),
-            "post_processing_job_state": get_job_map(
+            "post_processing_job_state": get_job_id_to_state_map(
                 [post_processing_job] if post_processing_job else None
             ),
-            "student_jobs_state": get_job_map(student_jobs),
+            "student_jobs_state": get_job_id_to_state_map(student_jobs),
         }
 
 

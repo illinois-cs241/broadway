@@ -23,17 +23,19 @@ class AssignmentConfigDao(BaseDao):
     def insert(self, obj):
         return self._collection.insert_one(self._to_store(obj))
 
-    def find_by_id(self, id):
-        return self._from_store(self._collection.find_one({AssignmentConfigDao.ID: id}))
+    def find_by_id(self, id_):
+        return self._from_store(
+            self._collection.find_one({AssignmentConfigDao.ID: id_})
+        )
 
-    def delete_by_id(self, id):
-        return self._collection.delete_one({AssignmentConfigDao.ID: id})
+    def delete_by_id(self, id_):
+        return self._collection.delete_one({AssignmentConfigDao.ID: id_})
 
     def _from_store(self, obj):
         if obj is None:
             return obj
         attrs = {
-            "id": obj.get(AssignmentConfigDao.ID),
+            "id_": obj.get(AssignmentConfigDao.ID),
             "env": obj.get(AssignmentConfigDao.ENV),
             "student_pipeline": obj.get(AssignmentConfigDao.STUDENT_PIPELINE),
             "pre_processing_pipeline": obj.get(

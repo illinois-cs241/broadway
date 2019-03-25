@@ -22,11 +22,11 @@ class GradingJobLogDao(BaseDao):
         del document[GradingJobLogDao.ID]
         return self._collection.insert_one(document)
 
-    def find_by_id(self, id):
-        if not ObjectId.is_valid(id):
+    def find_by_id(self, id_):
+        if not ObjectId.is_valid(id_):
             return None
         return self._from_store(
-            self._collection.find_one({GradingJobLogDao.ID: ObjectId(id)})
+            self._collection.find_one({GradingJobLogDao.ID: ObjectId(id_)})
         )
 
     def find_by_job_id(self, job_id):
@@ -37,7 +37,7 @@ class GradingJobLogDao(BaseDao):
         if obj is None:
             return None
         attrs = {
-            "id": str(obj.get(GradingJobLogDao.ID)),
+            "id_": str(obj.get(GradingJobLogDao.ID)),
             "job_id": obj.get(GradingJobLogDao.GRADING_JOB_ID),
             "stdout": obj.get(GradingJobLogDao.STDOUT),
             "stderr": obj.get(GradingJobLogDao.STDERR),

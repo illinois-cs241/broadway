@@ -39,5 +39,5 @@ def initialize_course_tokens(settings, course_config_path):
     course_dao.drop_all()
 
     for course_id, tokens in courses.items():
-        course = Course(id=course_id, tokens=tokens)
+        course = Course(id_=course_id, tokens=tokens)
         course_dao.insert_or_update(course)

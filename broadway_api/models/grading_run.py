@@ -18,7 +18,7 @@ class GradingRun(BaseModel):
         self,
         assignment_id: str,
         state: GradingRunState,
-        id: Optional[str] = None,
+        id_: Optional[str] = None,
         started_at: Optional[str] = None,
         finished_at: Optional[str] = None,
         pre_processing_env: Optional[List[Dict[str, str]]] = None,
@@ -27,7 +27,7 @@ class GradingRun(BaseModel):
         student_jobs_left: int = 0,
         success: Optional[bool] = None,
     ) -> None:
-        self.id = id
+        self.id = id_
         self.state = state
         self.assignment_id = assignment_id
         self.started_at = started_at

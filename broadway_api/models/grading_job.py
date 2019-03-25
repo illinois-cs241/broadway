@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Any, Dict, List, Optional
+from datetime import datetime
 
 from broadway_api.models.base import BaseModel
 
@@ -24,15 +25,15 @@ class GradingJob(BaseModel):
         run_id: str,
         stages: List[Any] = [],
         students: List[Dict[str, str]] = None,
-        id: Optional[str] = None,
+        id_: Optional[str] = None,
         worker_id: Optional[str] = None,
-        queued_at: Optional[str] = None,
-        started_at: Optional[str] = None,
-        finished_at: Optional[str] = None,
+        queued_at: Optional[datetime] = None,
+        started_at: Optional[datetime] = None,
+        finished_at: Optional[datetime] = None,
         results: Optional[List[Any]] = None,
         success: Optional[bool] = None,
     ) -> None:
-        self.id = id
+        self.id = id_
         self.type = job_type
         self.run_id = run_id
         self.worker_id = worker_id

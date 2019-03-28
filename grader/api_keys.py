@@ -2,7 +2,6 @@
 AUTH = "Authorization"
 HOSTNAME = "hostname"
 HEARTBEAT = "heartbeat"
-PROTOCOL = "https"
 GRADING_JOB_ID = "grading_job_id"
 RESULTS = "results"
 SUCCESS = "success"

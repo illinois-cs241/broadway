@@ -10,6 +10,7 @@ HEARTBEAT_INTERVAL = 10
 JOB_POLL_INTERVAL = 5
 
 # API endpoints
+USE_SSL = True
 HEARTBEAT_ENDPOINT = "/api/v1/heartbeat"
 GRADING_JOB_ENDPOINT = "/api/v1/grading_job"
 GRADER_REGISTER_ENDPOINT = "/api/v1/worker"

@@ -1,6 +1,8 @@
 import logging
+import time
 
 from tests.base import BaseTest
+from tests._fixtures.config import HEARTBEAT_INTERVAL
 
 logging.disable(logging.WARNING)
 
@@ -8,6 +10,16 @@ logging.disable(logging.WARNING)
 class RegisterGraderEndpointsTest(BaseTest):
     def test_register(self):
         self.assertIsNotNone(self.register_worker(self.get_header()))
+
+    def test_duplicate_id(self):
+        worker_id = "duplicate"
+        self.register_worker(self.get_header(), worker_id=worker_id, expected_code=200)
+        self.register_worker(self.get_header(), worker_id=worker_id, expected_code=400)
+
+    def test_reregister_id(self):
+        worker_id = self.register_worker(self.get_header(), expected_code=200)
+        time.sleep(HEARTBEAT_INTERVAL * 2 + 1)
+        self.register_worker(self.get_header(), worker_id=worker_id, expected_code=200)
 
     def test_unauthorized(self):
         self.register_worker(None, 401)

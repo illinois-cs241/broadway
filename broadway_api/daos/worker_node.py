@@ -1,5 +1,3 @@
-from bson import ObjectId
-
 from broadway_api.daos.base import BaseDao
 from broadway_api.models import WorkerNode
 
@@ -21,18 +19,19 @@ class WorkerNodeDao(BaseDao):
 
     def insert(self, obj):
         document = self._to_store(obj)
-        del document[WorkerNodeDao.ID]
         return self._collection.insert_one(document)
+
+    def update(self, obj):
+        document = self._to_store(obj)
+        return self._collection.update_one(
+            {WorkerNodeDao.ID: obj.id}, {"$set": document}
+        )
 
     def find_all(self):
         return list(map(self._from_store, self._collection.find()))
 
     def find_by_id(self, id_):
-        if not ObjectId.is_valid(id_):
-            return None
-        return self._from_store(
-            self._collection.find_one({WorkerNodeDao.ID: ObjectId(id_)})
-        )
+        return self._from_store(self._collection.find_one({WorkerNodeDao.ID: id_}))
 
     def find_by_hostname(self, hostname):
         return self._from_store(
@@ -42,11 +41,6 @@ class WorkerNodeDao(BaseDao):
     def find_by_liveness(self, alive):
         return list(
             map(self._from_store, self._collection.find({WorkerNodeDao.ALIVE: alive}))
-        )
-
-    def update(self, obj):
-        return self._collection.update_one(
-            {WorkerNodeDao.ID: ObjectId(obj.id)}, {"$set": self._to_store(obj)}
         )
 
     def _from_store(self, obj):
@@ -60,13 +54,11 @@ class WorkerNodeDao(BaseDao):
             "jobs_processed": obj.get(WorkerNodeDao.JOBS_PROCESSED),
             "is_alive": obj.get(WorkerNodeDao.ALIVE),
         }
-        if attrs["id_"]:
-            attrs["id_"] = str(attrs["id_"])
         return WorkerNode(**attrs)
 
     def _to_store(self, obj):
         return {
-            WorkerNodeDao.ID: ObjectId(obj.id) if obj.id else None,
+            WorkerNodeDao.ID: obj.id,
             WorkerNodeDao.RUNNING_JOB_ID: obj.running_job_id,
             WorkerNodeDao.LAST_SEEN: obj.last_seen,
             WorkerNodeDao.WORKER_HOSTNAME: obj.hostname,

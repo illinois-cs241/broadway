@@ -63,8 +63,7 @@ def initialize_app():
         "QUEUE": Queue(),
     }
 
-    hex_regex = r"(?P<{}>[a-f0-9]+)"
-    id_regex = r"(?P<{}>[-\w]+)"
+    id_regex = r"(?P<{}>[-\w0-9]+)"
     string_regex = r"(?P<{}>[^()]+)"
 
     return tornado.web.Application(
@@ -103,15 +102,15 @@ def initialize_app():
             # ----------------------------------
             # ------- Worker Endpoints ---------
             (
-                r"/api/v1/worker/{}".format(string_regex.format("hostname")),
+                r"/api/v1/worker/{}".format(id_regex.format("worker_id")),
                 worker_handlers.WorkerRegisterHandler,
             ),
             (
-                r"/api/v1/grading_job/{}".format(hex_regex.format("worker_id")),
+                r"/api/v1/grading_job/{}".format(id_regex.format("worker_id")),
                 worker_handlers.GradingJobHandler,
             ),
             (
-                r"/api/v1/heartbeat/{}".format(hex_regex.format("worker_id")),
+                r"/api/v1/heartbeat/{}".format(id_regex.format("worker_id")),
                 worker_handlers.HeartBeatHandler,
             ),
             # ----------------------------------

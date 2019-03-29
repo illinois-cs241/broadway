@@ -5,8 +5,8 @@ from datetime import datetime
 class WorkerNode:
     def __init__(
         self,
+        id_: str,
         hostname: str,
-        id_: Optional[str] = None,
         running_job_id: Optional[str] = None,
         last_seen: Optional[datetime] = None,
         jobs_processed: int = 0,

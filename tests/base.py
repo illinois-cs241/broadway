@@ -1,11 +1,14 @@
 import json
 import jsonschema
+import uuid
 import unittest
 import sys
 
 from tornado.testing import AsyncHTTPTestCase
+import tornado.ioloop
 
 import broadway_api.definitions as definitions
+import broadway_api.callbacks as callbacks
 import tests._fixtures.config as test_config
 import tests._utils.database as database_utils
 
@@ -37,6 +40,12 @@ class AsyncHTTPMixin(AsyncHTTPTestCase):
                 MOCK_COURSE2: [MOCK_CLIENT_TOKEN1, MOCK_CLIENT_TOKEN2],
             },
         )
+
+        tornado.ioloop.PeriodicCallback(
+            lambda: callbacks.worker_heartbeat_callback(self.app.settings),
+            test_config.HEARTBEAT_INTERVAL * 1000,
+        ).start()
+
         return self.app
 
     def get_token(self):
@@ -159,18 +168,22 @@ class ClientMixin(AsyncHTTPMixin):
 
 
 class GraderMixin(AsyncHTTPMixin):
-    def register_worker(self, header, expected_code=200, hostname="mock_hostname"):
+    def register_worker(
+        self, header, expected_code=200, worker_id=None, hostname="mock_hostname"
+    ):
+        worker_id = worker_id or str(uuid.uuid4())
+
         response = self.fetch(
-            self.get_url("/api/v1/worker/{}".format(hostname)),
-            method="GET",
+            self.get_url("/api/v1/worker/{}".format(worker_id)),
+            method="POST",
             headers=header,
+            body=json.dumps({"hostname": hostname}),
         )
+
         self.assertEqual(response.code, expected_code)
 
         if expected_code == 200:
-            response_body = json.loads(response.body.decode("utf-8"))
-            self.assertIn("worker_id", response_body["data"])
-            return response_body["data"].get("worker_id")
+            return worker_id
 
     def poll_job(self, worker_id, header):
         response = self.fetch(

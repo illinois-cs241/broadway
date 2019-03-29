@@ -19,9 +19,13 @@ def authenticate_worker(func):
         worker_id = kwargs.get("worker_id")
 
         dao = WorkerNodeDao(handler.settings)
-        if dao.find_by_id(worker_id) is None:
+
+        worker = dao.find_by_id(worker_id)
+
+        if worker is None:
             handler.abort({"message": "worker not found"}, status=401)
             return
+
         return func(*args, **kwargs)
 
     return wrapper

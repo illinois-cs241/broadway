@@ -178,12 +178,11 @@ if __name__ == "__main__":
 
     signal.signal(signal.SIGINT, signal_handler)
 
-    token = args.token
     worker_id = args.worker_id
     hostname = socket.gethostname()
 
     # register node to server
-    header = {api_key.AUTH: "Bearer {}".format(token)}
+    header = {api_key.AUTH: "Bearer {}".format(args.token)}
     register_node()
 
     # run the grader on two separate threads. If any of the routines fail, the grader shuts down

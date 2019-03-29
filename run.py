@@ -5,6 +5,7 @@ import signal
 import socket
 import sys
 import time
+import argparse
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 from logging.handlers import TimedRotatingFileHandler
 
@@ -13,11 +14,13 @@ from chainlink import Chainlink
 
 import grader.api_keys as api_key
 from config import *
-from grader.utils import get_url, print_usage
+from grader.utils import get_url
 
 # globals
 worker_id = None
+hostname = None
 worker_thread = None
+heartbeat_interval = HEARTBEAT_INTERVAL
 heartbeat_running = True
 worker_running = True
 event_loop = asyncio.new_event_loop()
@@ -52,7 +55,7 @@ def heartbeat_routine():
             logger.critical("Heartbeat failed!\nError: {}".format(response.text))
             return
 
-        time.sleep(HEARTBEAT_INTERVAL)
+        time.sleep(heartbeat_interval)
 
 
 def worker_routine():
@@ -141,9 +144,10 @@ def register_node():
     global worker_running
     global heartbeat_running
 
-    response = requests.get(
-        get_url("{}/{}".format(GRADER_REGISTER_ENDPOINT, socket.gethostname())),
+    response = requests.post(
+        get_url("{}/{}".format(GRADER_REGISTER_ENDPOINT, worker_id)),
         headers=header,
+        json={api_key.HOSTNAME: hostname}
     )
     if response.status_code != SUCCESS_CODE:
         logger.critical("Registration failed!\nError: {}".format(response.text))
@@ -153,30 +157,32 @@ def register_node():
 
     logger.info("Registered to server")
     server_response = response.json()["data"]
-    # read worker id
-    if api_key.WORKER_ID in server_response:
-        worker_id = server_response.get(api_key.WORKER_ID)
+    
+    # set heartbeat interval
+    if api_key.HEARTBEAT in server_response:
+        heartbeat_interval = server_response[api_key.HEARTBEAT]
     else:
-        logger.critical(
-            "Bad server response on registration. Missing argument '{}'.".format(
-                api_key.WORKER_ID
-            )
-        )
-        worker_running = False
-        heartbeat_running = False
-        exit(-1)
+        logger.info("Server response did not include heartbeat, using default {}".format(heartbeat_interval))
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("token", help="Broadway cluster token")
+    parser.add_argument("worker_id", metavar="worker-id", help="Unique worker id for registration")
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
     # check valid usage
-    if len(sys.argv) != 2:
-        print_usage()
-        exit(-1)
+    args = parse_args()
 
     signal.signal(signal.SIGINT, signal_handler)
 
+    worker_id = args.worker_id
+    hostname = socket.gethostname()
+
     # register node to server
-    header = {api_key.AUTH: "Bearer {}".format(sys.argv[1])}
+    header = {api_key.AUTH: "Bearer {}".format(args.token)}
     register_node()
 
     # run the grader on two separate threads. If any of the routines fail, the grader shuts down

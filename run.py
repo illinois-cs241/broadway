@@ -5,6 +5,7 @@ import signal
 import socket
 import sys
 import time
+import argparse
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 from logging.handlers import TimedRotatingFileHandler
 
@@ -13,7 +14,7 @@ from chainlink import Chainlink
 
 import grader.api_keys as api_key
 from config import *
-from grader.utils import get_url, print_usage
+from grader.utils import get_url
 
 # globals
 worker_id = None
@@ -164,16 +165,21 @@ def register_node():
         logger.info("Server response did not include heartbeat, using default {}".format(heartbeat_interval))
 
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("token", help="Broadway cluster token")
+    parser.add_argument("worker_id", metavar="worker-id", help="Unique worker id for registration")
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
     # check valid usage
-    if len(sys.argv) != 3:
-        print_usage()
-        exit(-1)
+    args = parse_args()
 
     signal.signal(signal.SIGINT, signal_handler)
 
-    token = sys.argv[1]
-    worker_id = sys.argv[2]
+    token = args.token
+    worker_id = args.worker_id
     hostname = socket.gethostname()
 
     # register node to server

@@ -1,29 +1,31 @@
-import asyncio
-import logging
 import os
+import sys
 import signal
 import socket
-import sys
-import time
+import asyncio
+import logging
 import argparse
-from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
+
+from threading import Event
 from logging.handlers import TimedRotatingFileHandler
+from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 
 import requests
 from chainlink import Chainlink
 
-import grader.api_keys as api_key
 from config import *
 from grader.utils import get_url
+import grader.api_keys as api_keys
 
 # globals
 worker_id = None
 hostname = None
 worker_thread = None
 heartbeat_interval = HEARTBEAT_INTERVAL
-heartbeat_running = True
-worker_running = True
+
 event_loop = asyncio.new_event_loop()
+
+exit_event = Event()
 
 # setting up logger
 os.makedirs(LOGS_DIR, exist_ok=True)
@@ -39,13 +41,16 @@ logging.basicConfig(
 logger = logging.getLogger()
 
 
+def halt_all():
+    exit_event.set()
+
+
 def signal_handler(sig, frame):
-    global worker_running
-    worker_running = False
+    halt_all()
 
 
 def heartbeat_routine():
-    while heartbeat_running:
+    while not exit_event.is_set():
         response = requests.post(
             get_url("{}/{}".format(HEARTBEAT_ENDPOINT, worker_id)),
             headers=header,
@@ -55,13 +60,13 @@ def heartbeat_routine():
             logger.critical("Heartbeat failed!\nError: {}".format(response.text))
             return
 
-        time.sleep(heartbeat_interval)
+        exit_event.wait(heartbeat_interval)
 
 
 def worker_routine():
     asyncio.set_event_loop(event_loop)
 
-    while worker_running:
+    while not exit_event.is_set():
         # poll from queue
         response = requests.get(
             get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)), headers=header
@@ -69,7 +74,7 @@ def worker_routine():
 
         # if the queue is empty then sleep for a while
         if response.status_code == QUEUE_EMPTY_CODE:
-            time.sleep(JOB_POLL_INTERVAL)
+            exit_event.wait(JOB_POLL_INTERVAL)
             continue
 
         if response.status_code != SUCCESS_CODE:
@@ -82,12 +87,12 @@ def worker_routine():
 
         # we successfully polled a job
         job = response.json()["data"]
-        job_id = job.get(api_key.GRADING_JOB_ID)
+        job_id = job.get(api_keys.GRADING_JOB_ID)
         logger.info("Starting job {}".format(job_id))
 
         # execute job
         try:
-            chain = Chainlink(job[api_key.STAGES], workdir=os.getcwd())
+            chain = Chainlink(job[api_keys.STAGES], workdir=os.getcwd())
             job_results = chain.run({})
         except Exception as ex:
             logger.critical("Grading job failed with exception:\n{}", ex)
@@ -118,10 +123,10 @@ def worker_routine():
             logger.info("Job stderr:\n" + job_stderr)
 
         grading_job_result = {
-            api_key.RESULTS: job_results,
-            api_key.SUCCESS: job_results[-1]["success"],
-            api_key.LOGS: {"stdout": job_stdout, "stderr": job_stderr},
-            api_key.GRADING_JOB_ID: job_id,
+            api_keys.RESULTS: job_results,
+            api_keys.SUCCESS: job_results[-1]["success"],
+            api_keys.LOGS: {"stdout": job_stdout, "stderr": job_stderr},
+            api_keys.GRADING_JOB_ID: job_id,
         }
 
         logger.info("Sending job results")
@@ -141,26 +146,22 @@ def worker_routine():
 
 def register_node():
     global worker_id
-    global worker_running
-    global heartbeat_running
 
     response = requests.post(
         get_url("{}/{}".format(GRADER_REGISTER_ENDPOINT, worker_id)),
         headers=header,
-        json={api_key.HOSTNAME: hostname}
+        json={api_keys.HOSTNAME: hostname}
     )
     if response.status_code != SUCCESS_CODE:
         logger.critical("Registration failed!\nError: {}".format(response.text))
-        worker_running = False
-        heartbeat_running = False
         exit(-1)
 
     logger.info("Registered to server")
     server_response = response.json()["data"]
     
     # set heartbeat interval
-    if api_key.HEARTBEAT in server_response:
-        heartbeat_interval = server_response[api_key.HEARTBEAT]
+    if api_keys.HEARTBEAT in server_response:
+        heartbeat_interval = server_response[api_keys.HEARTBEAT]
     else:
         logger.info("Server response did not include heartbeat, using default {}".format(heartbeat_interval))
 
@@ -182,13 +183,11 @@ if __name__ == "__main__":
     hostname = socket.gethostname()
 
     # register node to server
-    header = {api_key.AUTH: "Bearer {}".format(args.token)}
+    header = {api_keys.AUTH: "Bearer {}".format(args.token)}
     register_node()
 
     # run the grader on two separate threads. If any of the routines fail, the grader shuts down
     executor = ThreadPoolExecutor(max_workers=2)
     futures = [executor.submit(heartbeat_routine), executor.submit(worker_routine)]
     wait(futures, return_when=FIRST_COMPLETED)
-    worker_running = False
-    heartbeat_running = False
     executor.shutdown()

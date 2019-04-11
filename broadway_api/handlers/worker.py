@@ -47,8 +47,9 @@ class WorkerRegisterHandler(BaseAPIHandler):
             logger.info("new worker {} joined on {}".format(worker_id, hostname))
             worker_node_dao.insert(worker_node)
         elif not dup.is_alive:
+            dup.is_alive = True
             logger.info("worker {} alive again on {}".format(worker_id, hostname))
-            worker_node_dao.update(worker_node)
+            worker_node_dao.update(dup)
         else:
             msg = "worker id '{}' already exists".format(worker_id)
             logger.info(msg)

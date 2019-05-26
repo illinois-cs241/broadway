@@ -13,7 +13,7 @@ The aim of this project is to provide a generic interface to a distributed autog
 * A more consistent environment to grade student code.
 * Easier to scale out the infrastructure.
 
-**_Please read the [Wiki](../../wiki)_ for documentation.** It explains how Broadway works and how to interact with it. Please be sure to read all the pages if you are planning on using Broadway.
+**_Please read the [Wiki](../../wiki) for documentation._** It explains how Broadway works and how to interact with it. Please be sure to read all the pages if you are planning on using Broadway.
 
 ## Requirements
 

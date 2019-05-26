@@ -27,6 +27,25 @@ is merged to `master`.
 
 **Please squash and merge** so that the commit history on master looks cleaner and easier to navigate.
 
+### Testing
+Please run/modify the [tests](tests) each time a change is made to the logic or structure. You can run tests using:
+```shell
+python3 -m unittest tests/**/*.py
+```
+
+In addition, we run a linter/formatter to keep things standard and clean. For formatting, be sure to execute `black`
+```shell
+black broadway_api/ tests/ api.py
+```
+
+and then `flake8`
+
+```shell
+flake8 --config=setup.cfg
+```
+
+before opening a pull request.
+
 ### Blocking calls
 Please be cautious of adding blocking calls in the application logic because Tornado uses a single-threaded event loop. Therefore, 
 one blocking call will prevent the API from serving requests and hence tamper with the entire distributed system. For instance, 

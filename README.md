@@ -15,6 +15,8 @@ The aim of this project is to provide a generic interface to a distributed autog
 
 **_Please read the [Wiki](../../wiki) for documentation._** It explains how Broadway works and how to interact with it. Please be sure to read all the pages if you are planning on using Broadway.
 
+See our [contribution guidelines](CONTRIBUTING.md) if you want to contribute.
+
 ## Requirements
 
 MongoDB must be installed and the `mongod` daemon must be running locally before starting the API. Default options are usually sufficient (but for security purposes, be sure to disallow external access to the store).
@@ -42,22 +44,3 @@ We provide a [sample script](scripts/start_run_script.py) to start a grading run
 python start_run_script.py <path to grading config json> <path to run time env json> <token>
 ```
 It is recommended to build a CLI which can generate the required config files and start the grading run (so that AG run scheduling can be automated).
-
-## Testing
-Please run/modify the [tests](tests) each time a change is made to the logic or structure. You can run tests using:
-```shell
-python3 -m unittest tests/**/*.py
-```
-
-In addition, we run a linter/formatter to keep things standard and clean. For formatting, be sure to execute `black`
-```shell
-black broadway_api/ tests/ api.py
-```
-
-and then `flake8`
-
-```shell
-flake8 --config=setup.cfg
-```
-
-before opening a pull request.

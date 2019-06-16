@@ -94,7 +94,7 @@ def worker_routine():
             chain = Chainlink(job[api_keys.STAGES], workdir=os.getcwd())
             job_results = chain.run({})
         except Exception as ex:
-            logger.critical("Grading job failed with exception:\n{}", ex)
+            logger.critical("Grading job failed with exception:\n{}".format(ex))
             job_results = [
                 {
                     "logs": {

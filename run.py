@@ -1,5 +1,4 @@
 import os
-import sys
 import signal
 import socket
 import asyncio
@@ -146,11 +145,12 @@ def worker_routine():
 
 def register_node():
     global worker_id
+    global heartbeat_interval
 
     response = requests.post(
         get_url("{}/{}".format(GRADER_REGISTER_ENDPOINT, worker_id)),
         headers=header,
-        json={api_keys.HOSTNAME: hostname}
+        json={api_keys.HOSTNAME: hostname},
     )
     if response.status_code != SUCCESS_CODE:
         logger.critical("Registration failed!\nError: {}".format(response.text))
@@ -158,18 +158,24 @@ def register_node():
 
     logger.info("Registered to server")
     server_response = response.json()["data"]
-    
+
     # set heartbeat interval
     if api_keys.HEARTBEAT in server_response:
         heartbeat_interval = server_response[api_keys.HEARTBEAT]
     else:
-        logger.info("Server response did not include heartbeat, using default {}".format(heartbeat_interval))
+        logger.info(
+            "Server response did not include heartbeat, using default {}".format(
+                heartbeat_interval
+            )
+        )
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("token", help="Broadway cluster token")
-    parser.add_argument("worker_id", metavar="worker-id", help="Unique worker id for registration")
+    parser.add_argument(
+        "worker_id", metavar="worker-id", help="Unique worker id for registration"
+    )
     return parser.parse_args()
 
 

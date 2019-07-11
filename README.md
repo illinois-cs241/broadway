@@ -25,7 +25,15 @@ Python 3.5 is the minimum supported interpreter version. Versions 3.5 and 3.6 ar
 
 ## Configuration
 
-All configuration options are available and documented in-line in `config.py` at the root of the project directory. This is the file that will be imported by the API and used for configuration.
+Most configuration options are available and documented in-line in `config.py` at the root of the project directory. This is the file that will be imported by the API and used for configuration.
+
+#### Environment Variables
+
+Some behavioral configuration options are available through environment variables for ease-of-use. These are documented below.
+
+| Name | Description | Default |
+| ---- | ----------- | ------- |
+| `BROADWAY_TOKEN` | The token to use for cluster authentication | A randomly generated token (logged at startup) |
 
 ## Running the API
 Python dependencies can be installed by executing (from the project root):

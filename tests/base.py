@@ -4,11 +4,15 @@ import uuid
 import unittest
 import sys
 
+import websockets
+
 from tornado.testing import AsyncHTTPTestCase
 import tornado.ioloop
 
 import broadway_api.definitions as definitions
 import broadway_api.callbacks as callbacks
+from broadway_api.utils.bootstrap import initialize_database
+
 import tests._fixtures.config as test_config
 import tests._utils.database as database_utils
 
@@ -41,6 +45,8 @@ class AsyncHTTPMixin(AsyncHTTPTestCase):
             },
         )
 
+        initialize_database(self.app.settings)
+
         tornado.ioloop.PeriodicCallback(
             lambda: callbacks.worker_heartbeat_callback(self.app.settings),
             test_config.HEARTBEAT_INTERVAL * 1000,
@@ -53,7 +59,8 @@ class AsyncHTTPMixin(AsyncHTTPTestCase):
 
     def get_header(self, override=None):
         return {
-            "Authorization": "Bearer " + self.get_token() if not override else override
+            "Authorization": "Bearer "
+            + (self.get_token() if not override else override)
         }
 
     def tearDown(self):
@@ -270,5 +277,40 @@ class EqualityMixin(unittest.TestCase):
                 self.assertEqual(actual_stage.get(stage_key), expected_stage[stage_key])
 
 
-class BaseTest(EqualityMixin, ClientMixin, GraderMixin):
+class WorkerWSMixin(AsyncHTTPMixin):
+    # lower level conn
+    def worker_ws_conn(self, worker_id, headers):
+        url = self.get_url("/api/v1/worker_ws/{}".format(worker_id)).replace(
+            "http://", "ws://"
+        )
+        return websockets.connect(url, extra_headers=headers)
+
+    def worker_ws_conn_register(self, conn, hostname):
+        return conn.send(
+            json.dumps({"type": "register", "args": {"hostname": hostname}})
+        )
+
+    def worker_ws_conn_reulst(self, conn, job_id, job_success):
+        args = {
+            "grading_job_id": job_id,
+            "success": job_success,
+            "results": [{"res": "container 1 res"}, {"res": "container 2 res"}],
+            "logs": {"stdout": "stdout", "stderr": "stderr"},
+        }
+
+        return conn.send(json.dumps({"type": "job_result", "args": args}))
+
+    # need to be closed
+    async def worker_ws(self, worker_id, headers, hostname="eniac"):
+        conn = await self.worker_ws_conn(worker_id=worker_id, headers=headers)
+
+        await self.worker_ws_conn_register(conn, hostname)
+
+        ack = json.loads(await conn.recv())
+        self.assertTrue(ack["success"])
+
+        return conn
+
+
+class BaseTest(WorkerWSMixin, EqualityMixin, ClientMixin, GraderMixin):
     pass

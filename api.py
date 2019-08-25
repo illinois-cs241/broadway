@@ -12,13 +12,14 @@ import sys
 import broadway_api.callbacks as callbacks
 import broadway_api.handlers.client as client_handlers
 import broadway_api.handlers.worker as worker_handlers
+import broadway_api.handlers.worker_ws as worker_ws_handlers
 from broadway_api.utils.bootstrap import (
     initialize_cluster_token,
     initialize_course_tokens,
+    initialize_database,
 )
 
 from logging.handlers import TimedRotatingFileHandler
-from pymongo import MongoClient
 from queue import Queue
 
 import config
@@ -59,9 +60,12 @@ def initialize_app():
     settings = {
         "CLUSTER_TOKEN": initialize_cluster_token(),
         "CONFIG": dict((k, config.__dict__[k]) for k in config_keys),
-        "DB": MongoClient(),
+        "DB": None,
         "QUEUE": Queue(),
+        "WS_CONN_MAP": {},
     }
+
+    initialize_database(settings)
 
     id_regex = r"(?P<{}>[-\w0-9]+)"
     string_regex = r"(?P<{}>[^()]+)"
@@ -113,6 +117,10 @@ def initialize_app():
                 r"/api/v1/heartbeat/{}".format(id_regex.format("worker_id")),
                 worker_handlers.HeartBeatHandler,
             ),
+            (
+                r"/api/v1/worker_ws/{}".format(id_regex.format("worker_id")),
+                worker_ws_handlers.WorkerConnectionHandler,
+            )
             # ----------------------------------
         ],
         **settings

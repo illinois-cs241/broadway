@@ -11,4 +11,4 @@ DB_PRIMARY = "__test"
 DB_LOGS = "__test_logs"
 DB_PATH = "/data/db"
 
-HEARTBEAT_INTERVAL = 2
+HEARTBEAT_INTERVAL = 1

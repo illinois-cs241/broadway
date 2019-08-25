@@ -11,6 +11,7 @@ class WorkerNode:
         last_seen: Optional[datetime] = None,
         jobs_processed: int = 0,
         is_alive: bool = True,
+        use_ws: bool = False,
     ):
         self.id = id_
         self.running_job_id = running_job_id
@@ -18,3 +19,4 @@ class WorkerNode:
         self.hostname = hostname
         self.jobs_processed = jobs_processed
         self.is_alive = is_alive
+        self.use_ws = use_ws

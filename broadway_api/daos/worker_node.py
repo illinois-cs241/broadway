@@ -9,6 +9,7 @@ class WorkerNodeDao(BaseDao):
     WORKER_HOSTNAME = "worker_hostname"
     JOBS_PROCESSED = "jobs_processed"
     ALIVE = "alive"
+    USE_WS = "use_ws"
     _COLLECTION = "worker_node"
 
     def __init__(self, app):
@@ -38,9 +39,25 @@ class WorkerNodeDao(BaseDao):
             self._collection.find_one({WorkerNodeDao.WORKER_HOSTNAME: hostname})
         )
 
-    def find_by_liveness(self, alive):
+    def find_by_liveness(self, alive, use_ws=None):
+        pattern = {WorkerNodeDao.ALIVE: alive}
+
+        if use_ws is not None:
+            pattern[WorkerNodeDao.USE_WS] = use_ws
+
+        return list(map(self._from_store, self._collection.find(pattern)))
+
+    def reset_worker_nodes(self):
+        return self._collection.update_many(
+            {WorkerNodeDao.USE_WS: True}, {"$set": {WorkerNodeDao.ALIVE: False}}
+        )
+
+    def find_by_idleness(self):
         return list(
-            map(self._from_store, self._collection.find({WorkerNodeDao.ALIVE: alive}))
+            map(
+                self._from_store,
+                self._collection.find({WorkerNodeDao.RUNNING_JOB_ID: None}),
+            )
         )
 
     def _from_store(self, obj):
@@ -53,6 +70,7 @@ class WorkerNodeDao(BaseDao):
             "hostname": obj.get(WorkerNodeDao.WORKER_HOSTNAME),
             "jobs_processed": obj.get(WorkerNodeDao.JOBS_PROCESSED),
             "is_alive": obj.get(WorkerNodeDao.ALIVE),
+            "use_ws": obj.get(WorkerNodeDao.USE_WS),
         }
         return WorkerNode(**attrs)
 
@@ -64,4 +82,5 @@ class WorkerNodeDao(BaseDao):
             WorkerNodeDao.WORKER_HOSTNAME: obj.hostname,
             WorkerNodeDao.JOBS_PROCESSED: obj.jobs_processed,
             WorkerNodeDao.ALIVE: obj.is_alive,
+            WorkerNodeDao.USE_WS: obj.use_ws,
         }

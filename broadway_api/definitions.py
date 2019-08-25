@@ -32,3 +32,10 @@ grading_config = {
     "required": ["student_pipeline"],
     "additionalProperties": False,
 }
+
+ws_api_msg = {
+    "type": "object",
+    "properties": {"type": {"type": "string"}, "args": {"type": "object"}},
+    "required": ["type", "args"],
+    "additionalProperties": False,
+}

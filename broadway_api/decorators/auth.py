@@ -64,6 +64,23 @@ def authenticate_cluster_token(func):
     return wrapper
 
 
+def authenticate_cluster_token_ws(func):
+    def wrapper(*args, **kwargs):
+        handler = args[0]
+        expected_token = handler.get_token()
+        request_token = handler.request.headers.get("Authorization")
+
+        if not _is_token_valid(request_token):
+            handler.close(reason="invalid token format", code=1008)
+            return
+        elif expected_token != request_token.split(" ")[1]:
+            handler.close(reason="invalid token", code=1008)
+            return
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 def authenticate_course(func):
     def wrapper(*args, **kwargs):
         handler = args[0]

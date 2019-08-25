@@ -1,4 +1,5 @@
 import logging
+import tornado.ioloop
 
 from tornado_json import schema
 
@@ -9,6 +10,7 @@ from broadway_api.decorators.auth import authenticate_course
 from broadway_api.handlers.base import BaseAPIHandler
 from broadway_api.utils.run import continue_grading_run
 from broadway_api.utils.time import get_time
+from broadway_api.callbacks.worker import worker_schedule_job
 
 logger = logging.getLogger("client")
 
@@ -95,6 +97,10 @@ class GradingRunHandler(ClientAPIHandler):
         if not continue_grading_run(self.settings, run):
             self.abort({"message": "failed to start grading run"}, status=500)
             return
+
+        # trigger schedule event
+        tornado.ioloop.IOLoop.current().add_callback(worker_schedule_job, self.settings)
+
         return {"grading_run_id": run.id}
 
     def _assert_run_valid(self, config):

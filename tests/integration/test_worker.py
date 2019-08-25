@@ -1,8 +1,12 @@
 import logging
 import time
+import json
+import websockets
 
 from tests.base import BaseTest
 from tests._fixtures.config import HEARTBEAT_INTERVAL
+
+import tornado.testing
 
 logging.disable(logging.WARNING)
 
@@ -73,3 +77,175 @@ class HeartBeatEndpointsTest(BaseTest):
     def test_valid_heartbeat(self):
         worker_id = self.register_worker(self.get_header())
         self.send_heartbeat(worker_id, self.get_header())
+
+
+class WorkerWSEndpointTest(BaseTest):
+    @tornado.testing.gen_test
+    async def test_decode_error(self):
+        async with self.worker_ws_conn(
+            worker_id="test_worker", headers=self.get_header()
+        ) as conn:
+            try:
+                await conn.send("i'm not json")
+            except Exception as e:
+                self.assertEqual(e.code, 1011)
+
+    # submit job result before registering
+    @tornado.testing.gen_test
+    async def test_bad_job_result(self):
+        async with self.worker_ws_conn(
+            worker_id="test_worker", headers=self.get_header()
+        ) as conn:
+            try:
+                await conn.send(
+                    json.dumps(
+                        {
+                            "type": "job_result",
+                            "args": {
+                                "grading_job_id": "someid",
+                                "success": True,
+                                "results": [{"res": "spoof"}],
+                                "logs": {"stdout": "stdout", "stderr": "stderr"},
+                            },
+                        }
+                    )
+                )
+
+                await conn.recv()
+            except Exception as e:
+                self.assertEqual(e.code, 1002)
+
+    @tornado.testing.gen_test
+    async def test_register(self):
+        async with self.worker_ws_conn(
+            worker_id="test_worker", headers=self.get_header()
+        ) as conn:
+            await conn.send(
+                json.dumps({"type": "register", "args": {"hostname": "eniac"}})
+            )
+
+            ack = json.loads(await conn.recv())
+            self.assertTrue(ack["success"])
+
+    @tornado.testing.gen_test
+    async def test_pong(self):
+        async with self.worker_ws_conn(
+            worker_id="test_worker", headers=self.get_header()
+        ) as conn:
+            await conn.send(
+                json.dumps({"type": "register", "args": {"hostname": "eniac"}})
+            )
+
+            ack = json.loads(await conn.recv())
+            self.assertTrue(ack["success"])
+
+            await conn.pong()
+
+    @tornado.testing.gen_test
+    async def test_no_token(self):
+        async with self.worker_ws_conn(worker_id="test_worker", headers=None) as conn:
+            try:
+                await conn.send(
+                    json.dumps({"type": "register", "args": {"hostname": "eniac"}})
+                )
+
+                ack = json.loads(await conn.recv())
+                self.assertFalse(ack["success"])
+            except websockets.exceptions.ConnectionClosed as e:
+                self.assertEqual(e.code, 1008)
+
+    @tornado.testing.gen_test
+    async def test_wrong_token(self):
+        async with self.worker_ws_conn(
+            worker_id="test_worker", headers=self.get_header("invalid")
+        ) as conn:
+            try:
+                await conn.send(
+                    json.dumps({"type": "register", "args": {"hostname": "eniac"}})
+                )
+
+                ack = json.loads(await conn.recv())
+                self.assertFalse(ack["success"])
+            except websockets.exceptions.ConnectionClosed as e:
+                self.assertEqual(e.code, 1008)
+
+    @tornado.testing.gen_test
+    async def test_duplicate_token(self):
+        async with self.worker_ws_conn(
+            worker_id="test_worker", headers=self.get_header()
+        ) as conn1:
+            await conn1.send(
+                json.dumps({"type": "register", "args": {"hostname": "eniac"}})
+            )
+
+            # worker 1 should successfully register
+            ack = json.loads(await conn1.recv())
+            self.assertTrue(ack["success"])
+
+            async with self.worker_ws_conn(
+                worker_id="test_worker", headers=self.get_header()
+            ) as conn2:
+
+                try:
+                    await conn2.send(
+                        json.dumps({"type": "register", "args": {"hostname": "eniac"}})
+                    )
+
+                    # worker 2 should fail
+                    ack = json.loads(await conn2.recv())
+                    self.assertFalse(ack["success"])
+                except websockets.exceptions.ConnectionClosed as e:
+                    self.assertEqual(e.code, 1002)
+
+    @tornado.testing.gen_test
+    async def test_reregister(self):
+        async with self.worker_ws_conn(
+            worker_id="test_worker", headers=self.get_header()
+        ) as conn1:
+            await conn1.send(
+                json.dumps({"type": "register", "args": {"hostname": "eniac"}})
+            )
+
+            # worker 1 should succeed
+            ack = json.loads(await conn1.recv())
+            self.assertTrue(ack["success"])
+
+        async with self.worker_ws_conn(
+            worker_id="test_worker", headers=self.get_header()
+        ) as conn2:
+            await conn2.send(
+                json.dumps({"type": "register", "args": {"hostname": "eniac"}})
+            )
+
+            # worker 2 should also succeed
+            ack = json.loads(await conn2.recv())
+            self.assertTrue(ack["success"])
+
+    @tornado.testing.gen_test
+    async def test_wrong_job_id(self):
+        async with self.worker_ws_conn(
+            worker_id="test_worker", headers=self.get_header()
+        ) as conn:
+            await conn.send(
+                json.dumps({"type": "register", "args": {"hostname": "eniac"}})
+            )
+
+            ack = json.loads(await conn.recv())
+            self.assertTrue(ack["success"])
+
+            try:
+                await conn.send(
+                    json.dumps(
+                        {
+                            "type": "job_result",
+                            "args": {
+                                "grading_job_id": "no_such_id",
+                                "success": True,
+                                "results": [{"res": "spoof"}],
+                                "logs": {"stdout": "stdout", "stderr": "stderr"},
+                            },
+                        }
+                    )
+                )
+            except websockets.exceptions.ConnectionClosed as e:
+                self.assertEqual(e.code, 1002)

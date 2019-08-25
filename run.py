@@ -13,7 +13,6 @@ import requests
 from chainlink import Chainlink
 
 from config import *
-from grader.utils import get_url
 import grader.api_keys as api_keys
 
 # globals
@@ -46,6 +45,10 @@ def halt_all():
 
 def signal_handler(sig, frame):
     halt_all()
+
+
+def get_url(endpoint):
+    return "{}://{}:{}{}{}".format("https" if USE_SSL else "http", API_HOSTNAME, API_PORT, API_PROXY, endpoint)
 
 
 def heartbeat_routine():

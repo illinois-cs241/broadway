@@ -1,1 +1,3 @@
 git+https://github.com/illinois-cs241/chainlink@0.0.4
+jsonschema==2.6.0
+websockets==7.0

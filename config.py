@@ -1,6 +1,6 @@
 API_HOSTNAME = "127.0.0.1"
 API_PORT = 1470
-API_PROXY = ""
+API_PROXY = "/broadway"
 LOGS_DIR = "logs"
 VERBOSE = True
 TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"

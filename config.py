@@ -1,6 +1,6 @@
 API_HOSTNAME = "127.0.0.1"
-API_PORT = 443
-API_PROXY = "/broadway"
+API_PORT = 1470
+API_PROXY = ""
 LOGS_DIR = "logs"
 VERBOSE = True
 TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -10,7 +10,7 @@ HEARTBEAT_INTERVAL = 10
 JOB_POLL_INTERVAL = 5
 
 # API endpoints
-USE_SSL = True
+USE_SSL = False
 HEARTBEAT_ENDPOINT = "/api/v1/heartbeat"
 GRADING_JOB_ENDPOINT = "/api/v1/grading_job"
 GRADER_REGISTER_ENDPOINT = "/api/v1/worker"

@@ -14,6 +14,7 @@ grading_stage = {
         "hostname": {"type": "string"},
         "timeout": {"type": "number"},
         "memory": {"type": "string"},
+        "logs": {"type": "boolean"},
     },
     "required": ["image"],
     "additionalProperties": False,

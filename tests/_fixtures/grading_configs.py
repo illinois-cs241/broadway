@@ -15,6 +15,9 @@ valid_configs = [
                 "timeout": 20,
                 "hostname": "123456",
                 "networking": False,
+                "privileged": True,
+                "memory": "2g",
+                "logs": False,
             }
         ],
         "post_processing_pipeline": [

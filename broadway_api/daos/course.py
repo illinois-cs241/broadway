@@ -1,4 +1,7 @@
+from typing import Optional
+
 from broadway_api.daos.base import BaseDao
+from broadway_api.daos.decorators import validate_obj_size
 from broadway_api.models import Course
 
 
@@ -13,6 +16,7 @@ class CourseDao(BaseDao):
             self._config["DB_PRIMARY"], CourseDao._COLLECTION
         )
 
+    @validate_obj_size
     def insert_or_update(self, obj):
         document = self._to_store(obj)
         return self._collection.update_one(
@@ -25,11 +29,11 @@ class CourseDao(BaseDao):
     def drop_all(self):
         return self._collection.delete_many({})
 
-    def _from_store(self, obj):
+    def _from_store(self, obj) -> Optional[Course]:
         if obj is None:
             return None
         attrs = {"id_": obj.get(CourseDao.ID), "tokens": obj.get(CourseDao.TOKENS)}
         return Course(**attrs)
 
-    def _to_store(self, obj):
+    def _to_store(self, obj) -> dict:
         return {CourseDao.ID: obj.id, CourseDao.TOKENS: obj.tokens}

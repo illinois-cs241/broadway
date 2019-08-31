@@ -1,4 +1,7 @@
+from typing import Optional
+
 from broadway_api.daos.base import BaseDao
+from broadway_api.daos.decorators import validate_obj_size
 from broadway_api.models.assignment_config import AssignmentConfig
 
 
@@ -20,6 +23,7 @@ class AssignmentConfigDao(BaseDao):
     def id_from(course_id, assignment_name):
         return "{}/{}".format(course_id, assignment_name)
 
+    @validate_obj_size
     def insert(self, obj):
         return self._collection.insert_one(self._to_store(obj))
 
@@ -31,9 +35,9 @@ class AssignmentConfigDao(BaseDao):
     def delete_by_id(self, id_):
         return self._collection.delete_one({AssignmentConfigDao.ID: id_})
 
-    def _from_store(self, obj):
+    def _from_store(self, obj) -> Optional[AssignmentConfig]:
         if obj is None:
-            return obj
+            return None
         attrs = {
             "id_": obj.get(AssignmentConfigDao.ID),
             "env": obj.get(AssignmentConfigDao.ENV),
@@ -47,7 +51,7 @@ class AssignmentConfigDao(BaseDao):
         }
         return AssignmentConfig(**attrs)
 
-    def _to_store(self, obj):
+    def _to_store(self, obj) -> dict:
         return {
             AssignmentConfigDao.ID: obj.id,
             AssignmentConfigDao.ENV: obj.env,

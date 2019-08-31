@@ -1,4 +1,7 @@
+from typing import Optional
+
 from broadway_api.daos.base import BaseDao
+from broadway_api.daos.decorators import validate_obj_size
 from broadway_api.models import WorkerNode
 
 
@@ -18,10 +21,12 @@ class WorkerNodeDao(BaseDao):
             self._config["DB_PRIMARY"], WorkerNodeDao._COLLECTION
         )
 
+    @validate_obj_size
     def insert(self, obj):
         document = self._to_store(obj)
         return self._collection.insert_one(document)
 
+    @validate_obj_size
     def update(self, obj):
         document = self._to_store(obj)
         return self._collection.update_one(
@@ -60,7 +65,7 @@ class WorkerNodeDao(BaseDao):
             )
         )
 
-    def _from_store(self, obj):
+    def _from_store(self, obj) -> Optional[WorkerNode]:
         if obj is None:
             return None
         attrs = {
@@ -74,7 +79,7 @@ class WorkerNodeDao(BaseDao):
         }
         return WorkerNode(**attrs)
 
-    def _to_store(self, obj):
+    def _to_store(self, obj) -> dict:
         return {
             WorkerNodeDao.ID: obj.id,
             WorkerNodeDao.RUNNING_JOB_ID: obj.running_job_id,

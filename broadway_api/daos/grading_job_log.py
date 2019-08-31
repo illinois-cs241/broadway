@@ -1,6 +1,9 @@
+from typing import Optional
+
 from bson import ObjectId
 
 from broadway_api.daos.base import BaseDao
+from broadway_api.daos.decorators import validate_obj_size
 from broadway_api.models import GradingJobLog
 
 
@@ -17,6 +20,7 @@ class GradingJobLogDao(BaseDao):
             self._config["DB_LOGS"], GradingJobLogDao._COLLECTION
         )
 
+    @validate_obj_size
     def insert(self, obj):
         document = self._to_store(obj)
         del document[GradingJobLogDao.ID]
@@ -33,7 +37,7 @@ class GradingJobLogDao(BaseDao):
         found = self._collection.find_one({GradingJobLogDao.GRADING_JOB_ID: job_id})
         return self._from_store(found)
 
-    def _from_store(self, obj):
+    def _from_store(self, obj) -> Optional[GradingJobLog]:
         if obj is None:
             return None
         attrs = {
@@ -44,7 +48,7 @@ class GradingJobLogDao(BaseDao):
         }
         return GradingJobLog(**attrs)
 
-    def _to_store(self, obj):
+    def _to_store(self, obj) -> dict:
         return {
             GradingJobLogDao.ID: ObjectId(obj.id) if obj.id is not None else obj.id,
             GradingJobLogDao.GRADING_JOB_ID: obj.job_id,

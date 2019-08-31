@@ -1,6 +1,9 @@
+from typing import Optional
+
 from bson import ObjectId
 
 from broadway_api.daos.base import BaseDao
+from broadway_api.daos.decorators import validate_obj_size
 from broadway_api.models.grading_job import GradingJob, GradingJobType
 
 
@@ -24,6 +27,7 @@ class GradingJobDao(BaseDao):
             self._config["DB_PRIMARY"], GradingJobDao._COLLECTION
         )
 
+    @validate_obj_size
     def insert(self, obj):
         document = self._to_store(obj)
         del document[GradingJobDao.ID]
@@ -41,12 +45,13 @@ class GradingJobDao(BaseDao):
             map(self._from_store, self._collection.find({GradingJobDao.RUN_ID: run_id}))
         )
 
+    @validate_obj_size
     def update(self, obj):
         return self._collection.update_one(
             {GradingJobDao.ID: ObjectId(obj.id)}, {"$set": self._to_store(obj)}
         )
 
-    def _from_store(self, obj):
+    def _from_store(self, obj) -> Optional[GradingJob]:
         if obj is None:
             return None
         attrs = {
@@ -64,7 +69,7 @@ class GradingJobDao(BaseDao):
         }
         return GradingJob(**attrs)
 
-    def _to_store(self, obj):
+    def _to_store(self, obj) -> dict:
         return {
             GradingJobDao.ID: ObjectId(obj.id) if obj.id is not None else obj.id,
             GradingJobDao.TYPE: obj.type.value,

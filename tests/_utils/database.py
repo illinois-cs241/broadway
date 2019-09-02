@@ -10,7 +10,7 @@ def initialize_db(settings, course_config):
 
 
 def clear_db(settings):
-    config = settings["CONFIG"]
     db = settings["DB"]
-    db.drop_database(config["DB_PRIMARY"])
-    db.drop_database(config["DB_LOGS"])
+    config = settings["FLAGS"]
+    db.drop_database(config["mongodb_primary"])
+    db.drop_database(config["mongodb_logs"])

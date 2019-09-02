@@ -14,10 +14,10 @@ logger = logging.getLogger("worker-callbacks")
 
 def worker_heartbeat_callback(settings):
     """
-    Checks if any workers went offline (after 2 * HEARTBEAT_INTERVAL seconds)
+    Checks if any workers went offline (after 2 * heartbeat_interval seconds)
     """
     heartbeat_timestamp = get_time()
-    heartbeat_interval = settings["CONFIG"]["HEARTBEAT_INTERVAL"]
+    heartbeat_interval = settings["FLAGS"]["heartbeat_interval"]
     conn_map = settings["WS_CONN_MAP"]
 
     dao = WorkerNodeDao(settings)

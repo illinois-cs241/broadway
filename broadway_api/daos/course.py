@@ -12,9 +12,7 @@ class CourseDao(BaseDao):
 
     def __init__(self, app):
         super().__init__(app)
-        self._collection = self._get_collection(
-            self._config["DB_PRIMARY"], CourseDao._COLLECTION
-        )
+        self._collection = self._get_primary_collection(CourseDao._COLLECTION)
 
     @validate_obj_size
     def insert_or_update(self, obj):

@@ -22,9 +22,7 @@ class GradingRunDao(BaseDao):
 
     def __init__(self, app):
         super().__init__(app)
-        self._collection = self._get_collection(
-            self._config["DB_PRIMARY"], GradingRunDao._COLLECTION
-        )
+        self._collection = self._get_primary_collection(GradingRunDao._COLLECTION)
 
     @validate_obj_size
     def insert(self, obj):

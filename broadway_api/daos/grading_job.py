@@ -23,9 +23,7 @@ class GradingJobDao(BaseDao):
 
     def __init__(self, app):
         super().__init__(app)
-        self._collection = self._get_collection(
-            self._config["DB_PRIMARY"], GradingJobDao._COLLECTION
-        )
+        self._collection = self._get_primary_collection(GradingJobDao._COLLECTION)
 
     @validate_obj_size
     def insert(self, obj):

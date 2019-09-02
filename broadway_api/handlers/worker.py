@@ -56,7 +56,7 @@ class WorkerRegisterHandler(BaseAPIHandler):
             self.abort({"message": msg}, status=400)
             return
 
-        return {"heartbeat": self.get_config()["HEARTBEAT_INTERVAL"]}
+        return {"heartbeat": self.get_flags()["heartbeat_interval"]}
 
 
 class GradingJobHandler(BaseAPIHandler):

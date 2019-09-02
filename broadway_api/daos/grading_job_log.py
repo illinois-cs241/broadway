@@ -16,9 +16,7 @@ class GradingJobLogDao(BaseDao):
 
     def __init__(self, app):
         super().__init__(app)
-        self._collection = self._get_collection(
-            self._config["DB_LOGS"], GradingJobLogDao._COLLECTION
-        )
+        self._collection = self._get_log_collection(GradingJobLogDao._COLLECTION)
 
     @validate_obj_size
     def insert(self, obj):

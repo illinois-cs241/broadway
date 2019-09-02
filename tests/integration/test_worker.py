@@ -4,9 +4,10 @@ import json
 import websockets
 
 from tests.base import BaseTest
-from tests._fixtures.config import HEARTBEAT_INTERVAL
 
 import tornado.testing
+
+from broadway_api.callbacks import worker_heartbeat_callback
 
 logging.disable(logging.WARNING)
 
@@ -22,7 +23,8 @@ class RegisterGraderEndpointsTest(BaseTest):
 
     def test_reregister_id(self):
         worker_id = self.register_worker(self.get_header(), expected_code=200)
-        time.sleep(HEARTBEAT_INTERVAL * 2 + 1)
+        time.sleep(self.app.settings["FLAGS"]["heartbeat_interval"] * 2 + 1)
+        worker_heartbeat_callback(self.app.settings)
         self.register_worker(self.get_header(), worker_id=worker_id, expected_code=200)
 
     def test_unauthorized(self):

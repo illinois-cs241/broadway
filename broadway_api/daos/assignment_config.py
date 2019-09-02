@@ -15,9 +15,7 @@ class AssignmentConfigDao(BaseDao):
 
     def __init__(self, app):
         super().__init__(app)
-        self._collection = self._get_collection(
-            self._config["DB_PRIMARY"], AssignmentConfigDao._COLLECTION
-        )
+        self._collection = self._get_primary_collection(AssignmentConfigDao._COLLECTION)
 
     @staticmethod
     def id_from(course_id, assignment_name):

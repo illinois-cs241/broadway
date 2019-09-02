@@ -2,18 +2,16 @@ import json
 import jsonschema
 import uuid
 import unittest
-import sys
 
 import websockets
 
 from tornado.testing import AsyncHTTPTestCase
-import tornado.ioloop
 
 import broadway_api.definitions as definitions
-import broadway_api.callbacks as callbacks
-from broadway_api.utils.bootstrap import initialize_database
 
-import tests._fixtures.config as test_config
+from broadway_api.bootstrap import initialize_database, initialize_app
+from broadway_api import gen_global_settings, gen_flags
+
 import tests._utils.database as database_utils
 
 MOCK_COURSE1 = "mock_course1"
@@ -31,12 +29,14 @@ class AsyncHTTPMixin(AsyncHTTPTestCase):
         """
         Note: this is called by setUp in AsyncHTTPTestCase
         """
-        # use the test configuration instead of the default
-        sys.modules["config"] = test_config
 
-        from api import initialize_app
+        fset = gen_flags()
+        flags = fset.parse_config("tests/_fixtures/config.json")
 
-        self.app = initialize_app()
+        self.app = initialize_app(gen_global_settings(flags), flags)
+
+        initialize_database(self.app.settings, flags)
+
         database_utils.initialize_db(
             self.app.settings,
             {
@@ -44,13 +44,6 @@ class AsyncHTTPMixin(AsyncHTTPTestCase):
                 MOCK_COURSE2: [MOCK_CLIENT_TOKEN1, MOCK_CLIENT_TOKEN2],
             },
         )
-
-        initialize_database(self.app.settings)
-
-        tornado.ioloop.PeriodicCallback(
-            lambda: callbacks.worker_heartbeat_callback(self.app.settings),
-            test_config.HEARTBEAT_INTERVAL * 1000,
-        ).start()
 
         return self.app
 

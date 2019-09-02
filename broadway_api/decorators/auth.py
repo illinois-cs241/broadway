@@ -2,7 +2,7 @@ import logging
 
 from broadway_api.daos import AssignmentConfigDao, CourseDao, WorkerNodeDao
 
-logger = logging.getLogger("auth")
+logger = logging.getLogger("broadway.auth")
 
 
 def _is_token_valid(token):

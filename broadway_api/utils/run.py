@@ -6,7 +6,7 @@ from broadway_api.models.grading_job import GradingJobType
 from broadway_api.models.grading_run import GradingRunState
 from broadway_api.utils.time import get_time
 
-logger = logging.getLogger("run-utils")
+logger = logging.getLogger("broadway.utils.run")
 
 
 def continue_grading_run(settings, grading_run):

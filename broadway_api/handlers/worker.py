@@ -11,7 +11,7 @@ from broadway_api.callbacks.job import job_update_callback
 from broadway_api.handlers.base import BaseAPIHandler
 from broadway_api.utils.time import get_time
 
-logger = logging.getLogger("worker")
+logger = logging.getLogger("broadway.handlers.worker")
 
 
 class WorkerRegisterHandler(BaseAPIHandler):

@@ -2,7 +2,7 @@ import logging
 
 from broadway_api.daos.base import BaseDao
 
-logger = logging.getLogger("dao")
+logger = logging.getLogger("broadway.daos")
 
 
 def validate_obj_size(func):

@@ -9,7 +9,7 @@ from broadway_api.callbacks import job_update_callback
 from broadway_api.daos import GradingJobDao, WorkerNodeDao
 from broadway_api.utils.time import get_time
 
-logger = logging.getLogger("worker-callbacks")
+logger = logging.getLogger("broadway.callbacks.worker")
 
 
 def worker_heartbeat_callback(settings):

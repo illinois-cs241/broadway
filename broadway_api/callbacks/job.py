@@ -4,7 +4,7 @@ import broadway_api.daos as daos
 from broadway_api.models.grading_job import GradingJobType
 from broadway_api.utils.run import continue_grading_run, fail_grading_run
 
-logger = logging.getLogger("job-callbacks")
+logger = logging.getLogger("broadway.callbacks.job")
 
 
 def job_update_callback(settings, grading_job_id, grading_run_id):

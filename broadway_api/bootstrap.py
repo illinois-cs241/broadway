@@ -24,7 +24,7 @@ import broadway_api.handlers.client as client_handlers
 import broadway_api.handlers.worker as worker_handlers
 import broadway_api.handlers.worker_ws as worker_ws_handlers
 
-logger = logging.getLogger("bootstrap")
+logger = logging.getLogger("broadway.bootstrap")
 
 
 def initialize_logger(settings, flags):
@@ -35,16 +35,21 @@ def initialize_logger(settings, flags):
 
     os.makedirs(log_dir, exist_ok=True)
 
+    rotating_handler = TimedRotatingFileHandler(
+        "{}/log".format(log_dir), when=log_rotate, backupCount=log_backup
+    )
+
     logging.basicConfig(
-        handlers=[
-            TimedRotatingFileHandler(
-                "{}/log".format(log_dir), when=log_rotate, backupCount=log_backup
-            ),
-            logging.StreamHandler(),
-        ],
+        handlers=[rotating_handler, logging.StreamHandler()],
         format="%(asctime)s %(levelname)s %(module)s.%(funcName)s: %(message)s",
         level=log_level,
     )
+
+    logging.getLogger("tornado.access").addHandler(rotating_handler)
+    logging.getLogger("tornado.access").propagate = False
+
+    logging.getLogger("tornado.general").addHandler(rotating_handler)
+    logging.getLogger("tornado.general").propagate = False
 
 
 def initialize_course_tokens(settings, flags):

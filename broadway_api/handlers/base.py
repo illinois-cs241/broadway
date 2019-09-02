@@ -7,7 +7,7 @@ from tornado.websocket import WebSocketHandler
 
 from broadway_api.definitions import ws_api_msg
 
-logger = logging.getLogger("base")
+logger = logging.getLogger("broadway.handlers.base")
 
 
 class BaseAPIHandler(APIHandler):

@@ -12,7 +12,7 @@ from broadway_api.bootstrap import (
 
 from broadway_api import gen_global_settings, gen_flags
 
-logger = logging.getLogger("main")
+logger = logging.getLogger("broadway.main")
 
 
 def __main__():

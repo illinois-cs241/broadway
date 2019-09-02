@@ -12,7 +12,7 @@ from broadway_api.callbacks.job import job_update_callback
 from broadway_api.callbacks.worker import worker_lost_callback, worker_schedule_job
 from broadway_api.utils.time import get_time
 
-logger = logging.getLogger("worker-ws")
+logger = logging.getLogger("broadway.handlers.worker-ws")
 
 
 class WorkerConnectionHandler(BaseWSAPIHandler):

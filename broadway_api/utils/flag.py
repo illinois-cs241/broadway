@@ -18,7 +18,6 @@ class Flag:
         self.default = default
 
 
-# set of flags
 class FlagSet:
     FLAG_PATTERN = r"^[a-zA-Z0-9\-]+$"
     INTERNAL_FLAG_CONFIG = "__config"
@@ -143,7 +142,7 @@ class FlagSet:
 
         return var
 
-    # parse argument from command line
+    # parse arguments from command line
     # exits and spring help message if an error is encountered
     def parse_cmdline(self, args):
         var = vars(self.parser.parse_args())

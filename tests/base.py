@@ -31,7 +31,7 @@ class AsyncHTTPMixin(AsyncHTTPTestCase):
         """
 
         fset = gen_flags()
-        flags = fset.parse_config("tests/_fixtures/config.json")
+        flags = fset.parse(["tests/_fixtures/config.json"], use_exc=True)
 
         self.app = initialize_app(gen_global_settings(flags), flags)
 

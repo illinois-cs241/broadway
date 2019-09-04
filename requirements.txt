@@ -3,3 +3,4 @@ pymongo==3.7.2
 tornado==5.1.1
 Tornado-JSON==1.3.3
 websockets==8.0.2
+git+https://github.com/rod-lin/flagset@0.0.1

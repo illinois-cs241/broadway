@@ -1,16 +1,15 @@
 {
-    "debug": true,
-    "token": "test",
     "heartbeat_interval": 10,
 
-    "bind_addr": "localhost",
-    "bind_port": "1470",
-    "logs_dir": "test_logs",
-    "logs_rotate": "midnight",
-    "logs_backup": 7,
-
-    "mongodb_dsn": "mongodb://localhost:27017",
-    "mongodb_primary": "__test",
-    "mongodb_logs": "__test_logs",
-    "mongodb_timeout": 5
+    "logs": {
+        "dir": "test_logs",
+        "rotate": "midnight",
+        "backup": 7
+    },
+    
+    "mongodb": {
+        "primary": "AG",
+        "logs": "logs",
+        "timeout": 5
+    }
 }

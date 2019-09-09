@@ -62,7 +62,15 @@ app_flags = {
         cmdline_name="--log-level",
         env_name="BROADWAY_LOG_LEVEL",
         config_name="log.level",
-        help="logging level",
+        help="logging level, e.g. INFO, DEBUG",
+    ),
+    "log_timestamps": Flag(
+        bool,
+        default=True,
+        cmdline_name="--log-timestamps",
+        env_name="BROADWAY_LOG_TIMESTAMPS",
+        config_name="log.timestamps",
+        help="whether to include timestamps in logs",
     ),
     "log_rotate": Flag(
         str,

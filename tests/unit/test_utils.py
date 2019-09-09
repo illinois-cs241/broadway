@@ -2,7 +2,7 @@ import json
 import logging
 import unittest.mock as mock
 
-from broadway_api.bootstrap import initialize_course_tokens
+from broadway_api.utils.bootstrap import initialize_course_tokens
 from broadway_api.daos.course import CourseDao
 from tests.base import BaseTest
 

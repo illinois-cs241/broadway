@@ -5,6 +5,9 @@ import os
 import sys
 import signal
 
+from typing import Dict, Any
+from queue import Queue
+
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 
@@ -27,7 +30,17 @@ import broadway_api.handlers.worker_ws as worker_ws_handlers
 logger = logging.getLogger("broadway.bootstrap")
 
 
-def initialize_logger(settings, flags):
+def initialize_global_settings(flags: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "CLUSTER_TOKEN": flags["token"],
+        "FLAGS": flags,
+        "DB": None,
+        "QUEUE": Queue(),
+        "WS_CONN_MAP": {},
+    }
+
+
+def initialize_logger(settings: Dict[str, Any], flags: Dict[str, Any]):
     log_dir = flags["log_dir"]
     log_level = flags["log_level"]
     log_rotate = flags["log_rotate"]
@@ -52,7 +65,7 @@ def initialize_logger(settings, flags):
     logging.getLogger("tornado.general").propagate = False
 
 
-def initialize_course_tokens(settings, flags):
+def initialize_course_tokens(settings: Dict[str, Any], flags: Dict[str, Any]):
     logger.info("initializing course config")
 
     if flags["course_config"] is None:
@@ -77,7 +90,7 @@ def initialize_course_tokens(settings, flags):
         course_dao.insert_or_update(course)
 
 
-def initialize_database(settings, flags):
+def initialize_database(settings: Dict[str, Any], flags: Dict[str, Any]):
     logger.info("initializing database")
 
     try:
@@ -98,7 +111,7 @@ def initialize_database(settings, flags):
         sys.exit(1)
 
 
-def initialize_signal_handler(settings, flags):
+def initialize_signal_handler(settings: Dict[str, Any], flags: Dict[str, Any]):
     logger.info("initializing signal handler")
 
     def shutdown():
@@ -111,7 +124,9 @@ def initialize_signal_handler(settings, flags):
     signal.signal(signal.SIGINT, handler)
 
 
-def initialize_app(settings, flags):
+def initialize_app(
+    settings: Dict[str, Any], flags: Dict[str, Any]
+) -> tornado.web.Application:
     id_regex = r"(?P<{}>[-\w0-9]+)"
     string_regex = r"(?P<{}>[^()]+)"
 

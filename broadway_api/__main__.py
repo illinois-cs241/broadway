@@ -2,22 +2,25 @@ import logging
 
 import tornado.ioloop
 
-from broadway_api.bootstrap import (
-    initialize_logger,
+from flagset import FlagSet
+
+from broadway_api.utils.bootstrap import (
+    initialize_global_settings,
     initialize_database,
+    initialize_logger,
     initialize_course_tokens,
     initialize_signal_handler,
     initialize_app,
 )
 
-from broadway_api import gen_global_settings, gen_flags
+from broadway_api.flags import app_flags
 
 logger = logging.getLogger("broadway.main")
 
 
 def __main__():
-    flags = gen_flags().parse()
-    settings = gen_global_settings(flags)
+    flags = FlagSet(app_flags).parse()
+    settings = initialize_global_settings(flags)
 
     initialize_logger(settings, flags)
     initialize_database(settings, flags)

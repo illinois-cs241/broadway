@@ -109,6 +109,7 @@ class GradingJobHandler(BaseAPIHandler):
 
             worker_node.running_job_id = grading_job_id
             worker_node.jobs_processed += 1
+            worker_node.is_alive = True
             worker_node_dao.update(worker_node)
 
             return {"grading_job_id": grading_job_id, "stages": grading_job.stages}
@@ -164,6 +165,7 @@ class GradingJobHandler(BaseAPIHandler):
 
         # clear the worker node's job
         worker_node.running_job_id = None
+        worker_node.is_alive = True
         worker_node_dao.update(worker_node)
 
         # finish the job
@@ -201,4 +203,5 @@ class HeartBeatHandler(BaseAPIHandler):
             return
 
         worker_node.last_seen = get_time()
+        worker_node.is_alive = True
         worker_node_dao.update(worker_node)

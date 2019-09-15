@@ -27,17 +27,11 @@ import broadway_api.handlers.client as client_handlers
 import broadway_api.handlers.worker as worker_handlers
 import broadway_api.handlers.worker_ws as worker_ws_handlers
 
-logger = logging.getLogger("broadway.bootstrap")
+logger = logging.getLogger(__name__)
 
 
 def initialize_global_settings(flags: Dict[str, Any]) -> Dict[str, Any]:
-    return {
-        "CLUSTER_TOKEN": flags["token"],
-        "FLAGS": flags,
-        "DB": None,
-        "QUEUE": Queue(),
-        "WS_CONN_MAP": {},
-    }
+    return {"FLAGS": flags, "DB": None, "QUEUE": Queue(), "WS_CONN_MAP": {}}
 
 
 def initialize_logger(settings: Dict[str, Any], flags: Dict[str, Any]):
@@ -58,11 +52,9 @@ def initialize_logger(settings: Dict[str, Any], flags: Dict[str, Any]):
         level=log_level,
     )
 
-    logging.getLogger("tornado.access").addHandler(rotating_handler)
-    logging.getLogger("tornado.access").propagate = False
-
-    logging.getLogger("tornado.general").addHandler(rotating_handler)
-    logging.getLogger("tornado.general").propagate = False
+    # redirecting tornado logs to the file handler
+    logging.getLogger("tornado").addHandler(rotating_handler)
+    logging.getLogger("tornado").propagate = False
 
 
 def initialize_course_tokens(settings: Dict[str, Any], flags: Dict[str, Any]):
@@ -116,10 +108,12 @@ def initialize_signal_handler(settings: Dict[str, Any], flags: Dict[str, Any]):
 
     def shutdown():
         logger.info("shutting down")
-        tornado.ioloop.IOLoop.current().stop()
+
+        ioloop = tornado.ioloop.IOLoop.current()
+        ioloop.add_callback(ioloop.stop)
 
     def handler(sig, frame):
-        tornado.ioloop.IOLoop.instance().add_callback_from_signal(shutdown)
+        tornado.ioloop.IOLoop.current().add_callback_from_signal(shutdown)
 
     signal.signal(signal.SIGINT, handler)
 

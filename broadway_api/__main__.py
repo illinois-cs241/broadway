@@ -15,7 +15,7 @@ from broadway_api.utils.bootstrap import (
 
 from broadway_api.flags import app_flags
 
-logger = logging.getLogger("broadway.main")
+logger = logging.getLogger(__name__)
 
 
 def __main__():
@@ -29,7 +29,13 @@ def __main__():
     initialize_app(settings, flags)
 
     logger.info("ready to serve")
-    tornado.ioloop.IOLoop.instance().start()
+
+    tornado.ioloop.IOLoop.current().start()
+
+    tornado.ioloop.IOLoop.current().close(all_fds=True)
+    settings["DB"].close()
+
+    logger.info("shutted down")
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ from tornado.websocket import WebSocketHandler
 
 from broadway_api.definitions import ws_api_msg
 
-logger = logging.getLogger("broadway.handlers.base")
+logger = logging.getLogger(__name__)
 
 
 class BaseAPIHandler(APIHandler):
@@ -16,13 +16,13 @@ class BaseAPIHandler(APIHandler):
         self.fail(data)
 
     def get_flags(self):
-        return self.settings.get("FLAGS")
+        return self.settings["FLAGS"]
 
     def get_token(self):
-        return self.settings.get("CLUSTER_TOKEN")
+        return self.settings["FLAGS"]["token"]
 
     def get_queue(self):
-        return self.settings.get("QUEUE")
+        return self.settings["QUEUE"]
 
 
 class BaseWSAPIHandler(BaseAPIHandler, WebSocketHandler):

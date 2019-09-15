@@ -22,13 +22,15 @@ app_flags = {
         default=10,
         cmdline_name="--heartbeat-interval",
         config_name="heartbeat_interval",
-        help="heartbeat interval",
+        help="heartbeat interval in seconds",
     ),
     "course_config": Flag(
         str,
         cmdline_name="--course-config",
         config_name="course_config",
-        help="optional course config file",
+        help="optional course config file."
+        + "if given, the existing config will be overwritten;"
+        + "otherwise, the existing config will be used",
     ),
     # web app flags
     "bind_addr": Flag(

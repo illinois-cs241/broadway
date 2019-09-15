@@ -62,7 +62,7 @@ class AsyncHTTPMixin(AsyncHTTPTestCase):
         return self.app
 
     def get_token(self):
-        return self.app.settings["CLUSTER_TOKEN"]
+        return self.app.settings["FLAGS"]["token"]
 
     def get_header(self, override=None):
         return {

@@ -12,7 +12,7 @@ from broadway_api.utils.run import continue_grading_run
 from broadway_api.utils.time import get_time
 from broadway_api.callbacks.worker import worker_schedule_job
 
-logger = logging.getLogger("broadway.handlers.client")
+logger = logging.getLogger(__name__)
 
 
 class ClientAPIHandler(BaseAPIHandler):

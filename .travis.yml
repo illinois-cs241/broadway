@@ -12,11 +12,11 @@ branches:
     - /.*/
 install:
     - pip install --upgrade pip
-    - pip install -r requirements.txt
-    - pip install -r requirements_test.txt
+    - pip install -r requirements-api.txt
+    - pip install -r requirements-test.txt
 script:
-    - black --check broadway_api/ tests/
+    - black --check broadway/ tests/
     - flake8 --count --config=setup.cfg
-    - py.test -v --cov=broadway_api/ tests/ --cov coveralls --cov-report term-missing --doctest-modules
+    - py.test -v --cov=broadway/ tests/ --cov coveralls --cov-report term-missing --doctest-modules
 after_success:
     - coveralls

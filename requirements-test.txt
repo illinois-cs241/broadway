@@ -1,0 +1,6 @@
+black
+flake8
+python-coveralls
+pytest-cov
+coverage
+websockets

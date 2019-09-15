@@ -1,0 +1,4 @@
+git+https://github.com/illinois-cs241/chainlink@0.0.6
+git+https://github.com/illinois-cs241/flagset@0.0.2
+jsonschema==2.6.0
+websockets==7.0

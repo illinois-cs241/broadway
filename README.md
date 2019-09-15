@@ -43,7 +43,7 @@ pip3 install -r requirements.txt
 
 Then the API can be started by running executing:
 ```shell
-python3 api.py
+python3 -m broadway_api
 ```
 
 ## Starting a Grading Run

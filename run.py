@@ -48,7 +48,9 @@ def signal_handler(sig, frame):
 
 
 def get_url(endpoint):
-    return "{}://{}:{}{}{}".format("https" if USE_SSL else "http", API_HOSTNAME, API_PORT, API_PROXY, endpoint)
+    return "{}://{}:{}{}{}".format(
+        "https" if USE_SSL else "http", API_HOSTNAME, API_PORT, API_PROXY, endpoint
+    )
 
 
 def heartbeat_routine():

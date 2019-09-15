@@ -30,7 +30,7 @@ async def exec_job(job):
         chain = Chainlink(stages, workdir=os.getcwd())
         job_results = await chain.run_async({})
     except Exception as ex:
-        logger.critical("grading job failed with exception:\n{}", ex)
+        logger.critical("grading job failed with exception:\n{}".format(ex))
         job_results = [
             {
                 "logs": {
@@ -41,12 +41,8 @@ async def exec_job(job):
             }
         ]
 
-    job_stdout = "\n".join(
-        [r["logs"]["stdout"].decode("utf-8") for r in job_results]
-    )
-    job_stderr = "\n".join(
-        [r["logs"]["stderr"].decode("utf-8") for r in job_results]
-    )
+    job_stdout = "\n".join([r["logs"]["stdout"].decode("utf-8") for r in job_results])
+    job_stderr = "\n".join([r["logs"]["stderr"].decode("utf-8") for r in job_results])
 
     for r in job_results:
         del r["logs"]
@@ -68,21 +64,24 @@ async def exec_job(job):
 async def run(token, worker_id):
     url = "{}://{}:{}{}{}/{}".format(
         "wss" if USE_SSL else "ws",
-        API_HOSTNAME, API_PORT,
-        API_PROXY, WORKER_WS_ENDPOINT,
+        API_HOSTNAME,
+        API_PORT,
+        API_PROXY,
+        WORKER_WS_ENDPOINT,
         worker_id,
     )
 
     headers = {api_keys.AUTH: "Bearer {}".format(token)}
     hostname = socket.gethostname()
 
-    async with websockets.connect(url, extra_headers=headers) as ws:
+    async with websockets.connect(
+        url, ping_interval=HEARTBEAT_INTERVAL, extra_headers=headers
+    ) as ws:
         # poll job
         try:
-            await ws.send(json.dumps({
-                "type": "register",
-                "args": {"hostname": hostname},
-            }))
+            await ws.send(
+                json.dumps({"type": "register", "args": {"hostname": hostname}})
+            )
 
             ack = json.loads(await ws.recv())
 
@@ -98,10 +97,7 @@ async def run(token, worker_id):
 
                 job_result = await exec_job(job)
 
-                await ws.send(json.dumps({
-                    "type": "job_result",
-                    "args": job_result,
-                }))
+                await ws.send(json.dumps({"type": "job_result", "args": job_result}))
 
         except websockets.ConnectionClosed as e:
             logger.critical("connection closed: {}".format(repr(e)))
@@ -116,7 +112,9 @@ async def run(token, worker_id):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("token", help="Broadway cluster token")
-    parser.add_argument("worker_id", metavar="worker-id", help="Unique worker id for registration")
+    parser.add_argument(
+        "worker_id", metavar="worker-id", help="Unique worker id for registration"
+    )
     return parser.parse_args()
 
 

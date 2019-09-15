@@ -4,22 +4,19 @@ import socket
 import signal
 import asyncio
 import logging
-import argparse
 import websockets
 
 from jsonschema import validate, ValidationError, SchemaError
 from chainlink import Chainlink
 
 import grader.api_keys as api_keys
+from grader.api_keys import WORKER_WS_ENDPOINT, HEARTBEAT_INTERVAL
 from grader.definitions import GRADING_JOB_DEF
 
-from config import *
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
-async def exec_job(job):
+async def _exec_job(flags, job):
     job_id = job[api_keys.GRADING_JOB_ID]
     stages = job[api_keys.STAGES]
 
@@ -49,7 +46,7 @@ async def exec_job(job):
 
     logger.info("finished job {}".format(job_id))
 
-    if VERBOSE:
+    if flags["verbose"]:
         logger.info("job stdout:\n" + job_stdout)
         logger.info("job stderr:\n" + job_stderr)
 
@@ -61,17 +58,10 @@ async def exec_job(job):
     }
 
 
-async def run(token, worker_id):
-    url = "{}://{}:{}{}{}/{}".format(
-        "wss" if USE_SSL else "ws",
-        API_HOSTNAME,
-        API_PORT,
-        API_PROXY,
-        WORKER_WS_ENDPOINT,
-        worker_id,
-    )
+async def _run(flags):
+    url = "{}{}/{}".format(flags["api_host"], WORKER_WS_ENDPOINT, flags["grader_id"])
 
-    headers = {api_keys.AUTH: "Bearer {}".format(token)}
+    headers = {api_keys.AUTH: "Bearer {}".format(flags["token"])}
     hostname = socket.gethostname()
 
     async with websockets.connect(
@@ -88,14 +78,14 @@ async def run(token, worker_id):
             if not ack["success"]:
                 raise Exception("failed to register")
 
-            logger.info("registered as {}".format(worker_id))
+            logger.info("registered as {}".format(flags["grader_id"]))
 
             while True:
                 job = json.loads(await ws.recv())
 
                 validate(instance=job, schema=GRADING_JOB_DEF)
 
-                job_result = await exec_job(job)
+                job_result = await _exec_job(flags, job)
 
                 await ws.send(json.dumps({"type": "job_result", "args": job_result}))
 
@@ -109,27 +99,16 @@ async def run(token, worker_id):
             logger.critical("schema error: {}".format(repr(e)))
 
 
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("token", help="Broadway cluster token")
-    parser.add_argument(
-        "worker_id", metavar="worker-id", help="Unique worker id for registration"
-    )
-    return parser.parse_args()
-
-
-def shutdown(sig, task):
+def _shutdown(sig, task):
     logger.info("signal received: {}, shutting down".format(signal.Signals(sig).name))
     task.cancel()
 
 
-if __name__ == "__main__":
-    args = parse_args()
-
+def run_ws_grader(flags):
     loop = asyncio.get_event_loop()
-    task = loop.create_task(run(args.token, args.worker_id))
+    task = loop.create_task(_run(flags))
 
-    loop.add_signal_handler(signal.SIGINT, lambda: shutdown(signal.SIGINT, task))
+    loop.add_signal_handler(signal.SIGINT, lambda: _shutdown(signal.SIGINT, task))
 
     try:
         loop.run_until_complete(task)

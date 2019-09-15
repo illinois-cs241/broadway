@@ -38,14 +38,18 @@ Docker is needed to containerize incoming job requests. We recommend using the [
 
 ## Configuration
 
-Ensure `API_HOST` and `API_PORT` in the config file (config.py) is pointing to the [Broadway API](https://github.com/illinois-cs241/broadway-api) instance you have set up.
+View usage
+
+```sh
+python3 -m grader -h
+```
 
 ## Running
 
 Start the grader using:
 
 ```sh
-nohup sudo venv/bin/python run.py <cluster token> &
+sudo venv/bin/python3 -m grader <cluster token> <grader id> [--api-host=<API host>] &
 ```
 
 Note that under `sudo` the python interpreter path changes to `/usr/bin/python` even when inside a virtual environment.

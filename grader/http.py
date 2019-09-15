@@ -3,82 +3,77 @@ import signal
 import socket
 import asyncio
 import logging
-import argparse
 
 from threading import Event
-from logging.handlers import TimedRotatingFileHandler
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 
 import requests
 from chainlink import Chainlink
 
-from config import *
 import grader.api_keys as api_keys
+from grader.api_keys import (
+    GRADER_REGISTER_ENDPOINT,
+    GRADING_JOB_ENDPOINT,
+    HEARTBEAT_ENDPOINT,
+    SUCCESS_CODE,
+    QUEUE_EMPTY_CODE,
+    JOB_POLL_INTERVAL,
+    HEARTBEAT_INTERVAL,
+)
 
 # globals
-worker_id = None
-hostname = None
-worker_thread = None
-heartbeat_interval = HEARTBEAT_INTERVAL
+_grader_id = None
+_hostname = None
+_worker_thread = None
+_heartbeat_interval = HEARTBEAT_INTERVAL
+_api_host = None
+_header = None
+_verbose = None
 
-event_loop = asyncio.new_event_loop()
+_event_loop = asyncio.new_event_loop()
+_exit_event = Event()
 
-exit_event = Event()
-
-# setting up logger
-os.makedirs(LOGS_DIR, exist_ok=True)
-logging.basicConfig(
-    handlers=[
-        TimedRotatingFileHandler(
-            "{}/log".format(LOGS_DIR), when="midnight", backupCount=7
-        ),
-        logging.StreamHandler(),
-    ],
-    level=logging.INFO,
-)
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
-def halt_all():
-    exit_event.set()
+def _halt_all():
+    _exit_event.set()
 
 
-def signal_handler(sig, frame):
-    halt_all()
+def _signal_handler(sig, frame):
+    _halt_all()
 
 
-def get_url(endpoint):
-    return "{}://{}:{}{}{}".format(
-        "https" if USE_SSL else "http", API_HOSTNAME, API_PORT, API_PROXY, endpoint
-    )
+def _get_url(endpoint):
+    return "{}{}".format(_api_host, endpoint)
 
 
-def heartbeat_routine():
-    while not exit_event.is_set():
+def _heartbeat_routine():
+    while not _exit_event.is_set():
         response = requests.post(
-            get_url("{}/{}".format(HEARTBEAT_ENDPOINT, worker_id)),
-            headers=header,
+            _get_url("{}/{}".format(HEARTBEAT_ENDPOINT, _grader_id)),
+            headers=_header,
             data="",
         )
         if response.status_code != SUCCESS_CODE:
             logger.critical("Heartbeat failed!\nError: {}".format(response.text))
             return
 
-        exit_event.wait(heartbeat_interval)
+        _exit_event.wait(_heartbeat_interval)
 
 
-def worker_routine():
-    asyncio.set_event_loop(event_loop)
+def _worker_routine():
+    asyncio.set_event_loop(_event_loop)
 
-    while not exit_event.is_set():
+    while not _exit_event.is_set():
         # poll from queue
         response = requests.get(
-            get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)), headers=header
+            _get_url("{}/{}".format(GRADING_JOB_ENDPOINT, _grader_id)), headers=_header
         )
 
         # if the queue is empty then sleep for a while
         if response.status_code == QUEUE_EMPTY_CODE:
-            exit_event.wait(JOB_POLL_INTERVAL)
+            _exit_event.wait(JOB_POLL_INTERVAL)
             continue
 
         if response.status_code != SUCCESS_CODE:
@@ -122,7 +117,7 @@ def worker_routine():
             del r["logs"]
 
         logger.info("Finished job {}".format(job_id))
-        if VERBOSE:
+        if _verbose:
             logger.info("Job stdout:\n" + job_stdout)
             logger.info("Job stderr:\n" + job_stderr)
 
@@ -135,9 +130,9 @@ def worker_routine():
 
         logger.info("Sending job results")
         response = requests.post(
-            get_url("{}/{}".format(GRADING_JOB_ENDPOINT, worker_id)),
+            _get_url("{}/{}".format(GRADING_JOB_ENDPOINT, _grader_id)),
             json=grading_job_result,
-            headers=header,
+            headers=_header,
         )
         if response.status_code != SUCCESS_CODE:
             logger.critical(
@@ -148,14 +143,14 @@ def worker_routine():
             return
 
 
-def register_node():
-    global worker_id
-    global heartbeat_interval
+def _register_node():
+    global _grader_id
+    global _heartbeat_interval
 
     response = requests.post(
-        get_url("{}/{}".format(GRADER_REGISTER_ENDPOINT, worker_id)),
-        headers=header,
-        json={api_keys.HOSTNAME: hostname},
+        _get_url("{}/{}".format(GRADER_REGISTER_ENDPOINT, _grader_id)),
+        headers=_header,
+        json={api_keys.HOSTNAME: _hostname},
     )
     if response.status_code != SUCCESS_CODE:
         logger.critical("Registration failed!\nError: {}".format(response.text))
@@ -166,39 +161,35 @@ def register_node():
 
     # set heartbeat interval
     if api_keys.HEARTBEAT in server_response:
-        heartbeat_interval = server_response[api_keys.HEARTBEAT]
+        _heartbeat_interval = server_response[api_keys.HEARTBEAT]
     else:
         logger.info(
             "Server response did not include heartbeat, using default {}".format(
-                heartbeat_interval
+                _heartbeat_interval
             )
         )
 
 
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("token", help="Broadway cluster token")
-    parser.add_argument(
-        "worker_id", metavar="worker-id", help="Unique worker id for registration"
-    )
-    return parser.parse_args()
+def run_http_grader(flags):
+    global _grader_id
+    global _hostname
+    global _header
+    global _api_host
+    global _verbose
 
+    signal.signal(signal.SIGINT, _signal_handler)
 
-if __name__ == "__main__":
-    # check valid usage
-    args = parse_args()
-
-    signal.signal(signal.SIGINT, signal_handler)
-
-    worker_id = args.worker_id
-    hostname = socket.gethostname()
+    _grader_id = flags["grader_id"]
+    _hostname = socket.gethostname()
+    _api_host = flags["api_host"]
+    _verbose = flags["verbose"]
 
     # register node to server
-    header = {api_keys.AUTH: "Bearer {}".format(args.token)}
-    register_node()
+    _header = {api_keys.AUTH: "Bearer {}".format(flags["token"])}
+    _register_node()
 
     # run the grader on two separate threads. If any of the routines fail, the grader shuts down
     executor = ThreadPoolExecutor(max_workers=2)
-    futures = [executor.submit(heartbeat_routine), executor.submit(worker_routine)]
+    futures = [executor.submit(_heartbeat_routine), executor.submit(_worker_routine)]
     wait(futures, return_when=FIRST_COMPLETED)
     executor.shutdown()

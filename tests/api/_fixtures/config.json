@@ -1,0 +1,16 @@
+{
+    "heartbeat_interval": 1,
+
+    "logs": {
+        "dir": "test_logs",
+        "rotate": "midnight",
+        "backup": 7
+    },
+    
+    "mongodb": {
+        "primary": "__test",
+        "logs": "__test_logs",
+        "timeout": 1
+    }
+}
+

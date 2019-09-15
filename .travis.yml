@@ -1,0 +1,22 @@
+# We need xenial otherwise we will get an ssl error with tornado install
+dist: xenial
+sudo: required
+language: python
+python:
+    - "3.6"
+services:
+    - mongodb
+cache: pip
+branches:
+    only:
+    - /.*/
+install:
+    - pip install --upgrade pip
+    - pip install -r requirements-api.txt
+    - pip install -r requirements-test.txt
+script:
+    - black --check broadway/ tests/
+    - flake8 --count --config=setup.cfg
+    - py.test -v --cov=broadway/ tests/ --cov coveralls --cov-report term-missing --doctest-modules
+after_success:
+    - coveralls

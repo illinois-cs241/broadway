@@ -31,11 +31,6 @@ def worker_heartbeat_callback(settings):
 
             _handle_lost_worker_node(settings, node)
 
-        elif node.use_ws and node.id in conn_map:
-            # send ping messages to all connections
-            # excepting pong response before the next checking point
-            conn_map[node.id].ping()
-
 
 def worker_lost_callback(settings, worker_id, reason="closed connection"):
     dao = WorkerNodeDao(settings)

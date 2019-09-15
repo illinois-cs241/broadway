@@ -168,7 +168,7 @@ class WorkerConnectionHandler(BaseWSAPIHandler):
                 "worker '{}' went down before registering".format(self.worker_id)
             )
 
-    def on_pong(self, data):
+    def on_ping(self, data):
         # ping messages have the same function as heartbeat requests
         # for normal http workers
 

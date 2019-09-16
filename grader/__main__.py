@@ -13,6 +13,7 @@ def _initialize_logger(flags):
     log_level = flags["log_level"]
     log_rotate = flags["log_rotate"]
     log_backup = flags["log_backup"]
+    log_timestamps = flags["log_timestamps"]
 
     os.makedirs(log_dir, exist_ok=True)
 
@@ -20,9 +21,14 @@ def _initialize_logger(flags):
         "{}/log".format(log_dir), when=log_rotate, backupCount=log_backup
     )
 
+    if log_timestamps:
+        format = "%(asctime)s %(levelname)s %(module)s.%(funcName)s: %(message)s"
+    else:
+        format = "%(levelname)s %(module)s.%(funcName)s: %(message)s"
+
     logging.basicConfig(
         handlers=[rotating_handler, logging.StreamHandler()],
-        format="%(asctime)s %(levelname)s %(module)s.%(funcName)s: %(message)s",
+        format=format,
         level=log_level,
     )
 

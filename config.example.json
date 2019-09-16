@@ -1,0 +1,13 @@
+{
+    "token": "<cluster token>",
+    "id": "<unique grader id>",
+    "api_host": "http://127.0.0.1:1470",
+    "verbose": false,
+    "log": {
+        "dir": "logs",
+        "level": "DEBUG",
+        "timestamps": true,
+        "rotate": "midnight",
+        "backup": 7
+    }
+}

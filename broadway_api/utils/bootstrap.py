@@ -3,6 +3,7 @@ import jsonschema
 import logging
 import os
 import sys
+import uuid
 import signal
 
 from typing import Dict, Any
@@ -30,11 +31,7 @@ import broadway_api.handlers.worker_ws as worker_ws_handlers
 logger = logging.getLogger(__name__)
 
 
-def initialize_global_settings(flags: Dict[str, Any]) -> Dict[str, Any]:
-    return {"FLAGS": flags, "DB": None, "QUEUE": Queue(), "WS_CONN_MAP": {}}
-
-
-def initialize_logger(settings: Dict[str, Any], flags: Dict[str, Any]):
+def initialize_logger(flags: Dict[str, Any]):
     log_dir = flags["log_dir"]
     log_level = flags["log_level"]
     log_rotate = flags["log_rotate"]
@@ -55,6 +52,14 @@ def initialize_logger(settings: Dict[str, Any], flags: Dict[str, Any]):
     # redirecting tornado logs to the file handler
     logging.getLogger("tornado").addHandler(rotating_handler)
     logging.getLogger("tornado").propagate = False
+
+
+def initialize_global_settings(flags: Dict[str, Any]) -> Dict[str, Any]:
+    if flags["token"] is None:
+        flags["token"] = str(uuid.uuid4())
+        logger.info("token not given, using {}".format(flags["token"]))
+
+    return {"FLAGS": flags, "DB": None, "QUEUE": Queue(), "WS_CONN_MAP": {}}
 
 
 def initialize_course_tokens(settings: Dict[str, Any], flags: Dict[str, Any]):

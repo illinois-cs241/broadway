@@ -6,7 +6,6 @@ import unittest
 import websockets
 
 from tornado.testing import AsyncHTTPTestCase
-from flagset import FlagSet
 
 import broadway_api.definitions as definitions
 
@@ -35,7 +34,7 @@ class AsyncHTTPMixin(AsyncHTTPTestCase):
         Note: this is called by setUp in AsyncHTTPTestCase
         """
 
-        flags = FlagSet(app_flags).parse(
+        flags = app_flags.parse(
             [
                 "tests/_fixtures/config.json",
                 "--token",

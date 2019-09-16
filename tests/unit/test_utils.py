@@ -2,11 +2,24 @@ import json
 import logging
 import unittest.mock as mock
 
-from broadway_api.utils.bootstrap import initialize_course_tokens
+from broadway_api.utils.bootstrap import (
+    initialize_course_tokens,
+    initialize_global_settings,
+)
+
+from broadway_api.flags import app_flags
 from broadway_api.daos.course import CourseDao
 from tests.base import BaseTest
 
 logging.disable(logging.WARNING)
+
+
+class TestClusterTokenUtils(BaseTest):
+    def test_cluster_token_generated(self):
+        flags = app_flags.parse([], env={})
+        settings = initialize_global_settings(flags)
+        self.assertIsNotNone(flags.get("token"))
+        self.assertIsNotNone(settings["FLAGS"]["token"])
 
 
 class TestCourseTokenUtils(BaseTest):

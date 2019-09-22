@@ -9,16 +9,15 @@ import websockets
 from jsonschema import validate, ValidationError, SchemaError
 from chainlink import Chainlink
 
-import broadway.grader.api_keys as api_keys
-from broadway.grader.api_keys import WORKER_WS_ENDPOINT, HEARTBEAT_INTERVAL
-from broadway.grader.definitions import GRADING_JOB_DEF
+import broadway.grader.api as api
+from broadway.grader.api import WORKER_WS_ENDPOINT, HEARTBEAT_INTERVAL, GRADING_JOB_DEF
 
 logger = logging.getLogger(__name__)
 
 
 async def _exec_job(flags, job):
-    job_id = job[api_keys.GRADING_JOB_ID]
-    stages = job[api_keys.STAGES]
+    job_id = job[api.GRADING_JOB_ID]
+    stages = job[api.STAGES]
 
     logger.info("starting job {}".format(job_id))
 
@@ -51,17 +50,17 @@ async def _exec_job(flags, job):
         logger.info("job stderr:\n" + job_stderr)
 
     return {
-        api_keys.RESULTS: job_results,
-        api_keys.SUCCESS: job_results[-1]["success"],
-        api_keys.LOGS: {"stdout": job_stdout, "stderr": job_stderr},
-        api_keys.GRADING_JOB_ID: job_id,
+        api.RESULTS: job_results,
+        api.SUCCESS: job_results[-1]["success"],
+        api.LOGS: {"stdout": job_stdout, "stderr": job_stderr},
+        api.GRADING_JOB_ID: job_id,
     }
 
 
 async def _run(flags):
     url = "{}{}/{}".format(flags["api_host"], WORKER_WS_ENDPOINT, flags["grader_id"])
 
-    headers = {api_keys.AUTH: "Bearer {}".format(flags["token"])}
+    headers = {api.AUTH: "Bearer {}".format(flags["token"])}
     hostname = socket.gethostname()
 
     async with websockets.connect(

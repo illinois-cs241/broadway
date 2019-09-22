@@ -28,8 +28,8 @@ app_flags = FlagSet(
             str,
             cmdline_name="--course-config",
             config_name="course_config",
-            help="optional course config file."
-            + "if given, the existing config will be overwritten;"
+            help="optional course config file. "
+            + "if given, the existing config will be overwritten; "
             + "otherwise, the existing config will be used",
         ),
         # web app flags

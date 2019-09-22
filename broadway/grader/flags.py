@@ -22,8 +22,8 @@ fset = FlagSet(
             cmdline_name="--api-host",
             env_name="BROADWAY_API_HOST",
             config_name="api_host",
-            help="API host. No slash in the end."
-            + "Supported protocols: ws(s) and http(s)",
+            help="api host. no slash in the end. "
+            + "supported protocols: ws(s) and http(s)",
         ),
         "verbose": Flag(
             bool,

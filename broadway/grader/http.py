@@ -10,8 +10,8 @@ from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 import requests
 from chainlink import Chainlink
 
-import broadway.grader.api_keys as api_keys
-from broadway.grader.api_keys import (
+import broadway.grader.api as api
+from broadway.grader.api import (
     GRADER_REGISTER_ENDPOINT,
     GRADING_JOB_ENDPOINT,
     HEARTBEAT_ENDPOINT,
@@ -86,12 +86,12 @@ def _worker_routine():
 
         # we successfully polled a job
         job = response.json()["data"]
-        job_id = job.get(api_keys.GRADING_JOB_ID)
+        job_id = job.get(api.GRADING_JOB_ID)
         logger.info("Starting job {}".format(job_id))
 
         # execute job
         try:
-            chain = Chainlink(job[api_keys.STAGES], workdir=os.getcwd())
+            chain = Chainlink(job[api.STAGES], workdir=os.getcwd())
             job_results = chain.run({})
         except Exception as ex:
             logger.critical("Grading job failed with exception:\n{}".format(ex))
@@ -123,10 +123,10 @@ def _worker_routine():
             logger.info("Job stderr:\n" + job_stderr)
 
         grading_job_result = {
-            api_keys.RESULTS: job_results,
-            api_keys.SUCCESS: job_results[-1]["success"],
-            api_keys.LOGS: {"stdout": job_stdout, "stderr": job_stderr},
-            api_keys.GRADING_JOB_ID: job_id,
+            api.RESULTS: job_results,
+            api.SUCCESS: job_results[-1]["success"],
+            api.LOGS: {"stdout": job_stdout, "stderr": job_stderr},
+            api.GRADING_JOB_ID: job_id,
         }
 
         logger.info("Sending job results")
@@ -152,7 +152,7 @@ def _register_node():
     response = requests.post(
         _get_url("{}/{}".format(GRADER_REGISTER_ENDPOINT, _grader_id)),
         headers=_header,
-        json={api_keys.HOSTNAME: _hostname},
+        json={api.HOSTNAME: _hostname},
     )
     if response.status_code != SUCCESS_CODE:
         logger.critical("Registration failed!\nError: {}".format(response.text))
@@ -162,8 +162,8 @@ def _register_node():
     server_response = response.json()["data"]
 
     # set heartbeat interval
-    if api_keys.HEARTBEAT in server_response:
-        _heartbeat_interval = server_response[api_keys.HEARTBEAT]
+    if api.HEARTBEAT in server_response:
+        _heartbeat_interval = server_response[api.HEARTBEAT]
     else:
         logger.info(
             "Server response did not include heartbeat, using default {}".format(
@@ -187,7 +187,7 @@ def run_http_grader(flags):
     _verbose = flags["verbose"]
 
     # register node to server
-    _header = {api_keys.AUTH: "Bearer {}".format(flags["token"])}
+    _header = {api.AUTH: "Bearer {}".format(flags["token"])}
     _register_node()
 
     # run the grader on two separate threads.

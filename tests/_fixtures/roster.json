@@ -1,0 +1,5 @@
+{
+    "students_env": [
+        { "NETID": "student-id" }
+    ]
+}

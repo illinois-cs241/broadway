@@ -1,0 +1,16 @@
+{
+    "student_pipeline": [
+        {
+            "image": "alpine:3.5",
+            "entrypoint": ["sleep", "15"]
+        },
+        {
+            "image": "alpine:3.5",
+            "entrypoint": ["sh", "-c", "echo $NETID > /job/student"]
+        },
+        {
+            "image": "alpine:3.5",
+            "entrypoint": ["cat", "/job/student"]
+        }
+    ]
+}

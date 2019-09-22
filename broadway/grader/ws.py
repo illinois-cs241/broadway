@@ -113,5 +113,3 @@ def run_ws_grader(flags):
         loop.run_until_complete(task)
     except asyncio.CancelledError:
         logger.info("task cancelled")
-    except Exception as e:
-        logger.critical("unexpected error: {}".format(repr(e)))

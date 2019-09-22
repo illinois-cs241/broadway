@@ -1,0 +1,55 @@
+version: "3"
+services:
+  mongodb:
+    image: mongo:4.0-xenial
+
+  api:
+    build:
+      context: .
+      dockerfile: ops/api.Dockerfile
+    environment:
+      - BROADWAY_MONGODB_DSN=mongodb://mongodb:27017
+      - BROADWAY_BIND_ADDR=api
+      - BROADWAY_BIND_PORT=1470
+      - BROADWAY_TOKEN=test-token
+    ports:
+      - 1470:1470
+    depends_on:
+      - mongodb
+
+    # load test course config
+    volumes:
+      - ./tests/_fixtures/test-course.json:/tmp/course.json
+    command:
+      - --course-config=/tmp/course.json
+
+  docker:
+    image: docker:dind
+    privileged: true
+    command: dockerd -H docker:1471
+
+  grader:
+    build:
+      context: .
+      dockerfile: ops/grader.Dockerfile
+    command:
+      - test-token
+      - grd-01
+    environment:
+      - BROADWAY_API_HOST=ws://api:1470
+      - DOCKER_HOST=tcp://docker:1471
+      - BROADWAY_VERBOSE=true
+    depends_on:
+      - api
+      - docker
+
+  tests:
+    build:
+      context: .
+      dockerfile: ops/tests.Dockerfile
+    command:
+      - http://api:1470
+      - course-token # note that this is different from the cluster token. it's declared in the course config
+    depends_on:
+      - api
+      - grader

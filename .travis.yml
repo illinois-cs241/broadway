@@ -12,7 +12,7 @@ branches:
     - /.*/
 install:
     - pip install --upgrade pip
-    - pip install -r requirements-api.txt
+    - pip install -r requirements.txt
     - pip install -r requirements-test.txt
 script:
     - black --check broadway/ tests/

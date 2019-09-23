@@ -4,3 +4,4 @@ python-coveralls
 pytest-cov
 coverage
 websockets
+requests

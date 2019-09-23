@@ -155,8 +155,7 @@ def _register_node():
         json={api.HOSTNAME: _hostname},
     )
     if response.status_code != SUCCESS_CODE:
-        logger.critical("Registration failed!\nError: {}".format(response.text))
-        exit(-1)
+        raise RuntimeError("failed to register: {}".format(response.text))
 
     logger.info("Registered to server")
     server_response = response.json()["data"]

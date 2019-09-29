@@ -109,7 +109,7 @@ def _prepare_next_job(
     )
     grading_job.id = str(grading_job_dao.insert(grading_job).inserted_id)
 
-    global_job_environ["GRADING_JOB_ID"] = grading_job.id
+    runtime_job_environ["GRADING_JOB_ID"] = grading_job.id
     grading_job.set_stages(job_stages, global_job_environ, runtime_job_environ)
     grading_job_dao.update(grading_job)
 

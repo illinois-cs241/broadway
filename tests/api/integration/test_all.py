@@ -584,6 +584,7 @@ class EndpointIntegrationTest(BaseTest):
             GradingRunState.PRE_PROCESSING_STAGE.value,
         )
         pre_processing_job = self.poll_job(worker_id, self.get_header())
+        pre_processing_job_id = pre_processing_job["grading_job_id"]
         self.check_grading_run_status(
             self.course1,
             grading_run_id,
@@ -599,12 +600,16 @@ class EndpointIntegrationTest(BaseTest):
         for stage in pre_processing_pipeline:
             if "env" in stage:
                 stage["env"].update(grading_configs.complete_config.get("env", {}))
-                stage["env"].update({"type": "pre", "GRADING_RUN_ID": grading_run_id})
+                stage["env"].update(
+                    {
+                        "type": "pre",
+                        "GRADING_RUN_ID": grading_run_id,
+                        "GRADING_JOB_ID": pre_processing_job_id,
+                    }
+                )
         self.assert_equal_grading_pipeline(
             pre_processing_job.get("stages"), pre_processing_pipeline
         )
-        for stage in pre_processing_job.get("stages"):
-            self.assertIn("GRADING_JOB_ID", stage["env"])
 
         self.post_job_result(
             worker_id, self.get_header(), pre_processing_job.get("grading_job_id")
@@ -621,6 +626,7 @@ class EndpointIntegrationTest(BaseTest):
         for ind in range(num_students):
             worker_id = self.register_worker(self.get_header())
             student_job = self.poll_job(worker_id, self.get_header())
+            student_job_id = student_job["grading_job_id"]
 
             student_pipeline = grading_configs.complete_config.get(
                 "student_pipeline"
@@ -632,13 +638,12 @@ class EndpointIntegrationTest(BaseTest):
                         {
                             "netid": "test net id {}".format(ind),
                             "GRADING_RUN_ID": grading_run_id,
+                            "GRADING_JOB_ID": student_job_id,
                         }
                     )
             self.assert_equal_grading_pipeline(
                 student_job.get("stages"), student_pipeline
             )
-            for stage in student_job.get("stages"):
-                self.assertIn("GRADING_JOB_ID", stage["env"])
 
             self.check_grading_run_status(
                 self.course1,
@@ -665,6 +670,7 @@ class EndpointIntegrationTest(BaseTest):
             GradingRunState.POST_PROCESSING_STAGE.value,
         )
         post_processing_job = self.poll_job(worker_id, self.get_header())
+        post_processing_job_id = post_processing_job["grading_job_id"]
 
         self.assertEqual(self.poll_job(worker_id, self.get_header()), 498)
 
@@ -674,12 +680,16 @@ class EndpointIntegrationTest(BaseTest):
         for stage in post_processing_pipeline:
             if "env" in stage:
                 stage["env"].update(grading_configs.complete_config.get("env", {}))
-                stage["env"].update({"type": "post", "GRADING_RUN_ID": grading_run_id})
+                stage["env"].update(
+                    {
+                        "type": "post",
+                        "GRADING_RUN_ID": grading_run_id,
+                        "GRADING_JOB_ID": post_processing_job_id,
+                    }
+                )
         self.assert_equal_grading_pipeline(
             post_processing_job.get("stages"), post_processing_pipeline
         )
-        for stage in post_processing_job.get("stages"):
-            self.assertIn("GRADING_JOB_ID", stage["env"])
 
         self.check_grading_run_status(
             self.course1,

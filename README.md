@@ -14,7 +14,7 @@ The aim of this project is to provide a generic interface to a distributed autog
 * A more consistent environment to grade student code.
 * Easier to scale out the infrastructure.
 
-**_Please read the [Wiki](https://github.com/illinois-cs241/broadway-api/wiki) for documentation._** It explains how Broadway works and how to interact with it. Please be sure to read all the pages if you are planning on using Broadway.
+**_Please read the [Wiki](https://github.com/illinois-cs241/broadway/wiki) for documentation._** It explains how Broadway works and how to interact with it. Please be sure to read all the pages if you are planning on using Broadway.
 
 See our [contribution guidelines](CONTRIBUTING.md) if you want to contribute.
 
@@ -48,11 +48,6 @@ using the authentication token (either given or automatically generated).
 (After installing requirements)
 
     python3 -m broadway.api [--token TOKEN] [--bind-addr ADDR] [--bind-port PORT]
-
-An optional token flag can be provided (or use the environment variable `BROADWAY_TOKEN`).
-If you did not set the token manually, look for the following message in stderr
-
-    2019-09-28 21:13:44,694 INFO bootstrap.initialize_global_settings: token not given, using <token>
 
 More info can be found by running `python3 -m broadway.api --help`
 

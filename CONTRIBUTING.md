@@ -29,12 +29,12 @@ is merged to `master`.
 ### Testing
 Please run/modify the [tests](tests) each time a change is made to the logic or structure. You can run tests using:
 ```shell
-python3 -m unittest tests/**/*.py
+pytest -v tests/ --doctest-modules
 ```
 
 In addition, we run a linter/formatter to keep things standard and clean. For formatting, be sure to execute `black`
 ```shell
-black broadway_api/ tests/ api.py
+black broadway/ tests/
 ```
 
 and then `flake8`

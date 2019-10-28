@@ -1,7 +1,6 @@
 import json
 import requests
 import logging
-import sys
 import time
 
 logging.basicConfig(level=logging.INFO)
@@ -13,18 +12,19 @@ ASSIGNMENT = "test-assignment"
 ASSIGNMENT_CONFIG = "tests/_fixtures/assignment.json"
 ROSTER = "tests/_fixtures/roster.json"
 
+API_HOST = "http://api:1470"
+TOKEN = "course-token"
 
-def __main__():
-    _, api_host, token = sys.argv
 
-    headers = {"Authorization": "Bearer {}".format(token)}
+def testSingleJobRun():
+    headers = {"Authorization": "Bearer {}".format(TOKEN)}
 
     with open(ASSIGNMENT_CONFIG) as f:
         config = json.load(f)
 
     # register assignment config
     r = requests.post(
-        "{}/api/v1/grading_config/{}/{}".format(api_host, COURSE, ASSIGNMENT),
+        "{}/api/v1/grading_config/{}/{}".format(API_HOST, COURSE, ASSIGNMENT),
         headers=headers,
         data=json.dumps(config),
     )
@@ -39,7 +39,7 @@ def __main__():
 
     # initiate grading run
     r = requests.post(
-        "{}/api/v1/grading_run/{}/{}".format(api_host, COURSE, ASSIGNMENT),
+        "{}/api/v1/grading_run/{}/{}".format(API_HOST, COURSE, ASSIGNMENT),
         headers=headers,
         data=json.dumps(roster),
     )
@@ -54,7 +54,7 @@ def __main__():
 
     while True:  # wait for grading run to complete
         r = requests.get(
-            "{}/api/v1/grading_run_status/{}/{}".format(api_host, COURSE, run_id),
+            "{}/api/v1/grading_run_status/{}/{}".format(API_HOST, COURSE, run_id),
             headers=headers,
         )
 
@@ -81,7 +81,7 @@ def __main__():
 
     # check grading run output
     r = requests.get(
-        "{}/api/v1/grading_job_log/{}/{}".format(api_host, COURSE, job_id),
+        "{}/api/v1/grading_job_log/{}/{}".format(API_HOST, COURSE, job_id),
         headers=headers,
     )
 
@@ -94,7 +94,3 @@ def __main__():
     logger.info("job log: {}".format(log))
 
     assert "student-id" in log["stdout"], "unable to find expected output"
-
-
-if __name__ == "__main__":
-    __main__()

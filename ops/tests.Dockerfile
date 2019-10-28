@@ -11,6 +11,6 @@ ADD tests ${INSTALL_PATH}/tests
 
 ENV PYTHONPATH "${PYTHONPATH}:${INSTALL_PATH}"
 
-ENTRYPOINT ["python", "-m", "tests.integration"]
+ENTRYPOINT ["py.test", "-v", "tests/integration"]
 CMD []
 

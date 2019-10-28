@@ -47,9 +47,6 @@ services:
     build:
       context: .
       dockerfile: ops/tests.Dockerfile
-    command:
-      - http://api:1470
-      - course-token # note that this is different from the cluster token. it's declared in the course config
     depends_on:
       - api
       - grader

@@ -18,7 +18,7 @@ install:
 script:
     - black --check broadway/ tests/
     - flake8 --count --config=setup.cfg
-    - py.test -v --cov=broadway/ tests/ --cov coveralls --cov-report term-missing --doctest-modules
+    - py.test -v --cov=broadway/ tests/api --cov coveralls --cov-report term-missing --doctest-modules
     - docker-compose -f docker-compose.test.yml up --build --force-recreate --exit-code-from tests
 after_success:
     - coveralls

@@ -71,7 +71,7 @@ def __main__():
         if "complete" in res["state"]:
             break
 
-        time.sleep(5)
+        time.sleep(3)
 
     assert len(job_state) == 1, "expecting only one job"
 

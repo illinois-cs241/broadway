@@ -2,7 +2,7 @@
     "student_pipeline": [
         {
             "image": "alpine:3.5",
-            "entrypoint": ["sleep", "15"]
+            "entrypoint": ["sleep", "2"]
         },
         {
             "image": "alpine:3.5",

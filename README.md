@@ -3,7 +3,7 @@
 [![Build Status](https://www.travis-ci.com/illinois-cs241/broadway.svg?branch=master)](https://www.travis-ci.com/illinois-cs241/broadway)
 [![Coverage Status](https://coveralls.io/repos/github/illinois-cs241/broadway/badge.svg?branch=master)](https://coveralls.io/github/illinois-cs241/broadway?branch=master)
 ![License](https://img.shields.io/badge/license-NCSA%2FIllinois-blue.svg)
-![Python Versions](https://img.shields.io/badge/python-3.5%20%7C%203.6-blue.svg)
+![Python Versions](https://img.shields.io/badge/python-3.6-blue.svg)
 
 The Broadway is a distributed grading service that receives, executes, and keeps track of grading jobs and runs.
 
@@ -22,12 +22,12 @@ See our [contribution guidelines](CONTRIBUTING.md) if you want to contribute.
 
 MongoDB must be installed and the `mongod` daemon must be running locally before starting the API. Default options are usually sufficient (but for security purposes, be sure to disallow external access to the store).
 
-Python 3.5 is the minimum supported interpreter version. Versions 3.5 and 3.6 are officially supported, but 3.7 should work just as well.
+Python 3.6 is the minimum supported interpreter version. Python 3.7 should also work just fine.
 
 To install the dependencies (with venv)
 
     python3 -m venv venv
-    . venv/bin/activate
+    sourcce venv/bin/activate
     pip3 install -r requirements.txt
 
 ## Configuration

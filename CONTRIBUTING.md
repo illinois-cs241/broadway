@@ -6,6 +6,7 @@ First of all thank you for contributing to Broadway! :tada:
 There are many ways in which you can contribute. Broadway has a lot of sister open source projects which need maintenance too.
 * [Broadway On-Demand](https://github.com/illinois-cs241/broadway-on-demand)
 * [Chainlink](https://github.com/illinois-cs241/chainlink)
+* [FlagSet](https://github.com/illinois-cs241/flagset)
 
 If you find issues in any of these, please feel free to make Issues or Pull Requests. Reporting issues itself is contributing!
 

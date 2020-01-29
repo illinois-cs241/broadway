@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 class WorkerConnectionHandler(BaseWSAPIHandler):
     def __init__(self, *args, **kwargs):
         self.worker_id = None
-        self.worker_node = None
         super().__init__(*args, **kwargs)
 
     @authenticate_cluster_token_ws
@@ -42,7 +41,9 @@ class WorkerConnectionHandler(BaseWSAPIHandler):
 
         worker_node_dao = daos.WorkerNodeDao(self.settings)
 
-        if self.worker_node is None:
+        dup = worker_node_dao.find_by_id(self.worker_id)
+
+        if dup is None:
             self.worker_node = models.WorkerNode(
                 id_=self.worker_id,
                 hostname=hostname,
@@ -50,20 +51,15 @@ class WorkerConnectionHandler(BaseWSAPIHandler):
                 is_alive=True,
                 use_ws=True,
             )
-        else:
-            self.worker_node.hostname = hostname
-            self.worker_node.last_seen = get_time()
-            self.worker_node.is_alive = True
-            self.worker_node.use_ws = True
-
-        dup = worker_node_dao.find_by_id(self.worker_id)
-
-        if dup is None:
             logger.info(
                 "new worker '{}' joined on '{}'".format(self.worker_id, hostname)
             )
             worker_node_dao.insert(self.worker_node)
         elif not dup.is_alive:
+            self.worker_node = dup
+            self.worker_node.hostname = hostname
+            self.worker_node.last_seen = get_time()
+            self.worker_node.is_alive = True
             logger.info(
                 "worker '{}' alive again on '{}'".format(self.worker_id, hostname)
             )

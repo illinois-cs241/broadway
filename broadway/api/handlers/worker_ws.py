@@ -60,6 +60,7 @@ class WorkerConnectionHandler(BaseWSAPIHandler):
             self.worker_node.hostname = hostname
             self.worker_node.last_seen = get_time()
             self.worker_node.is_alive = True
+            self.use_ws = True
             logger.info(
                 "worker '{}' alive again on '{}'".format(self.worker_id, hostname)
             )

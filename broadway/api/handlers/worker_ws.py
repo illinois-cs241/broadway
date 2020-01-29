@@ -51,10 +51,10 @@ class WorkerConnectionHandler(BaseWSAPIHandler):
                 use_ws=True,
             )
         else:
-            self.worker_node.hostname=hostname
-            self.worker_node.last_seen=get_time()
-            self.worker_node.is_alive=True
-            self.worker_node.use_ws=True
+            self.worker_node.hostname = hostname
+            self.worker_node.last_seen = get_time()
+            self.worker_node.is_alive = True
+            self.worker_node.use_ws = True
 
         dup = worker_node_dao.find_by_id(self.worker_id)
 

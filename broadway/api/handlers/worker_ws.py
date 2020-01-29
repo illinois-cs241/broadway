@@ -41,22 +41,26 @@ class WorkerConnectionHandler(BaseWSAPIHandler):
 
         worker_node_dao = daos.WorkerNodeDao(self.settings)
 
-        self.worker_node = models.WorkerNode(
-            id_=self.worker_id,
-            hostname=hostname,
-            last_seen=get_time(),
-            is_alive=True,
-            use_ws=True,
-        )
-
         dup = worker_node_dao.find_by_id(self.worker_id)
 
         if dup is None:
+            self.worker_node = models.WorkerNode(
+                id_=self.worker_id,
+                hostname=hostname,
+                last_seen=get_time(),
+                is_alive=True,
+                use_ws=True,
+            )
             logger.info(
                 "new worker '{}' joined on '{}'".format(self.worker_id, hostname)
             )
             worker_node_dao.insert(self.worker_node)
         elif not dup.is_alive:
+            self.worker_node = dup
+            self.worker_node.hostname = hostname
+            self.worker_node.last_seen = get_time()
+            self.worker_node.is_alive = True
+            self.use_ws = True
             logger.info(
                 "worker '{}' alive again on '{}'".format(self.worker_id, hostname)
             )

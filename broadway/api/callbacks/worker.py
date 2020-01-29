@@ -9,6 +9,8 @@ from broadway.api.callbacks import job_update_callback
 from broadway.api.daos import GradingJobDao, WorkerNodeDao
 from broadway.api.utils.time import get_time
 
+import random
+
 logger = logging.getLogger(__name__)
 
 
@@ -55,6 +57,7 @@ def worker_schedule_job(settings):
     worker_node_dao = WorkerNodeDao(settings)
 
     idle_workers = worker_node_dao.find_by_idleness()
+    random.shuffle(idle_workers)
 
     for idle_worker in idle_workers:
         if idle_worker.use_ws and idle_worker.id in conn_map:

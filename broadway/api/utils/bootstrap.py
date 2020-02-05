@@ -7,7 +7,6 @@ import uuid
 import signal
 
 from typing import Dict, Any
-from queue import Queue
 
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
@@ -22,6 +21,7 @@ from logging.handlers import TimedRotatingFileHandler
 from broadway.api.definitions import course_config
 from broadway.api.daos import CourseDao, WorkerNodeDao
 from broadway.api.models import Course
+from broadway.api.utils.multiqueue import MultiQueue
 
 import broadway.api.callbacks as callbacks
 import broadway.api.handlers.client as client_handlers
@@ -65,7 +65,7 @@ def initialize_global_settings(flags: Dict[str, Any]) -> Dict[str, Any]:
         flags["token"] = str(uuid.uuid4())
         logger.info("token not given, using {}".format(flags["token"]))
 
-    return {"FLAGS": flags, "DB": None, "QUEUE": Queue(), "WS_CONN_MAP": {}}
+    return {"FLAGS": flags, "DB": None, "QUEUE": MultiQueue(), "WS_CONN_MAP": {}}
 
 
 def initialize_course_tokens(settings: Dict[str, Any], flags: Dict[str, Any]):
@@ -91,6 +91,7 @@ def initialize_course_tokens(settings: Dict[str, Any], flags: Dict[str, Any]):
     for course_id, tokens in courses.items():
         course = Course(id_=course_id, tokens=tokens)
         course_dao.insert_or_update(course)
+        settings["QUEUE"].add_queue(course_id)
 
 
 def initialize_database(settings: Dict[str, Any], flags: Dict[str, Any]):

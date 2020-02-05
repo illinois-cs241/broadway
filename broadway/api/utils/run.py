@@ -33,7 +33,7 @@ def continue_grading_run(settings, grading_run):
                 assignment.pre_processing_pipeline,
                 GradingJobType.PRE_PROCESSING,
             )
-            queue.put(next_job)
+            queue.push(grading_run.course_id, next_job)
             return True
     if (
         grading_run.state == GradingRunState.READY
@@ -49,7 +49,7 @@ def continue_grading_run(settings, grading_run):
                 assignment.student_pipeline,
                 GradingJobType.STUDENT,
             )
-            queue.put(next_job)
+            queue.push(grading_run.course_id, next_job)
         return True
     if grading_run.state == GradingRunState.STUDENTS_STAGE:
         if assignment.post_processing_pipeline:
@@ -64,7 +64,7 @@ def continue_grading_run(settings, grading_run):
                 assignment.post_processing_pipeline,
                 GradingJobType.POST_PROCESSING,
             )
-            queue.put(next_job)
+            queue.push(grading_run.course_id, next_job)
             return True
         else:
             _finish_grading_run(settings, grading_run)

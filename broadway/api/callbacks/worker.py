@@ -64,7 +64,7 @@ def worker_schedule_job(settings):
             conn = conn_map[idle_worker.id]
 
             try:
-                grading_job_id = job_queue.get_nowait()
+                grading_job_id = job_queue.pull()
                 grading_job = grading_job_dao.find_by_id(grading_job_id)
 
                 if not grading_job:

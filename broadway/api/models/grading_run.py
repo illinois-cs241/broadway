@@ -16,6 +16,7 @@ class GradingRunState(Enum):
 class GradingRun(BaseModel):
     def __init__(
         self,
+        course_id: str,
         assignment_id: str,
         state: GradingRunState,
         id_: Optional[str] = None,
@@ -29,6 +30,7 @@ class GradingRun(BaseModel):
     ) -> None:
         self.id = id_
         self.state = state
+        self.course_id = course_id
         self.assignment_id = assignment_id
         self.started_at = started_at
         self.finished_at = finished_at

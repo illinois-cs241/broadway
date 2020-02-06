@@ -12,7 +12,7 @@ class MultiQueue:
         self.keys = []
         self.round_robin_idx = 0
 
-    def add_queue(self, queue_id):
+    def _add_queue(self, queue_id):
         if queue_id in self.queues:
             raise Exception("{} already exists in the MultiQueue.".format(queue_id))
 
@@ -21,7 +21,7 @@ class MultiQueue:
 
     def push(self, queue_id, elem):
         if queue_id not in self.queues:
-            self.add_queue(queue_id)
+            self._add_queue(queue_id)
 
         self.queues[queue_id].put(elem)
 

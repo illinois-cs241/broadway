@@ -53,29 +53,7 @@ class TestMultiQueue(BaseTest):
         super().setUp()
         self.multiqueue = MultiQueue()
 
-    def add_queues(self, queues):
-        for queue in queues:
-            self.multiqueue.add_queue(queue)
-
-    def test_add_queue(self):
-        self.add_queues(["cs225", "cs241"])
-
-        # try adding a queue that already exists
-        with self.assertRaises(Exception):
-            self.multiqueue.add_queue("cs241")
-
-        self.assertEqual(2, len(self.multiqueue.keys))
-        self.assertEqual(2, len(self.multiqueue.queues))
-
-    def test_push_nonexistent(self):
-        # pushing to an nonexistent queue should create it
-        self.multiqueue.push("ece391", 391)
-        self.assertEqual(1, len(self.multiqueue.queues))
-        self.assertEqual(1, self.multiqueue.queues["ece391"].qsize())
-
     def test_push(self):
-        self.add_queues(["cs225", "cs233", "cs241"])
-
         self.multiqueue.push("cs225", 225)
         self.multiqueue.push("cs225", 296 - 25)
 
@@ -84,19 +62,14 @@ class TestMultiQueue(BaseTest):
         self.multiqueue.push("cs241", 241)
         self.multiqueue.push("cs241", 295 - 41)
 
+        self.assertEqual(3, len(self.multiqueue.queues))
         self.assertEqual(2, self.multiqueue.queues["cs225"].qsize())
         self.assertEqual(1, self.multiqueue.queues["cs233"].qsize())
         self.assertEqual(2, self.multiqueue.queues["cs241"].qsize())
 
     def test_pull(self):
 
-        # try pulling from a multiqueue with no queues in it yet
-        with self.assertRaises(Empty):
-            rv = self.multiqueue.pull()
-
-        self.add_queues(["cs225", "cs233", "cs241", "ece411"])
-
-        # try pulling from a multiqueue with multiple empty queues
+        # try pulling from a multiqueue that is empty
         with self.assertRaises(Empty):
             rv = self.multiqueue.pull()
 

@@ -91,7 +91,6 @@ def initialize_course_tokens(settings: Dict[str, Any], flags: Dict[str, Any]):
     for course_id, tokens in courses.items():
         course = Course(id_=course_id, tokens=tokens)
         course_dao.insert_or_update(course)
-        settings["QUEUE"].add_queue(course_id)
 
 
 def initialize_database(settings: Dict[str, Any], flags: Dict[str, Any]):

@@ -14,14 +14,14 @@ class MultiQueue:
 
     def add_queue(self, queue_id):
         if queue_id in self.queues:
-            raise Exception(f"{queue_id} already exists in the MultiQueue.")
+            raise Exception("{} already exists in the MultiQueue.".format(queue_id))
 
         self.queues[queue_id] = Queue()
         self.keys.append(queue_id)
 
     def push(self, queue_id, elem):
         if queue_id not in self.queues:
-            raise Exception(f"{queue_id} does not exist in the MultiQueue.")
+            raise Exception("{} does not exist in the MultiQueue.".format(queue_id))
 
         self.queues[queue_id].put(elem)
 

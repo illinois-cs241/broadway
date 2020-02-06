@@ -84,7 +84,6 @@ class GradingRunHandler(ClientAPIHandler):
 
         run_attrs = {
             **self.body,
-            "course_id": kwargs.get("course_id"),
             "assignment_id": assignment_id,
             "started_at": get_time(),
             "state": models.GradingRunState.READY,

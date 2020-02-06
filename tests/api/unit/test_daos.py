@@ -177,7 +177,6 @@ class GradingRunDaoTest(BaseTest):
 
     DEFAULT_OBJECT = models.GradingRun(
         assignment_id="assignment123",
-        course_id="cs241",
         state=models.GradingRunState.READY,
         students_env=[{"override": "1"}],
         student_jobs_left=1,

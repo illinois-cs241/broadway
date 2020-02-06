@@ -10,7 +10,6 @@ from broadway.api.models import GradingRun, GradingRunState
 class GradingRunDao(BaseDao):
     ID = "_id"
     STATE = "state"
-    COURSE_ID = "course_id"
     ASSIGNMENT_ID = "assignment_id"
     STARTED_AT = "started_at"
     FINISHED_AT = "finished_at"
@@ -50,7 +49,6 @@ class GradingRunDao(BaseDao):
         attrs = {
             "id_": str(obj.get(GradingRunDao.ID)),
             "state": GradingRunState(obj.get(GradingRunDao.STATE)),
-            "course_id": obj.get(GradingRunDao.COURSE_ID),
             "assignment_id": obj.get(GradingRunDao.ASSIGNMENT_ID),
             "started_at": obj.get(GradingRunDao.STARTED_AT),
             "finished_at": obj.get(GradingRunDao.FINISHED_AT),
@@ -66,7 +64,6 @@ class GradingRunDao(BaseDao):
         return {
             GradingRunDao.ID: ObjectId(obj.id) if obj.id is not None else None,
             GradingRunDao.STATE: obj.state.value,
-            GradingRunDao.COURSE_ID: obj.course_id,
             GradingRunDao.ASSIGNMENT_ID: obj.assignment_id,
             GradingRunDao.STARTED_AT: obj.started_at,
             GradingRunDao.FINISHED_AT: obj.finished_at,

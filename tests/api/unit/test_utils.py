@@ -67,12 +67,14 @@ class TestMultiQueue(BaseTest):
         self.assertEqual(2, len(self.multiqueue.keys))
         self.assertEqual(2, len(self.multiqueue.queues))
 
+    def test_push_nonexistent(self):
+        # pushing to an nonexistent queue should create it
+        self.multiqueue.push("ece391", 391)
+        self.assertEqual(1, len(self.multiqueue.queues))
+        self.assertEqual(1, self.multiqueue.queues["ece391"].qsize())
+
     def test_push(self):
         self.add_queues(["cs225", "cs233", "cs241"])
-
-        # try pushing to a non-existent queue
-        with self.assertRaises(Exception):
-            self.multiqueue.push("invalid_id", 1)
 
         self.multiqueue.push("cs225", 225)
         self.multiqueue.push("cs225", 296 - 25)

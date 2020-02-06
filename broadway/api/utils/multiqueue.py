@@ -21,7 +21,7 @@ class MultiQueue:
 
     def push(self, queue_id, elem):
         if queue_id not in self.queues:
-            raise Exception("{} does not exist in the MultiQueue.".format(queue_id))
+            self.add_queue(queue_id)
 
         self.queues[queue_id].put(elem)
 

@@ -1039,7 +1039,7 @@ class WSEndpointIntegrationTest(BaseTest):
 
         self.assertEqual(
             get_first_status(run_state["student_jobs_state"]),
-            GradingJobState.STARTED.value,
+            GradingJobState.FAILED.value,
         )
 
     # one ws worker vs two jobs

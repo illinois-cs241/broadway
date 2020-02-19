@@ -112,33 +112,33 @@ def _handle_lost_worker_node(settings, worker, reason="timeout"):
             )
         )
         return
-    else:
+
+    logger.critical(
+        "worker '{}' went offline unexpectedly on '{}' while"
+        " executing '{}' due to {}".format(
+            worker.id, worker.hostname, lost_run_id, reason
+        )
+    )
+
+    jobs_dao = GradingJobDao(settings)
+    job = jobs_dao.find_by_id(lost_run_id)
+    if job is None:
         logger.critical(
-            "worker '{}' went offline unexpectedly on '{}' while"
-            " executing '{}' due to {}".format(
-                worker.id, worker.hostname, lost_run_id, reason
-            )
+            (
+                "worker was reportedly executing job '{}' "
+                "but this job does not exist"
+            ).format(lost_run_id)
         )
+        return
 
-        jobs_dao = GradingJobDao(settings)
-        job = jobs_dao.find_by_id(lost_run_id)
-        if job is None:
-            logger.critical(
-                (
-                    "worker was reportedly executing job '{}' "
-                    "but this job does not exist"
-                ).format(lost_run_id)
-            )
-            return
+    job.finished_at = get_time()
+    job.success = False
+    job.results = [{"result": "worker died while executing job"}]
+    jobs_dao.update(job)
 
-        job.finished = get_time()
-        job.success = True
-        job.results = [{"result": "worker died while executing job"}]
-        jobs_dao.update(job)
-
-        tornado.ioloop.IOLoop.current().add_callback(
-            job_update_callback, settings, lost_run_id, job.run_id
-        )
+    tornado.ioloop.IOLoop.current().add_callback(
+        job_update_callback, settings, lost_run_id, job.run_id
+    )
 
 
 __all__ = ["worker_heartbeat_callback", "worker_lost_callback", "worker_schedule_job"]

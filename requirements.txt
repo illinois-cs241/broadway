@@ -1,4 +1,4 @@
-git+https://github.com/illinois-cs241/chainlink@0.0.6
+git+https://github.com/illinois-cs241/chainlink@0.0.7
 git+https://github.com/illinois-cs241/flagset@0.0.3
 pymongo==3.9.0
 tornado==5.1.1

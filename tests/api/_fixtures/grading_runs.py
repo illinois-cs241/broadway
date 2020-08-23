@@ -12,3 +12,7 @@ one_student_and_both = {
     "students_env": [{"netid": "test net id"}],
     "post_processing_env": {"type": "post"},
 }
+
+
+def generate_n_student_jobs(n):
+    return {"students_env": [{"netid": "test net id"}] * n}

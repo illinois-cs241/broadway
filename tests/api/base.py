@@ -181,7 +181,7 @@ class ClientMixin(AsyncHTTPMixin):
 
     def get_course_queue_length(self, course_id, header, expected_code):
         response = self.fetch(
-            self.get_url("/api/v1/queue_length/{}".format(course_id)),
+            self.get_url("/api/v1/queue/{}/length".format(course_id)),
             method="GET",
             headers=header,
         )

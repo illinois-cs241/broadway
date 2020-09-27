@@ -169,7 +169,7 @@ def initialize_app(
                 client_handlers.CourseWorkerNodeHandler,
             ),
             (
-                r"/api/v1/queue_length/{}".format(id_regex.format("course_id")),
+                r"/api/v1/queue/{}/length".format(id_regex.format("course_id")),
                 client_handlers.CourseQueueLengthHandler,
             ),
             # ----------------------------------

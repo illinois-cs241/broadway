@@ -67,9 +67,9 @@ class TestMultiQueue(BaseTest):
         self.assertTrue(self.multiqueue.contains_key("cs241"))
         self.assertFalse(self.multiqueue.contains_key("ece411"))
 
-        self.assertEqual(2, self.multiqueue.get_queue_length_by_key("cs225"))
-        self.assertEqual(1, self.multiqueue.get_queue_length_by_key("cs233"))
-        self.assertEqual(2, self.multiqueue.get_queue_length_by_key("cs241"))
+        self.assertEqual(2, self.multiqueue.get_queue_length("cs225"))
+        self.assertEqual(1, self.multiqueue.get_queue_length("cs233"))
+        self.assertEqual(2, self.multiqueue.get_queue_length("cs241"))
 
         self.assertEqual(3, len(self.multiqueue.queues))
         self.assertEqual(2, self.multiqueue.queues["cs225"].qsize())

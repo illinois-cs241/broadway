@@ -405,3 +405,13 @@ class CourseQueueLengthEndpointTest(BaseTest):
         # since we didn't start any grading runs.
         self.get_course_queue_length(self.course1, self.client_header1, 400)
         self.get_course_queue_length(self.course1, self.client_header1, 400)
+
+
+class GradingRunQueuePositionEndpointTest(BaseTest):
+    def assert_position_equals(self, course_id, grading_run_id, header, expected_pos):
+        pos = self.get_grading_run_queue_position(
+            course_id, grading_run_id, header, 200
+        )["length"]
+        self.assertEqual(expected_pos, pos)
+
+    # TODO: Add tests

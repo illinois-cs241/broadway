@@ -296,7 +296,7 @@ class CourseQueueLengthHandler(ClientAPIHandler):
             return
 
 
-class GradingRunQueuePosition(ClientAPIHandler):
+class GradingRunQueuePositionHandler(ClientAPIHandler):
     @authenticate_course
     @schema.validate(
         output_schema={

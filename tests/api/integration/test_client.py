@@ -303,3 +303,105 @@ class CourseWorkerNodeEndpointTest(BaseTest):
         self.get_course_worker_nodes(
             self.course1, "invalid_scope", self.client_header1, 404
         )
+
+
+class CourseQueueLengthEndpointTest(BaseTest):
+    def assertLengthEquals(self, course_id, header, expected_len):
+        length = self.get_course_queue_length(course_id, header, 200)["length"]
+        self.assertEqual(expected_len, length)
+
+    def test_single_course(self):
+        num_students = 10
+
+        # Upload the jobs
+        self.upload_grading_config(
+            self.course1,
+            "assignment1",
+            self.client_header1,
+            grading_configs.only_student_config,
+            200,
+        )
+        self.start_grading_run(
+            self.course1,
+            "assignment1",
+            self.client_header1,
+            grading_runs.generate_n_student_jobs(num_students),
+            200,
+        )
+
+        self.assertLengthEquals(self.course1, self.client_header1, num_students)
+
+        # Now, run those jobs
+        worker_id = self.register_worker(self.get_header())
+        for i in range(num_students):
+            self.poll_job(worker_id, self.get_header())
+
+        # No more jobs should be left
+        self.assertLengthEquals(self.course1, self.client_header1, 0)
+
+    def test_multiple_courses(self):
+        num_students1 = 32
+        num_students2 = 56
+
+        # Upload the jobs
+        self.upload_grading_config(
+            self.course1,
+            "assignment1",
+            self.client_header1,
+            grading_configs.only_student_config,
+            200,
+        )
+        self.upload_grading_config(
+            self.course2,
+            "assignment2",
+            self.client_header2,
+            grading_configs.only_student_config,
+            200,
+        )
+        self.start_grading_run(
+            self.course1,
+            "assignment1",
+            self.client_header1,
+            grading_runs.generate_n_student_jobs(num_students1),
+            200,
+        )
+        self.start_grading_run(
+            self.course2,
+            "assignment2",
+            self.client_header2,
+            grading_runs.generate_n_student_jobs(num_students2),
+            200,
+        )
+
+        self.assertLengthEquals(self.course1, self.client_header1, num_students1)
+        self.assertLengthEquals(self.course2, self.client_header2, num_students2)
+
+        # Now, run the jobs
+        worker_id = self.register_worker(self.get_header())
+        for i in range(num_students1 + num_students2):
+            self.poll_job(worker_id, self.get_header())
+
+        # No more jobs should be left.
+        self.assertLengthEquals(self.course1, self.client_header1, 0)
+        self.assertLengthEquals(self.course2, self.client_header2, 0)
+
+    def test_invalid_course(self):
+        self.upload_grading_config(
+            self.course1,
+            "assignment1",
+            self.client_header1,
+            grading_configs.only_student_config,
+            200,
+        )
+        self.upload_grading_config(
+            self.course2,
+            "assignment2",
+            self.client_header2,
+            grading_configs.only_student_config,
+            200,
+        )
+
+        # No jobs should have been pushed to the queue yet,
+        # since we didn't start any grading runs.
+        self.get_course_queue_length(self.course1, self.client_header1, 400)
+        self.get_course_queue_length(self.course1, self.client_header1, 400)

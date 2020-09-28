@@ -192,6 +192,36 @@ class GradingRunStatusHandler(ClientAPIHandler):
         }
 
 
+class GradingRunQueuePosition(ClientAPIHandler):
+    @authenticate_course
+    @schema.validate(
+        output_schema={
+            "type": "object",
+            "properties": {"position": {"type": "number"}},
+            "required": ["position"],
+            "additionalProperties": False,
+        },
+        on_empty_404=True,
+    )
+    def get(self, *args, **kwargs):
+        course_id = kwargs["course_id"]
+        grading_run_id = kwargs.get("run_id")
+        queue = self.settings["QUEUE"]
+
+        if not queue.contains_key(course_id):
+            self.abort(
+                {"message": f"{course_id} does not exist as a course in the queue"}
+            )
+            return
+
+        queue_position = queue.get_position_in_queue(course_id, grading_run_id)
+        if queue_position == -1:
+            self.abort(
+                {"message": f"{grading_run_id} was not found in the queue"}
+            )
+
+        return {"position", queue_position}
+
 class GradingJobLogHandler(ClientAPIHandler):
     @authenticate_course
     @schema.validate(

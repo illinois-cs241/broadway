@@ -320,8 +320,6 @@ class GradingRunQueuePositionHandler(ClientAPIHandler):
 
         queue_position = queue.get_position_in_queue(course_id, grading_run_id)
         if queue_position == -1:
-            self.abort(
-                {"message": f"{grading_run_id} was not found in the queue"}
-            )
+            self.abort({"message": f"{grading_run_id} was not found in the queue"})
 
         return {"position", queue_position}

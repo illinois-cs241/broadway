@@ -207,6 +207,7 @@ class ClientMixin(AsyncHTTPMixin):
             response_body = json.loads(response.body.decode("utf-8"))
             return response_body["data"]
 
+
 class GraderMixin(AsyncHTTPMixin):
     def register_worker(
         self, header, expected_code=200, worker_id=None, hostname="mock_hostname"

@@ -176,7 +176,7 @@ def initialize_app(
                 r"/api/v1/queue/{}/{}/position".format(
                     id_regex.format("course_id"), id_regex.format("run_id")
                 ),
-                client_handlers.GradingRunQueuePosition,
+                client_handlers.GradingRunQueuePositionHandler,
             ),
             # ----------------------------------
             # ------- Worker Endpoints ---------

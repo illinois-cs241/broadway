@@ -92,23 +92,22 @@ class TestMultiQueue(BaseTest):
             self.multiqueue.push("cs241", "cs241-" + str(i))
 
         for i in range(10):
-            self.assertEqual(i, self.multiqueue.get_position_in_queue(
-                "cs225", "cs225-" + str(i)))
+            self.assertEqual(
+                i, self.multiqueue.get_position_in_queue("cs225", "cs225-" + str(i))
+            )
 
         for i in range(100):
-            self.assertEqual(i, self.multiqueue.get_position_in_queue(
-                "cs233", "cs233-" + str(i)
-            ))
+            self.assertEqual(
+                i, self.multiqueue.get_position_in_queue("cs233", "cs233-" + str(i))
+            )
 
         for i in range(241):
-            self.assertEqual(i, self.multiqueue.get_position_in_queue(
-                "cs241", "cs241-" + str(i)
-            ))
+            self.assertEqual(
+                i, self.multiqueue.get_position_in_queue("cs241", "cs241-" + str(i))
+            )
 
         # try getting the position of a non-existent key
-        self.assertEqual(-1, self.multiqueue.get_position_in_queue(
-            "cs225", "foo"
-        ))
+        self.assertEqual(-1, self.multiqueue.get_position_in_queue("cs225", "foo"))
 
     def test_pull(self):
 

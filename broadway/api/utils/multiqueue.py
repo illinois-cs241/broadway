@@ -19,6 +19,10 @@ class MultiQueue:
         self.queues[queue_id] = Queue()
         self.keys.append(queue_id)
 
+    def _ensure_queue_exists(self, queue_id):
+        if queue_id not in self.queues:
+            raise Exception(f"{queue_id} does not exist in the MultiQueue.")
+
     def push(self, queue_id, elem):
         if queue_id not in self.queues:
             self._add_queue(queue_id)
@@ -44,10 +48,16 @@ class MultiQueue:
 
         raise Empty("All the queues in the MultiQueue are empty.")
 
-    def get_queue_length_by_key(self, key):
-        if not self.contains_key(key):
-            raise Exception(f"{key} does not exist in the MultiQueue.")
-        return self.queues[key].qsize()
-
     def contains_key(self, key):
         return key in self.queues
+
+    def get_queue_length(self, queue_id):
+        self._ensure_queue_exists(queue_id)
+        return self.queues[queue_id].qsize()
+
+    def get_position_in_queue(self, queue_id, key):
+        self._ensure_queue_exists(queue_id)
+        try:
+            return self.queues[queue_id].queue.index(key)
+        except ValueError:
+            return -1

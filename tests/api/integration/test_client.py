@@ -403,5 +403,5 @@ class CourseQueueLengthEndpointTest(BaseTest):
 
         # No jobs should have been pushed to the queue yet,
         # since we didn't start any grading runs.
-        self.get_course_queue_length(self.course1, self.client_header1, 400)
-        self.get_course_queue_length(self.course1, self.client_header1, 400)
+        self.assertLengthEquals(self.course1, self.client_header1, 0)
+        self.assertLengthEquals(self.course2, self.client_header2, 0)

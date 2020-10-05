@@ -287,10 +287,8 @@ class CourseQueueLengthHandler(ClientAPIHandler):
         course_id = kwargs["course_id"]
         queue = self.settings["QUEUE"]
 
+        length = 0
         if queue.contains_key(course_id):
-            return {"length": queue.get_queue_length_by_key(course_id)}
-        else:
-            self.abort(
-                {"message": f"{course_id} does not exist as a course in the queue"}
-            )
-            return
+            length = queue.get_queue_length_by_key(course_id)
+
+        return {"length": length}

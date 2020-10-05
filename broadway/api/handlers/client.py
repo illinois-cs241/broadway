@@ -306,8 +306,15 @@ class GradingRunQueuePositionHandler(ClientAPIHandler):
         on_empty_404=True,
     )
     def get(self, *args, **kwargs):
-        course_id = kwargs["course_id"]
+
         grading_run_id = kwargs.get("run_id")
+
+        grading_run_dao = daos.GradingRunDao(self.settings)
+        if grading_run_dao.find_by_id(grading_run_id) is None:
+            self.abort({"message": "grading run with the given ID not found"})
+            return
+
+        course_id = kwargs["course_id"]
         queue = self.settings["QUEUE"]
 
         if not queue.contains_key(course_id):
@@ -318,6 +325,8 @@ class GradingRunQueuePositionHandler(ClientAPIHandler):
 
         queue_position = queue.get_position_in_queue(course_id, grading_run_id)
         if queue_position == -1:
-            self.abort({"message": f"{grading_run_id} was not found in the queue"})
+            self.abort(
+                {"message": f"{grading_run_id} has already passed through the queue"}
+            )
 
         return {"position", queue_position}

@@ -43,3 +43,11 @@ class MultiQueue:
                 pass
 
         raise Empty("All the queues in the MultiQueue are empty.")
+
+    def get_queue_length_by_key(self, key):
+        if not self.contains_key(key):
+            raise Exception(f"{key} does not exist in the MultiQueue.")
+        return self.queues[key].qsize()
+
+    def contains_key(self, key):
+        return key in self.queues

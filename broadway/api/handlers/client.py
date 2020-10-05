@@ -270,3 +270,25 @@ class CourseWorkerNodeHandler(ClientAPIHandler):
                 {"message": "scope {} has not been implemented yet".format(scope)}, 404
             )
             return
+
+
+class CourseQueueLengthHandler(ClientAPIHandler):
+    @authenticate_course
+    @schema.validate(
+        output_schema={
+            "type": "object",
+            "properties": {"length": {"type": "number"}},
+            "required": ["length"],
+            "additionalProperties": False,
+        },
+        on_empty_404=True,
+    )
+    def get(self, *args, **kwargs):
+        course_id = kwargs["course_id"]
+        queue = self.settings["QUEUE"]
+
+        length = 0
+        if queue.contains_key(course_id):
+            length = queue.get_queue_length_by_key(course_id)
+
+        return {"length": length}

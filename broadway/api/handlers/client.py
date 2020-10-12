@@ -289,7 +289,7 @@ class CourseQueueLengthHandler(ClientAPIHandler):
 
         length = 0
         if queue.contains_key(course_id):
-            length = queue.get_queue_length_by_key(course_id)
+            length = queue.get_queue_length(course_id)
 
         return {"length": length}
 

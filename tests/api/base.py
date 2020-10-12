@@ -191,12 +191,12 @@ class ClientMixin(AsyncHTTPMixin):
             response_body = json.loads(response.body.decode("utf-8"))
             return response_body["data"]
 
-    def get_grading_run_queue_position(
-        self, course_id, grading_run_id, header, expected_code
+    def get_grading_job_queue_position(
+        self, course_id, grading_job_id, header, expected_code
     ):
         response = self.fetch(
             self.get_url(
-                "/api/v1/queue/{}/{}/position".format(course_id, grading_run_id)
+                "/api/v1/queue/{}/{}/position".format(course_id, grading_job_id)
             ),
             method="GET",
             headers=header,

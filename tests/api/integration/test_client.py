@@ -407,11 +407,94 @@ class CourseQueueLengthEndpointTest(BaseTest):
         self.assertLengthEquals(self.course2, self.client_header2, 0)
 
 
-class GradingRunQueuePositionEndpointTest(BaseTest):
-    def assert_position_equals(self, course_id, grading_run_id, header, expected_pos):
-        pos = self.get_grading_run_queue_position(
-            course_id, grading_run_id, header, 200
-        )["length"]
+class GradingJobQueuePositionEndpointTest(BaseTest):
+    def assert_position_equals(self, course_id, grading_job_id, header, expected_pos):
+        pos = self.get_grading_job_queue_position(
+            course_id, grading_job_id, header, 200
+        )["position"]
         self.assertEqual(expected_pos, pos)
 
-    # TODO: Add tests
+    def test_single_job(self):
+
+        # Upload the jobs
+        self.upload_grading_config(
+            self.course1,
+            "assignment1",
+            self.client_header1,
+            grading_configs.only_student_config,
+            200,
+        )
+        grading_run_id = self.start_grading_run(
+            self.course1,
+            "assignment1",
+            self.client_header1,
+            grading_runs.one_student_job,
+            200,
+        )
+
+        run_state = self.get_grading_run_state(
+            self.course1, grading_run_id, self.client_header1
+        )
+
+        # There should only be one job in the run
+        job_id = list(run_state["student_jobs_state"].keys())[0]
+
+        # There should be 0 jobs ahead of this run in the queue
+        self.assert_position_equals(self.course1, job_id, self.client_header1, 0)
+
+        # Now, run the job
+        worker_id = self.register_worker(self.get_header())
+        self.poll_job(worker_id, self.get_header())
+
+        # The job should no longer be in the queue
+        self.get_grading_job_queue_position(
+           self.course1, job_id, self.client_header1, 400
+        )
+
+    def test_multiple_jobs(self):
+        num_jobs = 10
+
+        # Upload the jobs
+        self.upload_grading_config(
+            self.course1,
+            "assignment1",
+            self.client_header1,
+            grading_configs.only_student_config,
+            200,
+        )
+
+        job_ids = []
+        for _ in range(num_jobs):
+            grading_run_id = self.start_grading_run(
+                self.course1,
+                "assignment1",
+                self.client_header1,
+                grading_runs.one_student_job,
+                200,
+            )
+
+            # Keep track of the job ids
+            run_state = self.get_grading_run_state(
+                self.course1, grading_run_id, self.client_header1
+            )
+            job_ids.append(list(run_state["student_jobs_state"].keys())[0])
+
+        for ind, job_id in enumerate(job_ids):
+            self.assert_position_equals(self.course1, job_id, self.client_header1, ind)
+
+        # Now, run the job
+        worker_id = self.register_worker(self.get_header())
+        for starting_ind, job_id in enumerate(job_ids):
+            # Run the job
+            self.poll_job(worker_id, self.get_header())
+            # Make sure the rest of the jobs have gone down 1 in position
+            for expected_pos, waiting_job in enumerate(job_ids[starting_ind + 1:]):
+                self.assert_position_equals(
+                    self.course1, waiting_job, self.client_header1, expected_pos
+                )
+
+        # The jobs should no longer be in the queue
+        for job_id in job_ids:
+            self.get_grading_job_queue_position(
+                self.course1, job_id, self.client_header1, 400
+            )

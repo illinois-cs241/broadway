@@ -294,7 +294,7 @@ class CourseQueueLengthHandler(ClientAPIHandler):
         return {"length": length}
 
 
-class GradingRunQueuePositionHandler(ClientAPIHandler):
+class GradingJobQueuePositionHandler(ClientAPIHandler):
     @authenticate_course
     @schema.validate(
         output_schema={
@@ -307,11 +307,11 @@ class GradingRunQueuePositionHandler(ClientAPIHandler):
     )
     def get(self, *args, **kwargs):
 
-        grading_run_id = kwargs.get("run_id")
+        grading_job_id = kwargs.get("job_id")
 
-        grading_run_dao = daos.GradingRunDao(self.settings)
-        if grading_run_dao.find_by_id(grading_run_id) is None:
-            self.abort({"message": "grading run with the given ID not found"})
+        grading_job_dao = daos.GradingJobDao(self.settings)
+        if grading_job_dao.find_by_id(grading_job_id) is None:
+            self.abort({"message": "grading job with the given ID not found"})
             return
 
         course_id = kwargs["course_id"]
@@ -323,10 +323,10 @@ class GradingRunQueuePositionHandler(ClientAPIHandler):
             )
             return
 
-        queue_position = queue.get_position_in_queue(course_id, grading_run_id)
+        queue_position = queue.get_position_in_queue(course_id, grading_job_id)
         if queue_position == -1:
             self.abort(
-                {"message": f"{grading_run_id} has already passed through the queue"}
+                {"message": f"{grading_job_id} has already passed through the queue"}
             )
 
-        return {"position", queue_position}
+        return {"position": queue_position}

@@ -448,7 +448,7 @@ class GradingJobQueuePositionEndpointTest(BaseTest):
 
         # The job should no longer be in the queue
         self.get_grading_job_queue_position(
-           self.course1, job_id, self.client_header1, 400
+            self.course1, job_id, self.client_header1, 400
         )
 
     def test_multiple_jobs(self):
@@ -488,7 +488,7 @@ class GradingJobQueuePositionEndpointTest(BaseTest):
             # Run the job
             self.poll_job(worker_id, self.get_header())
             # Make sure the rest of the jobs have gone down 1 in position
-            for expected_pos, waiting_job in enumerate(job_ids[starting_ind + 1:]):
+            for expected_pos, waiting_job in enumerate(job_ids[starting_ind + 1 :]):
                 self.assert_position_equals(
                     self.course1, waiting_job, self.client_header1, expected_pos
                 )

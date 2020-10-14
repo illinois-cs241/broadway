@@ -12,7 +12,7 @@ If you find issues in any of these, please feel free to make Issues or Pull Requ
 
 ### Issues
 Please make issues as detailed as possible. Include error messages, logs and output in code blocks. If you are making feature requests
-please explain in detail what purpose the feature would serve. **Please keep in mind that Broadway should not contain course-specific 
+please explain in detail what purpose the feature would serve. **Please keep in mind that Broadway should not contain course-specific
 features or code.** Broadway's design has been kept generic for all courses to use and provide the flexibility to use it. Consider building
 services around Broadway if you want course specific changes.
 
@@ -28,9 +28,14 @@ is merged to `master`.
 **Please squash and merge** so that the commit history on master looks cleaner and easier to navigate.
 
 ### Testing
-Please run/modify the [tests](tests) each time a change is made to the logic or structure. You can run tests using:
+Please run/modify the [tests](tests) each time a change is made to the logic or structure. Make sure you have a local `mongo` instance running or else all tests will fail. You can run the tests using:
 ```shell
-pytest -v tests/ --doctest-modules
+py.test-3 -v tests/api --doctest-modules
+```
+
+followed by our integration tests with:
+```shell
+docker-compose -f docker-compose.test.yml up --build --force-recreate --exit-code-from tests
 ```
 
 In addition, we run a linter/formatter to keep things standard and clean. For formatting, be sure to execute `black`
@@ -47,8 +52,8 @@ flake8 --config=setup.cfg
 before opening a pull request.
 
 ### Blocking calls
-Please be cautious of adding blocking calls in the application logic because Tornado uses a single-threaded event loop. Therefore, 
-one blocking call will prevent the API from serving requests and hence tamper with the entire distributed system. For instance, 
+Please be cautious of adding blocking calls in the application logic because Tornado uses a single-threaded event loop. Therefore,
+one blocking call will prevent the API from serving requests and hence tamper with the entire distributed system. For instance,
 it might prevent the API from listening to heartbeats and as a result the server will consider worker nodes to be dead.
 
 If you want to use blocking calls, please make them asynchronous. [Asynchronous and non-blocking IO guide for Tornado](http://www.tornadoweb.org/en/stable/guide/async.html)

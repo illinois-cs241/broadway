@@ -172,6 +172,12 @@ def initialize_app(
                 r"/api/v1/queue/{}/length".format(id_regex.format("course_id")),
                 client_handlers.CourseQueueLengthHandler,
             ),
+            (
+                r"/api/v1/queue/{}/{}/position".format(
+                    id_regex.format("course_id"), id_regex.format("job_id")
+                ),
+                client_handlers.GradingJobQueuePositionHandler,
+            ),
             # ----------------------------------
             # ------- Worker Endpoints ---------
             (

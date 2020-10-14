@@ -67,14 +67,47 @@ class TestMultiQueue(BaseTest):
         self.assertTrue(self.multiqueue.contains_key("cs241"))
         self.assertFalse(self.multiqueue.contains_key("ece411"))
 
-        self.assertEqual(2, self.multiqueue.get_queue_length_by_key("cs225"))
-        self.assertEqual(1, self.multiqueue.get_queue_length_by_key("cs233"))
-        self.assertEqual(2, self.multiqueue.get_queue_length_by_key("cs241"))
+        self.assertEqual(2, self.multiqueue.get_queue_length("cs225"))
+        self.assertEqual(1, self.multiqueue.get_queue_length("cs233"))
+        self.assertEqual(2, self.multiqueue.get_queue_length("cs241"))
 
         self.assertEqual(3, len(self.multiqueue.queues))
         self.assertEqual(2, self.multiqueue.queues["cs225"].qsize())
         self.assertEqual(1, self.multiqueue.queues["cs233"].qsize())
         self.assertEqual(2, self.multiqueue.queues["cs241"].qsize())
+
+    def test_position(self):
+
+        # try getting the position of some key in a non-existent queue
+        with self.assertRaises(Exception):
+            self.multiqueue.get_position_in_queue("foo", "")
+
+        for i in range(10):
+            self.multiqueue.push("cs225", "cs225-" + str(i))
+
+        for i in range(100):
+            self.multiqueue.push("cs233", "cs233-" + str(i))
+
+        for i in range(241):
+            self.multiqueue.push("cs241", "cs241-" + str(i))
+
+        for i in range(10):
+            self.assertEqual(
+                i, self.multiqueue.get_position_in_queue("cs225", "cs225-" + str(i))
+            )
+
+        for i in range(100):
+            self.assertEqual(
+                i, self.multiqueue.get_position_in_queue("cs233", "cs233-" + str(i))
+            )
+
+        for i in range(241):
+            self.assertEqual(
+                i, self.multiqueue.get_position_in_queue("cs241", "cs241-" + str(i))
+            )
+
+        # try getting the position of a non-existent key
+        self.assertEqual(-1, self.multiqueue.get_position_in_queue("cs225", "foo"))
 
     def test_pull(self):
 

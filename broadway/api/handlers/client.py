@@ -289,6 +289,44 @@ class CourseQueueLengthHandler(ClientAPIHandler):
 
         length = 0
         if queue.contains_key(course_id):
-            length = queue.get_queue_length_by_key(course_id)
+            length = queue.get_queue_length(course_id)
 
         return {"length": length}
+
+
+class GradingJobQueuePositionHandler(ClientAPIHandler):
+    @authenticate_course
+    @schema.validate(
+        output_schema={
+            "type": "object",
+            "properties": {"position": {"type": "number"}},
+            "required": ["position"],
+            "additionalProperties": False,
+        },
+        on_empty_404=True,
+    )
+    def get(self, *args, **kwargs):
+
+        grading_job_id = kwargs.get("job_id")
+
+        grading_job_dao = daos.GradingJobDao(self.settings)
+        if grading_job_dao.find_by_id(grading_job_id) is None:
+            self.abort({"message": "grading job with the given ID not found"})
+            return
+
+        course_id = kwargs["course_id"]
+        queue = self.settings["QUEUE"]
+
+        if not queue.contains_key(course_id):
+            self.abort(
+                {"message": f"{course_id} does not exist as a course in the queue"}
+            )
+            return
+
+        queue_position = queue.get_position_in_queue(course_id, grading_job_id)
+        if queue_position == -1:
+            self.abort(
+                {"message": f"{grading_job_id} has already passed through the queue"}
+            )
+
+        return {"position": queue_position}

@@ -191,6 +191,22 @@ class ClientMixin(AsyncHTTPMixin):
             response_body = json.loads(response.body.decode("utf-8"))
             return response_body["data"]
 
+    def get_grading_job_queue_position(
+        self, course_id, grading_job_id, header, expected_code
+    ):
+        response = self.fetch(
+            self.get_url(
+                "/api/v1/queue/{}/{}/position".format(course_id, grading_job_id)
+            ),
+            method="GET",
+            headers=header,
+        )
+        self.assertEqual(response.code, expected_code)
+
+        if response.code == 200:
+            response_body = json.loads(response.body.decode("utf-8"))
+            return response_body["data"]
+
 
 class GraderMixin(AsyncHTTPMixin):
     def register_worker(

@@ -28,9 +28,9 @@ is merged to `master`.
 **Please squash and merge** so that the commit history on master looks cleaner and easier to navigate.
 
 ### Testing
-Please run/modify the [tests](tests) each time a change is made to the logic or structure. Make sure you have a local `mongo` instance running or else all tests will fail. You can run the tests using:
+Please run/modify the [tests](tests) each time a change is made to the logic or structure. Make sure you have a local `mongod` instance running or else all tests will fail. You can run the tests using:
 ```shell
-py.test-3 -v tests/api --doctest-modules
+pytest -v tests/api --doctest-modules
 ```
 
 followed by our integration tests with:

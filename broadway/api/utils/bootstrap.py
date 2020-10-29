@@ -178,6 +178,12 @@ def initialize_app(
                 ),
                 client_handlers.GradingJobQueuePositionHandler,
             ),
+            (
+                r"/api/v1/stream/{}/{}".format(
+                    id_regex.format("course_id"), id_regex.format("job_id")
+                ),
+                client_handlers.GradingJobStreamHandler,
+            ),
             # ----------------------------------
             # ------- Worker Endpoints ---------
             (

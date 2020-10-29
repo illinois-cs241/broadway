@@ -3,7 +3,6 @@ from tornado.iostream import StreamClosedError
 
 from broadway.api.handlers.base import BaseAPIHandler
 from broadway.api.decorators.auth import authenticate_course
-from broadway.api.utils.streamqueue import StreamQueue
 
 
 class GradingJobStreamHandler(BaseAPIHandler):

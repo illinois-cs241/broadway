@@ -26,6 +26,7 @@ from broadway.api.utils.multiqueue import MultiQueue
 import broadway.api.callbacks as callbacks
 import broadway.api.handlers.client as client_handlers
 import broadway.api.handlers.worker as worker_handlers
+import broadway.api.handlers.stream as stream_handlers
 import broadway.api.handlers.worker_ws as worker_ws_handlers
 
 logger = logging.getLogger(__name__)
@@ -178,12 +179,6 @@ def initialize_app(
                 ),
                 client_handlers.GradingJobQueuePositionHandler,
             ),
-            (
-                r"/api/v1/stream/{}/{}".format(
-                    id_regex.format("course_id"), id_regex.format("job_id")
-                ),
-                client_handlers.GradingJobStreamHandler,
-            ),
             # ----------------------------------
             # ------- Worker Endpoints ---------
             (
@@ -201,6 +196,14 @@ def initialize_app(
             (
                 r"/api/v1/worker_ws/{}".format(id_regex.format("worker_id")),
                 worker_ws_handlers.WorkerConnectionHandler,
+            ),
+            # ----------------------------------
+            # -------- Stream Endpoints --------
+            (
+                r"/api/v1/stream/{}/{}".format(
+                    id_regex.format("course_id"), id_regex.format("job_id")
+                ),
+                stream_handlers.GradingJobStreamHandler,
             )
             # ----------------------------------
         ],

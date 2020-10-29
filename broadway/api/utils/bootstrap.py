@@ -207,7 +207,8 @@ def initialize_app(
             # ----------------------------------
             # -------- Stream Endpoints --------
             (
-                r"/api/v1/stream/{}".format(id_regex.format("job_id")),
+                r"/api/v1/stream/{}/{}".format(
+                    id_regex.format("course_id"), id_regex.format("job_id")),
                 stream_handlers.GradingJobStreamHandler,
             )
             # ----------------------------------

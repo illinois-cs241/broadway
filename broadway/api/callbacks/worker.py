@@ -52,6 +52,7 @@ def worker_lost_callback(settings, worker_id, reason="closed connection"):
 def worker_schedule_job(settings):
     conn_map = settings["WS_CONN_MAP"]
     job_queue = settings["QUEUE"]
+    stream_queue = settings["STREAM_QUEUE"]
 
     grading_job_dao = GradingJobDao(settings)
     worker_node_dao = WorkerNodeDao(settings)
@@ -65,6 +66,7 @@ def worker_schedule_job(settings):
 
             try:
                 grading_job_id = job_queue.pull()
+                job_queue.update_all_job_positions(stream_queue)
                 grading_job = grading_job_dao.find_by_id(grading_job_id)
 
                 if not grading_job:

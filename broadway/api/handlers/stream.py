@@ -28,11 +28,14 @@ class GradingJobStreamHandler(BaseAPIHandler):
         job_id = kwargs.get("job_id")
 
         sq = self.get_stream_queue()
-        self._events = sq.register_stream(self._id, job_id)
+        sq.register_stream(job_id, self._id)
+
+        # TODO: Get this sorted out
+        raise web.Finish
 
         while True:
-            if self._events.empty():
-                yield gen.sleep(1)
-            else:
-                event, data = self._events.get()
+            if sq.has_update(job_id, self._id):
+                event, data = sq.get(job_id, self._id)
                 yield self.publish(event, data)
+            else:
+                yield gen.sleep(1)

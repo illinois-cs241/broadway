@@ -1,6 +1,5 @@
 from queue import Queue
 from collections import defaultdict
-import json
 
 """
 Used in conjunction with server-sent events (SSE) to service updates about grading jobs.

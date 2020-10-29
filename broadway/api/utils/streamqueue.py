@@ -4,13 +4,13 @@ import json
 
 """
 Used in conjunction with server-sent events (SSE) to service updates about grading jobs.
-Updates on a job's queue position and status are saved here.
+Updates on a job's queue position and state are saved here.
 """
 
 
 class StreamQueue:
     POSITION_EVENT = "position"
-    STATUS_EVENT = "status"
+    STATE_EVENT = "state"
 
     def __init__(self):
         self._streams = defaultdict(lambda: defaultdict(lambda: Queue()))
@@ -83,15 +83,15 @@ class StreamQueue:
         for iid in self._streams[job_id]:
             self._streams[job_id][iid].put(event)
 
-    def update_job_status(self, job_id, status) -> None:
+    def update_job_state(self, job_id, state) -> None:
         """
-        Add a job status change event to all listeners of the given job ID.
+        Add a job state change event to all listeners of the given job ID.
 
         :param job_id: Target job ID.
-        :param status: New status of the job.
+        :param state: New state of the job.
         """
         if job_id not in self._streams:
             return
-        event = (self.STATUS_EVENT, status)
+        event = (self.STATE_EVENT, state)
         for iid in self._streams[job_id]:
             self._streams[job_id][iid].put(event)

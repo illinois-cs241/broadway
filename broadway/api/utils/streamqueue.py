@@ -16,6 +16,13 @@ class StreamQueue:
         self._streams = defaultdict(lambda: defaultdict(lambda: Queue()))
 
     def _ensure_stream_exists(self, job_id, iid) -> bool:
+        """
+        Raise an exception if there is no corresponding listener.
+
+        :param job_id: Target job ID.
+        :param iid: ID of the listener.
+        :raises Exception: If there is no corresponding listener.
+        """
         if job_id not in self._streams or iid not in self._streams[job_id]:
             raise Exception(f"KeyError: ({job_id}:{iid}) is not in the StreamQueue")
 
@@ -38,7 +45,6 @@ class StreamQueue:
         """
         self._ensure_stream_exists(job_id, iid)
         del self._streams[job_id][iid]
-        # Clean up job_id entry if there are no more listeners
         if not self._streams[job_id]:
             del self._streams[job_id]
 

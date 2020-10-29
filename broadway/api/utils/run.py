@@ -88,6 +88,7 @@ def fail_grading_run(settings, run):
     run.state = GradingRunState.FAILED
     run.success = False
     run_dao.update(run)
+    _update_all_job_states(settings, run.id, GradingRunState.FAILED)
 
 
 def _update_run_state(settings, grading_run, state):
@@ -124,3 +125,12 @@ def _finish_grading_run(settings, grading_run):
     grading_run.finished_at = get_time()
     grading_run.success = True
     grading_run_dao.update(grading_run)
+    _update_all_job_states(settings, grading_run.id, GradingRunState.FINISHED)
+
+
+def _update_all_job_states(settings, grading_run_id, state):
+    stream_queue = settings["STREAM_QUEUE"]
+    grading_job_dao = daos.GradingJobDao(settings)
+    grading_jobs = grading_job_dao.find_by_run_id(grading_run_id)
+    for job in grading_jobs:
+        stream_queue.update_job_state(job.id, state.value)

@@ -24,6 +24,9 @@ class BaseAPIHandler(APIHandler):
     def get_queue(self):
         return self.settings["QUEUE"]
 
+    def get_stream_queue(self):
+        return self.settings["STREAM_QUEUE"]
+
 
 class BaseWSAPIHandler(BaseAPIHandler, WebSocketHandler):
     msg_type_map = {}

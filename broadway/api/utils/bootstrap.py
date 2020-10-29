@@ -22,6 +22,7 @@ from broadway.api.definitions import course_config
 from broadway.api.daos import CourseDao, WorkerNodeDao
 from broadway.api.models import Course
 from broadway.api.utils.multiqueue import MultiQueue
+from broadway.api.utils.streamqueue import StreamQueue
 
 import broadway.api.callbacks as callbacks
 import broadway.api.handlers.client as client_handlers
@@ -66,7 +67,13 @@ def initialize_global_settings(flags: Dict[str, Any]) -> Dict[str, Any]:
         flags["token"] = str(uuid.uuid4())
         logger.info("token not given, using {}".format(flags["token"]))
 
-    return {"FLAGS": flags, "DB": None, "QUEUE": MultiQueue(), "WS_CONN_MAP": {}}
+    return {
+        "FLAGS": flags,
+        "DB": None,
+        "QUEUE": MultiQueue(),
+        "STREAM_QUEUE": StreamQueue(),
+        "WS_CONN_MAP": {},
+    }
 
 
 def initialize_course_tokens(settings: Dict[str, Any], flags: Dict[str, Any]):
@@ -200,9 +207,7 @@ def initialize_app(
             # ----------------------------------
             # -------- Stream Endpoints --------
             (
-                r"/api/v1/stream/{}/{}".format(
-                    id_regex.format("course_id"), id_regex.format("job_id")
-                ),
+                r"/api/v1/stream/{}".format(id_regex.format("job_id")),
                 stream_handlers.GradingJobStreamHandler,
             )
             # ----------------------------------

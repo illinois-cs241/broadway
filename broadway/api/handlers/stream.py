@@ -26,10 +26,8 @@ class GradingJobStreamHandler(BaseAPIHandler):
     @gen.coroutine
     def get(self, **kwargs):
         job_id = kwargs.get("job_id")
-        course_id = kwargs.get("course_id")
 
-        # TODO: Globally store the stream queue
-        sq = StreamQueue()
+        sq = self.get_stream_queue()
         self._events = sq.register_stream(self._id, job_id)
 
         while True:

@@ -19,22 +19,20 @@ class GradingJobStreamHandler(BaseAPIHandler):
             self.write(f"event: {event}" f"data: {data}\n\n")
             yield self.flush()
         except StreamClosedError:
+            self.get_stream_queue().unregister_stream(self._job_id, self._id)
             raise web.Finish
 
     @authenticate_course
     @gen.coroutine
     def get(self, **kwargs):
-        job_id = kwargs.get("job_id")
+        self._job_id = kwargs.get("job_id")
 
         sq = self.get_stream_queue()
-        sq.register_stream(job_id, self._id)
-
-        # TODO: Get this sorted out
-        raise web.Finish
+        sq.register_stream(self._job_id, self._id)
 
         while True:
-            if sq.has_update(job_id, self._id):
-                event, data = sq.get(job_id, self._id)
+            if sq.has_update(self._job_id, self._id):
+                event, data = sq.get(self._job_id, self._id)
                 yield self.publish(event, data)
             else:
                 yield gen.sleep(1)

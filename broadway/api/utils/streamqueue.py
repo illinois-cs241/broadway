@@ -60,7 +60,12 @@ class StreamQueue:
 
     def get(self, job_id, iid):
         """
-        Pops and returns the next message from the listener's event queue.
+        Pops and returns the next message from the listener's event queue. Returns a
+        tuple `(event, data)` or a sentinel value signifying there are no more events
+        for the job. See docstring for `send_close_event` for information about this
+        value.
+
+        Blocks until there is an item in the queue.
 
         :param job_id: Target job ID.
         :param iid: ID of the listener.
@@ -69,6 +74,18 @@ class StreamQueue:
         self._ensure_stream_exists(job_id, iid)
         return self._streams[job_id][iid].get()
 
+    def _update(self, job_id, event):
+        """
+        General function for adding events to listener queues.
+
+        :param job_id: Target job ID.
+        :param event: Event tuple to add to the queues.
+        """
+        if job_id not in self._streams:
+            return
+        for iid in self._streams[job_id]:
+            self._streams[job_id][iid].put(event)
+
     def update_queue_position(self, job_id, position) -> None:
         """
         Add a queue position change event to all listeners of the given job ID.
@@ -76,11 +93,7 @@ class StreamQueue:
         :param job_id: Target job ID.
         :param position: New position of the job.
         """
-        if job_id not in self._streams:
-            return
-        event = (self.POSITION_EVENT, position)
-        for iid in self._streams[job_id]:
-            self._streams[job_id][iid].put(event)
+        self._update(job_id, (self.POSITION_EVENT, position))
 
     def update_job_state(self, job_id, state) -> None:
         """
@@ -89,8 +102,14 @@ class StreamQueue:
         :param job_id: Target job ID.
         :param state: New state of the job.
         """
-        if job_id not in self._streams:
-            return
-        event = (self.STATE_EVENT, state)
-        for iid in self._streams[job_id]:
-            self._streams[job_id][iid].put(event)
+        self._update(job_id, (self.STATE_EVENT, state))
+
+    def send_close_event(self, job_id) -> None:
+        """
+        Add a sentinel event to all listeners to signify that there will be no more
+        updates for the given job. We expect the listener to unregister itself once it
+        gets this value. `None` is used as this sentinel value.
+
+        :param job_id: Target job ID.
+        """
+        self._update(job_id, None)

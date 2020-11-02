@@ -10,6 +10,7 @@ Updates on a job's queue position and state are saved here.
 class StreamQueue:
     POSITION_EVENT = "position"
     STATE_EVENT = "state"
+    CLOSE_EVENT = None
 
     def __init__(self):
         self._streams = defaultdict(lambda: defaultdict(lambda: Queue()))
@@ -112,4 +113,4 @@ class StreamQueue:
 
         :param job_id: Target job ID.
         """
-        self._update(job_id, None)
+        self._update(job_id, self.CLOSE_EVENT)

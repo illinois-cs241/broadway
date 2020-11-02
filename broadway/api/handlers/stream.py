@@ -3,6 +3,7 @@ from tornado.iostream import StreamClosedError
 
 from broadway.api.handlers.base import BaseAPIHandler
 from broadway.api.decorators.auth import authenticate_course
+from broadway.api.utils.streamqueue import StreamQueue
 
 
 class GradingJobStreamHandler(BaseAPIHandler):
@@ -41,6 +42,6 @@ class GradingJobStreamHandler(BaseAPIHandler):
         while True:
             # If we receive the sentinel value, stop listening
             res = yield sq.get(self._job_id, self._id)
-            if res is None:
+            if res is StreamQueue.CLOSE_EVENT:
                 self._stop_listening()
             yield self.publish(*res)

@@ -40,7 +40,7 @@ class GradingJobStreamHandler(BaseAPIHandler):
 
         while True:
             # If we receive the sentinel value, stop listening
-            res = sq.get(self._job_id, self._id)
+            res = yield sq.get(self._job_id, self._id)
             if res is None:
                 self._stop_listening()
             yield self.publish(*res)

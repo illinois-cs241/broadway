@@ -75,7 +75,7 @@ class StreamQueue:
         self._ensure_stream_exists(job_id, iid)
         return self._streams[job_id][iid].get()
 
-    def _update(self, job_id, event):
+    def _update(self, job_id, event) -> None:
         """
         General function for adding events to listener queues.
 

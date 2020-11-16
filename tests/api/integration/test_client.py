@@ -1,4 +1,5 @@
 import logging
+from collections import deque
 
 import tests.api._fixtures.grading_configs as grading_configs
 import tests.api._fixtures.grading_runs as grading_runs
@@ -498,3 +499,57 @@ class GradingJobQueuePositionEndpointTest(BaseTest):
             self.get_grading_job_queue_position(
                 self.course1, job_id, self.client_header1, 400
             )
+
+
+class StreamEndpointTest(BaseTest):
+    def test_stream(self):
+        num_jobs = 5
+
+        # Upload the jobs
+        self.upload_grading_config(
+            self.course1,
+            "assignment1",
+            self.client_header1,
+            grading_configs.only_student_config,
+            200,
+        )
+
+        job_ids = []
+        for _ in range(num_jobs):
+            grading_run_id = self.start_grading_run(
+                self.course1,
+                "assignment1",
+                self.client_header1,
+                grading_runs.one_student_job,
+                200,
+            )
+
+            # Keep track of the job ids
+            run_state = self.get_grading_run_state(
+                self.course1, grading_run_id, self.client_header1
+            )
+            job_ids.append(list(run_state["student_jobs_state"].keys())[0])
+
+        for ind, job_id in enumerate(job_ids):
+
+            def _create_callback(chunks):
+                def _callback(chunk):
+                    self.assertNotEquals(len(chunks), 0)
+                    self.assertEquals(chunk, chunks.pop())
+
+                return _callback
+
+            chunks = deque()
+            chunks.append(b"event: statedata: GradingJobState.STARTED\n\n")
+            for pos in range(ind):
+                chunks.append(f"event: positiondata: {pos}\n\n".encode())
+            # TODO: Track when a job is finished
+
+            self.get_grading_job_stream(
+                self.course1, job_id, self.client_header1, _create_callback(chunks)
+            )
+
+        worker_id = self.register_worker(self.get_header())
+        for _ in job_ids:
+            # Run the job
+            self.poll_job(worker_id, self.get_header())

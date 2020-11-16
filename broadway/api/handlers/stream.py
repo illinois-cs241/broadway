@@ -34,14 +34,9 @@ class GradingJobStreamHandler(BaseAPIHandler):
         sq = self.get_stream_queue()
         sq.register_stream(self._job_id, self._id)
 
-        # Add this line when manually testing. Add prints in the streamqueue to see
-        # new updates.
-
-        # raise web.Finish
-
         while True:
-            # If we receive the sentinel value, stop listening
             res = yield sq.get(self._job_id, self._id)
+            # If we receive the sentinel value, stop listening
             if res is StreamQueue.CLOSE_EVENT:
                 self._stop_listening()
             yield self.publish(*res)

@@ -1,4 +1,4 @@
-from queue import Queue
+from tornado.queues import Queue
 from collections import defaultdict
 
 """

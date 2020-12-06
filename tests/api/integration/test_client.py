@@ -540,10 +540,10 @@ class StreamEndpointTest(BaseTest):
                 return _callback
 
             chunks = deque()
-            chunks.append(b"event: statedata: FINISHED\n\n")
-            chunks.append(b"event: statedata: STARTED\n\n")
+            chunks.append(b"event: state\ndata: FINISHED\n\n")
+            chunks.append(b"event: state\ndata: STARTED\n\n")
             for pos in range(ind):
-                chunks.append(f"event: positiondata: {pos}\n\n".encode())
+                chunks.append(f"event: position\ndata: {pos}\n\n".encode())
 
             self.get_grading_job_stream(
                 self.course1, job_id, self.client_header1, _create_callback(chunks)

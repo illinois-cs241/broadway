@@ -21,7 +21,7 @@ class GradingJobStreamHandler(BaseAPIHandler):
     @gen.coroutine
     def publish(self, event, data):
         try:
-            self.write(f"event: {event}" f"data: {data}\n\n")
+            self.write(f"event: {event}\ndata: {data}\n\n")
             yield self.flush()
         except StreamClosedError:
             self._stop_listening()

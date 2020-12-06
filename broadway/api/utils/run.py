@@ -133,5 +133,5 @@ def _update_all_job_states(settings, grading_run_id, state):
     grading_job_dao = daos.GradingJobDao(settings)
     grading_jobs = grading_job_dao.find_by_run_id(grading_run_id)
     for job in grading_jobs:
-        stream_queue.update_job_state(job.id, state)
+        stream_queue.update_job_state(job.id, state.name)
         stream_queue.send_close_event(job.id)

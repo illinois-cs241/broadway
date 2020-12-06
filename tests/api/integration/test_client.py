@@ -540,16 +540,17 @@ class StreamEndpointTest(BaseTest):
                 return _callback
 
             chunks = deque()
-            chunks.append(b"event: statedata: GradingJobState.STARTED\n\n")
+            chunks.append(b"event: statedata: FINISHED\n\n")
+            chunks.append(b"event: statedata: STARTED\n\n")
             for pos in range(ind):
                 chunks.append(f"event: positiondata: {pos}\n\n".encode())
-            # TODO: Track when a job is finished
 
             self.get_grading_job_stream(
                 self.course1, job_id, self.client_header1, _create_callback(chunks)
             )
 
         worker_id = self.register_worker(self.get_header())
-        for _ in job_ids:
-            # Run the job
+        for job_id in job_ids:
+            # Run and post the job
             self.poll_job(worker_id, self.get_header())
+            self.post_job_result(worker_id, self.get_header(), job_id)

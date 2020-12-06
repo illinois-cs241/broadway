@@ -91,7 +91,7 @@ class GradingJobHandler(BaseAPIHandler):
         try:
             grading_job_id = self.get_queue().pull()
             self.get_stream_queue().update_job_state(
-                grading_job_id, models.GradingJobState.STARTED
+                grading_job_id, models.GradingJobState.STARTED.name
             )
             self.get_queue().update_all_job_positions(self.get_stream_queue())
             grading_job_dao = daos.GradingJobDao(self.settings)

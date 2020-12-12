@@ -1,4 +1,5 @@
 import logging
+import json
 from collections import deque
 
 import tests.api._fixtures.grading_configs as grading_configs
@@ -539,11 +540,15 @@ class StreamEndpointTest(BaseTest):
 
                 return _callback
 
+            def create_chunk(event, data):
+                blob = json.dumps({"type": event, "data": data})
+                return f"event: status_update\ndata: {blob}\n\n".encode()
+
             chunks = deque()
-            chunks.append(b"event: state\ndata: FINISHED\n\n")
-            chunks.append(b"event: state\ndata: STARTED\n\n")
+            chunks.append(create_chunk("state", "FINISHED"))
+            chunks.append(create_chunk("state", "STARTED"))
             for pos in range(ind):
-                chunks.append(f"event: position\ndata: {pos}\n\n".encode())
+                chunks.append(create_chunk("position", pos))
 
             self.get_grading_job_stream(
                 self.course1, job_id, self.client_header1, _create_callback(chunks)

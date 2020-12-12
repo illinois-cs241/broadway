@@ -1,3 +1,4 @@
+import json
 from tornado import gen, web
 from tornado.iostream import StreamClosedError
 
@@ -21,7 +22,8 @@ class GradingJobStreamHandler(BaseAPIHandler):
     @gen.coroutine
     def publish(self, event, data):
         try:
-            self.write(f"event: {event}\ndata: {data}\n\n")
+            blob = json.dumps({"type": event, "data": data})
+            self.write(f"event: status_update\ndata: {blob}\n\n")
             yield self.flush()
         except StreamClosedError:
             self._stop_listening()

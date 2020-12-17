@@ -26,7 +26,7 @@ services:
   docker:
     image: docker:dind
     privileged: true
-    command: dockerd -H docker:1471
+    command: dockerd --tls=false -H docker:1471
 
   grader:
     build:

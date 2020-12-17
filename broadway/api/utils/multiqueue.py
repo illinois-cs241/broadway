@@ -61,3 +61,9 @@ class MultiQueue:
             return self.queues[queue_id].queue.index(key)
         except ValueError:
             return -1
+
+    def update_all_job_positions(self, stream_queue):
+        for queue_id, job_queue in self.queues.items():
+            for job_id in list(job_queue.queue):
+                pos = self.queues[queue_id].queue.index(job_id)
+                stream_queue.update_queue_position(job_id, pos)

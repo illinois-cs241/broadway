@@ -6,6 +6,7 @@ import unittest
 import websockets
 
 from tornado.testing import AsyncHTTPTestCase
+from tornado.httpclient import AsyncHTTPClient
 
 import broadway.api.definitions as definitions
 
@@ -206,6 +207,17 @@ class ClientMixin(AsyncHTTPMixin):
         if response.code == 200:
             response_body = json.loads(response.body.decode("utf-8"))
             return response_body["data"]
+
+    def get_grading_job_stream(self, course_id, grading_job_id, header, callback):
+        # We have to create a new client as to not block other requests while receiving
+        # streaming chunks
+        AsyncHTTPClient().fetch(
+            self.get_url("/api/v1/stream/{}/{}".format(course_id, grading_job_id)),
+            method="GET",
+            headers=header,
+            header_callback=lambda _: None,
+            streaming_callback=callback,
+        )
 
 
 class GraderMixin(AsyncHTTPMixin):

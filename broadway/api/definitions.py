@@ -1,6 +1,15 @@
 course_config = {
     "type": "object",
-    "patternProperties": {"": {"type": "array", "items": {"type": "string"}}},
+    "patternProperties": {
+        "": {
+            "properties":
+            {
+                "tokens": {"type": "array", "items": {"type": "string"}},
+                "query_tokens": {"type": "array", "items": {"type": "string"}},
+            },
+            "required": ["tokens"],
+        },
+    },
 }
 
 grading_stage = {

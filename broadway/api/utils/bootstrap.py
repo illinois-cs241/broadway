@@ -96,8 +96,12 @@ def initialize_course_tokens(settings: Dict[str, Any], flags: Dict[str, Any]):
     course_dao = CourseDao(settings)
     course_dao.drop_all()
 
-    for course_id, tokens in courses.items():
-        course = Course(id_=course_id, tokens=tokens)
+    for course_id, course in courses.items():
+        course = Course(
+            id_=course_id,
+            tokens=course["tokens"],
+            query_tokens=course.get("query_tokens", [])
+        )
         course_dao.insert_or_update(course)
 
 

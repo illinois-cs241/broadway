@@ -25,6 +25,8 @@ MOCK_COURSE2 = "mock_course2"
 MOCK_CLIENT_TOKEN1 = "12345"
 MOCK_CLIENT_TOKEN2 = "67890"
 
+MOCK_CLIENT_QUERY_TOKEN = "C4OWEM2XHD"
+
 
 class AsyncHTTPMixin(AsyncHTTPTestCase):
     def __init__(self, *args, **kwargs):
@@ -54,8 +56,14 @@ class AsyncHTTPMixin(AsyncHTTPTestCase):
         database_utils.initialize_db(
             self.app.settings,
             {
-                MOCK_COURSE1: [MOCK_CLIENT_TOKEN1],
-                MOCK_COURSE2: [MOCK_CLIENT_TOKEN1, MOCK_CLIENT_TOKEN2],
+                MOCK_COURSE1: {
+                    "tokens": [MOCK_CLIENT_TOKEN1],
+                    "query_tokens": [MOCK_CLIENT_QUERY_TOKEN]
+                },
+                MOCK_COURSE2: {
+                    "tokens": [MOCK_CLIENT_TOKEN1, MOCK_CLIENT_TOKEN2],
+                    "query_tokens": []
+                },
             },
         )
 
@@ -94,6 +102,7 @@ class ClientMixin(AsyncHTTPMixin):
             body=json.dumps(grading_config),
             headers=header,
         )
+        assert response.code == expected_code, repr(response.body)
         self.assertEqual(response.code, expected_code)
 
     def get_grading_config(self, course_id, assignment_name, header, expected_code):

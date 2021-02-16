@@ -3,7 +3,7 @@ from tornado import gen, web
 from tornado.iostream import StreamClosedError
 
 from broadway.api.handlers.base import BaseAPIHandler
-from broadway.api.decorators.auth import authenticate_course
+from broadway.api.decorators.auth import authenticate_course_member_or_admin
 from broadway.api.utils.streamqueue import StreamQueue
 
 
@@ -28,7 +28,7 @@ class GradingJobStreamHandler(BaseAPIHandler):
         except StreamClosedError:
             self._stop_listening()
 
-    @authenticate_course
+    @authenticate_course_member_or_admin
     @gen.coroutine
     def get(self, **kwargs):
         self._job_id = kwargs.get("job_id")

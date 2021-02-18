@@ -105,7 +105,6 @@ class ClientMixin(AsyncHTTPMixin):
             body=json.dumps(grading_config),
             headers=header,
         )
-        assert response.code == expected_code, repr(response.body)
         self.assertEqual(response.code, expected_code)
 
     def get_grading_config(self, course_id, assignment_name, header, expected_code):

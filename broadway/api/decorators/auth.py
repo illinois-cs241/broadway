@@ -81,7 +81,7 @@ def authenticate_cluster_token_ws(func):
     return wrapper
 
 
-def authenticate_course(func):
+def authenticate_course_wrapper_generator(admin_only, func):
     def wrapper(*args, **kwargs):
         handler = args[0]
 
@@ -99,17 +99,32 @@ def authenticate_course(func):
             handler.abort({"message": "course not found"}, status=401)
             return
 
-        if request_token not in course.tokens:
+        if admin_only:
+            allowed_tokens = set(course.tokens)
+        else:
+            allowed_tokens = set(course.tokens).union(set(course.query_tokens))
+
+        if request_token not in allowed_tokens:
             handler.abort({"message": "invalid token"}, status=401)
             return
+
         return func(*args, **kwargs)
 
     return wrapper
 
 
+def authenticate_course_member_or_admin(func):
+    return authenticate_course_wrapper_generator(False, func)
+
+
+def authenticate_course_admin(func):
+    return authenticate_course_wrapper_generator(True, func)
+
+
 __all__ = [
     "authenticate_cluster_token",
-    "authenticate_course",
+    "authenticate_course_member_or_admin",
+    "authenticate_course_admin",
     "authenticate_worker",
     "validate_assignment",
 ]

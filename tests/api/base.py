@@ -58,11 +58,11 @@ class AsyncHTTPMixin(AsyncHTTPTestCase):
             {
                 MOCK_COURSE1: {
                     "tokens": [MOCK_CLIENT_TOKEN1],
-                    "query_tokens": [MOCK_CLIENT_QUERY_TOKEN]
+                    "query_tokens": [MOCK_CLIENT_QUERY_TOKEN],
                 },
                 MOCK_COURSE2: {
                     "tokens": [MOCK_CLIENT_TOKEN1, MOCK_CLIENT_TOKEN2],
-                    "query_tokens": []
+                    "query_tokens": [],
                 },
             },
         )

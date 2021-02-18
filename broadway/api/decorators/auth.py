@@ -1,5 +1,4 @@
 import logging
-from functools import partial
 
 from broadway.api.daos import AssignmentConfigDao, CourseDao, WorkerNodeDao
 
@@ -110,6 +109,7 @@ def authenticate_course_wrapper_generator(admin_only, func):
             return
 
         return func(*args, **kwargs)
+
     return wrapper
 
 

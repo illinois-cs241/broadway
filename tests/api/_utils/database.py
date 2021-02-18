@@ -8,7 +8,7 @@ def initialize_db(settings, course_config):
         course = Course(
             id_=course_id,
             tokens=course["tokens"],
-            query_tokens=course.get("query_tokens", [])
+            query_tokens=course.get("query_tokens", []),
         )
         course_dao.insert_or_update(course)
 

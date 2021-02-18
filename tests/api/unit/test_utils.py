@@ -30,7 +30,7 @@ class TestCourseTokenUtils(BaseTest):
     def test_init_tokens(self):
         course_tokens = {
             "cs225": {"tokens": ["token1"]},
-            "cs241": {"tokens": ["token1"], "query_tokens": ["token2"]}
+            "cs241": {"tokens": ["token1"], "query_tokens": ["token2"]},
         }
 
         with mock.patch(

@@ -526,6 +526,7 @@ class StreamEndpointTest(BaseTest):
             )
 
             # Keep track of the job ids
+            # Also tests that query token can be used for this endpoint
             run_state = self.get_grading_run_state(
                 self.course1, grading_run_id, self.client_header_query_token
             )
@@ -535,8 +536,8 @@ class StreamEndpointTest(BaseTest):
 
             def _create_callback(chunks):
                 def _callback(chunk):
-                    self.assertNotEquals(len(chunks), 0)
-                    self.assertEquals(chunk, chunks.pop())
+                    self.assertNotEqual(len(chunks), 0)
+                    self.assertEqual(chunk, chunks.pop())
 
                 return _callback
 
@@ -551,9 +552,10 @@ class StreamEndpointTest(BaseTest):
                 chunks.append(create_chunk("position", pos))
 
             self.get_grading_job_stream(
-                self.course1, job_id,
+                self.course1,
+                job_id,
                 self.client_header_query_token,
-                _create_callback(chunks)
+                _create_callback(chunks),
             )
 
         worker_id = self.register_worker(self.get_header())

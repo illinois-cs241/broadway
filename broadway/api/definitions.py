@@ -2,8 +2,7 @@ course_config = {
     "type": "object",
     "patternProperties": {
         "": {
-            "properties":
-            {
+            "properties": {
                 "tokens": {"type": "array", "items": {"type": "string"}},
                 "query_tokens": {"type": "array", "items": {"type": "string"}},
             },

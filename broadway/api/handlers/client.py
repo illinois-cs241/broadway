@@ -6,7 +6,10 @@ from tornado_json import schema
 import broadway.api.daos as daos
 import broadway.api.definitions as definitions
 import broadway.api.models as models
-from broadway.api.decorators.auth import authenticate_course_admin, authenticate_course_member_or_admin
+from broadway.api.decorators.auth import (
+    authenticate_course_admin,
+    authenticate_course_member_or_admin,
+)
 from broadway.api.handlers.base import BaseAPIHandler
 from broadway.api.utils.run import continue_grading_run
 from broadway.api.utils.time import get_time

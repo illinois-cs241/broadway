@@ -100,7 +100,7 @@ def initialize_course_tokens(settings: Dict[str, Any], flags: Dict[str, Any]):
         course = Course(
             id_=course_id,
             tokens=course["tokens"],
-            query_tokens=course.get("query_tokens", [])
+            query_tokens=course.get("query_tokens", []),
         )
         course_dao.insert_or_update(course)
 

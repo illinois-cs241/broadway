@@ -31,9 +31,16 @@ class CourseDao(BaseDao):
     def _from_store(self, obj) -> Optional[Course]:
         if obj is None:
             return None
-        attrs = {"id_": obj.get(CourseDao.ID), "tokens": obj.get(
-            CourseDao.TOKENS), "query_tokens": obj.get(CourseDao.QUERY_TOKENS)}
+        attrs = {
+            "id_": obj.get(CourseDao.ID),
+            "tokens": obj.get(CourseDao.TOKENS),
+            "query_tokens": obj.get(CourseDao.QUERY_TOKENS),
+        }
         return Course(**attrs)
 
     def _to_store(self, obj) -> dict:
-        return {CourseDao.ID: obj.id, CourseDao.TOKENS: obj.tokens, CourseDao.QUERY_TOKENS: obj.query_tokens}
+        return {
+            CourseDao.ID: obj.id,
+            CourseDao.TOKENS: obj.tokens,
+            CourseDao.QUERY_TOKENS: obj.query_tokens,
+        }

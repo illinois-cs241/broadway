@@ -527,7 +527,7 @@ class StreamEndpointTest(BaseTest):
 
             # Keep track of the job ids
             run_state = self.get_grading_run_state(
-                self.course1, grading_run_id, self.client_header1
+                self.course1, grading_run_id, self.client_header_query_token
             )
             job_ids.append(list(run_state["student_jobs_state"].keys())[0])
 
@@ -551,7 +551,9 @@ class StreamEndpointTest(BaseTest):
                 chunks.append(create_chunk("position", pos))
 
             self.get_grading_job_stream(
-                self.course1, job_id, self.client_header1, _create_callback(chunks)
+                self.course1, job_id,
+                self.client_header_query_token,
+                _create_callback(chunks)
             )
 
         worker_id = self.register_worker(self.get_header())

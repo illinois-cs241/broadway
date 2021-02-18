@@ -88,6 +88,9 @@ class ClientMixin(AsyncHTTPMixin):
         super().__init__(*args, **kwargs)
         self.client_header1 = {"Authorization": "Bearer " + MOCK_CLIENT_TOKEN1}
         self.client_header2 = {"Authorization": "Bearer " + MOCK_CLIENT_TOKEN2}
+        self.client_header_query_token = {
+            "Authorization": "Bearer " + MOCK_CLIENT_QUERY_TOKEN
+        }
         self.course1 = MOCK_COURSE1
         self.course2 = MOCK_COURSE2
 

@@ -1,3 +1,10 @@
 {
-    "test-course": ["course-token"]
+    "test-course": {
+        "tokens": [
+            "course-token"
+        ],
+        "query_tokens": [
+            "query-token"
+        ]
+    }
 }

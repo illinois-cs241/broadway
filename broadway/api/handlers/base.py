@@ -16,10 +16,11 @@ class BaseAPIHandler(APIHandler):
 
     def options(self, *args, **kwargs):
         """
-        For CORS, browsers will send a preflight request with "OPTIONS" method before the 
-        actual request. We want to respond with a status of "HTTP OK", a header with 
-        proper "Access-Control-Allow-Origin" field for all origins we allow and a proper
-        "Access-Control-Allow-Headers" for all special header fields we allow, and no body.
+        For CORS, browsers will send a preflight request with "OPTIONS" method
+        before the actual request. We want to respond with a status of "HTTP OK",
+        a header with proper "Access-Control-Allow-Origin" field for all origins
+        we allow and a proper "Access-Control-Allow-Headers" for all special
+        header fields we allow, and no body.
         """
         self.set_header("Access-Control-Allow-Headers", "Authorization")
         self.set_status(204)

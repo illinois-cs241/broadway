@@ -7,7 +7,7 @@ course_config = {
                 "query_tokens": {"type": "array", "items": {"type": "string"}},
             },
             "required": ["tokens"],
-        },
+        }
     },
 }
 

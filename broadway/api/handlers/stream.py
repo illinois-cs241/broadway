@@ -1,3 +1,4 @@
+import asyncio
 import json
 from tornado import gen, web
 from tornado.iostream import StreamClosedError
@@ -7,7 +8,8 @@ from broadway.api.handlers.base import BaseAPIHandler
 from broadway.api.decorators.auth import authenticate_course_member_or_admin
 from broadway.api.utils.streamqueue import StreamQueue
 
-HEARTBEAT_TIME = 20 * 1000 # 20 seconds
+HEARTBEAT_TIME = 20 * 1000  # 20 seconds
+
 
 class GradingJobStreamHandler(BaseAPIHandler):
     def initialize(self):
@@ -17,8 +19,8 @@ class GradingJobStreamHandler(BaseAPIHandler):
 
         self._id = id(self)
         self._callback = PeriodicCallback(
-            callback=self._heartbeat,
-            callback_time=HEARTBEAT_TIME
+            callback=lambda: asyncio.create_task(self._heartbeat()),
+            callback_time=HEARTBEAT_TIME,
         )
         self._callback.start()
 

@@ -28,21 +28,21 @@ class GradingJobStreamHandler(BaseAPIHandler):
         raise web.Finish
 
     @gen.coroutine
-    def send_sse(self, event, data):
+    def send_sse(self, message):
         try:
-            self.write(f"event: {event}\ndata: {data}\n\n")
+            self.write(message)
             yield self.flush()
         except StreamClosedError:
             self._stop_listening()
 
     @gen.coroutine
     def _heartbeat(self):
-        self.send_sse("heartbeat", "")
+        self.send_sse(":\n\n")
 
     @gen.coroutine
     def publish(self, event, data):
         blob = json.dumps({"type": event, "data": data})
-        self.send_sse("status_update", blob)
+        self.send_sse(f"event: status_update\ndata: {blob}\n\n")
 
     @authenticate_course_member_or_admin
     @gen.coroutine

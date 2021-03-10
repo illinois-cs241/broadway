@@ -1,4 +1,3 @@
-import asyncio
 import json
 from tornado import gen, web
 from tornado.iostream import StreamClosedError
@@ -19,8 +18,7 @@ class GradingJobStreamHandler(BaseAPIHandler):
 
         self._id = id(self)
         self._callback = PeriodicCallback(
-            callback=lambda: asyncio.create_task(self._heartbeat()),
-            callback_time=HEARTBEAT_TIME,
+            callback=self._heartbeat, callback_time=HEARTBEAT_TIME
         )
         self._callback.start()
 
@@ -39,6 +37,8 @@ class GradingJobStreamHandler(BaseAPIHandler):
 
     @gen.coroutine
     def _heartbeat(self):
+        if not self._callback.is_running():
+            return
         self.send_sse(":\n\n")
 
     @gen.coroutine

@@ -37,23 +37,11 @@ class GradingJobStreamHandler(BaseAPIHandler):
 
     @gen.coroutine
     def _heartbeat(self):
-        # if not self._callback.is_running():
-        #     return
-        # try:
-        #     self.write(":\n\n")
-        #     yield self.flush()
-        # except StreamClosedError:
-        #     self._stop_listening()
         yield self._send_sse(":\n\n")
 
     @gen.coroutine
     def publish(self, event, data):
         blob = json.dumps({"type": event, "data": data})
-        # try:
-        #     self.write(f"event: status_update\ndata: {blob}\n\n")
-        #     yield self.flush()
-        # except StreamClosedError:
-        #     self._stop_listening()
         yield self._send_sse(f"event: status_update\ndata: {blob}\n\n")
 
     @authenticate_course_member_or_admin

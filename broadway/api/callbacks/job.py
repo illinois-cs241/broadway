@@ -30,6 +30,13 @@ def job_update_callback(settings, grading_job_id, grading_run_id):
         )
         return
 
+    stream_queue = settings["STREAM_QUEUE"]
+    if job.success:
+        stream_queue.update_job_state(job.id, GradingRunState.FINISHED.name)
+    else:
+        stream_queue.update_job_state(job.id, GradingRunState.FAILED.name)
+    stream_queue.send_close_event(job.id)
+
     if job.type == GradingJobType.PRE_PROCESSING:
         if job.success:
             continue_grading_run(settings, run)
@@ -56,13 +63,6 @@ def job_update_callback(settings, grading_job_id, grading_run_id):
                 )
             )
             return
-
-        stream_queue = settings["STREAM_QUEUE"]
-        if job.success:
-            stream_queue.update_job_state(job.id, GradingRunState.FINISHED)
-        else:
-            stream_queue.update_job_state(job.id, GradingRunState.FAILED)
-        stream_queue.send_close_event(job.id)
 
         run.student_jobs_left -= 1
         run_dao.update(run)

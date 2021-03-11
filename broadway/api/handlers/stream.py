@@ -27,34 +27,34 @@ class GradingJobStreamHandler(BaseAPIHandler):
         self._callback.stop()
         raise web.Finish
 
-    # @gen.coroutine
-    # def send_sse(self, message):
-    #     try:
-    #         self.write(message)
-    #         yield self.flush()
-    #     except StreamClosedError:
-    #         self._stop_listening()
-
     @gen.coroutine
-    def _heartbeat(self):
-        if not self._callback.is_running():
-            return
+    def _send_sse(self, message):
         try:
-            self.write(":\n\n")
+            self.write(message)
             yield self.flush()
         except StreamClosedError:
             self._stop_listening()
-        # self.send_sse(":\n\n")
+
+    @gen.coroutine
+    def _heartbeat(self):
+        # if not self._callback.is_running():
+        #     return
+        # try:
+        #     self.write(":\n\n")
+        #     yield self.flush()
+        # except StreamClosedError:
+        #     self._stop_listening()
+        yield self._send_sse(":\n\n")
 
     @gen.coroutine
     def publish(self, event, data):
         blob = json.dumps({"type": event, "data": data})
-        try:
-            self.write(f"event: status_update\ndata: {blob}\n\n")
-            yield self.flush()
-        except StreamClosedError:
-            self._stop_listening()
-        # self.send_sse(f"event: status_update\ndata: {blob}\n\n")
+        # try:
+        #     self.write(f"event: status_update\ndata: {blob}\n\n")
+        #     yield self.flush()
+        # except StreamClosedError:
+        #     self._stop_listening()
+        yield self._send_sse(f"event: status_update\ndata: {blob}\n\n")
 
     @authenticate_course_member_or_admin
     @gen.coroutine

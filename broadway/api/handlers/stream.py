@@ -7,7 +7,7 @@ from broadway.api.handlers.base import BaseAPIHandler
 from broadway.api.decorators.auth import authenticate_course_member_or_admin
 from broadway.api.utils.streamqueue import StreamQueue
 
-HEARTBEAT_TIME = 20 * 1000  # 20 seconds
+HEARTBEAT_TIME_MILLI = 20 * 1000  # 20 seconds
 
 
 class GradingJobStreamHandler(BaseAPIHandler):
@@ -18,7 +18,7 @@ class GradingJobStreamHandler(BaseAPIHandler):
 
         self._id = id(self)
         self._callback = PeriodicCallback(
-            callback=self._heartbeat, callback_time=HEARTBEAT_TIME
+            callback=self._heartbeat, callback_time=HEARTBEAT_TIME_MILLI
         )
         self._callback.start()
 

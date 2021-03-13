@@ -193,9 +193,10 @@ class GradingRunStatusHandler(ClientAPIHandler):
             ),
             "student_jobs_state": get_job_id_to_state_map(student_jobs),
         }
-# *********NEW METHOD**********
+
+
 class GradingRunEnvHandler(ClientAPIHandler):
-    @authenticate_course
+    @authenticate_course_admin
     @schema.validate(
         output_schema={
             "type": "object",
@@ -204,7 +205,7 @@ class GradingRunEnvHandler(ClientAPIHandler):
                 "post_processing_env": {"type": ["null", "object"]},
                 "student_env": {"type": "object"},
             },
-            "required": [],
+            "required": ["student_env"],
             "additionalProperties": False,
         },
         on_empty_404=True,
@@ -221,51 +222,65 @@ class GradingRunEnvHandler(ClientAPIHandler):
         grading_job_dao = daos.GradingJobDao(self.settings)
         grading_jobs = grading_job_dao.find_by_run_id(grading_run_id)
 
+        # Helper method for making a dictionary from the grading_run
+        def make_dict(jobs):
+            return_dict = {}
+            for job in jobs:
+                new_dict = {}
+                for stage in job.stages:
+                    env = stage["env"]
+                    for key in env:
+                        new_dict[key] = new_dict.get(key, set())
+                        new_dict[key].add(env[key])
+                # Convert each set into a list for JSON
+                for key in new_dict:
+                    new_list = list(new_dict[key])
+                    if len(new_list) == 1:
+                        new_dict[key] = new_list[0]
+                    else:
+                        new_dict[key] = new_list
+
+                return_dict[job.id] = new_dict
+
+            return return_dict
+
+        pre_processing_job = next(
+            filter(
+                lambda j: j.type == models.GradingJobType.PRE_PROCESSING, grading_jobs
+            ),
+            None,
+        )
+        post_processing_job = next(
+            filter(
+                lambda j: j.type == models.GradingJobType.POST_PROCESSING, grading_jobs
+            ),
+            None,
+        )
+        student_jobs = filter(
+            lambda j: j.type == models.GradingJobType.STUDENT, grading_jobs
+        )
+
         # Make sure pre_processing_env exists
-        if grading_run.pre_processing_env is None:
+        if pre_processing_job is None:
             pre_processing_dict = None
         else:
-            pre_processing_dict = {}
+            pre_processing_dict = make_dict([pre_processing_job])
 
-        # Loop through the dict, adding every env variable to a dict of sets
-        for dict in grading_run.pre_processing_env:
-            for key in dict:
-                pre_processing_dict[key] = pre_processing_dict.get(key, set()).add(dict[key])
-        # Convert each set into a list for JSON
-        for key in pre_processing_dict:
-            pre_processing_dict[key] = list(pre_processing_dict[key])
-
-        # Make sure pre_processing_env exists
-        if grading_run.post_processing_env is None:
+        # Make sure post_processing_env exists
+        if post_processing_job is None:
             post_processing_dict = None
         else:
-            post_processing_dict = {}
-
-        # Loop through the dict, adding every env variable to a dict of sets
-        for dict in grading_run.post_processing_env:
-            for key in dict:
-                post_processing_dict[key] = post_processing_dict.get(key, set()).add(dict[key])
-        # Convert each set into a list for JSON
-        for key in post_processing_dict:
-            post_processing_dict[key] = list(post_processing_dict[key])
+            post_processing_dict = make_dict([post_processing_job])
 
         # We are guaranteed that this dict exists in the run, so no need to check
-        student_dict = {}
-
-        # Loop through the dict, adding every env variable to a dict of sets
-        for dict in grading_run.student_env:
-            for key in dict:
-                student_dict[key] = student_dict.get(key, set()).add(dict[key])
-        # Convert the sets to list for JSON
-        for key in student_dict:
-            student_dict[key] = list(student_dict[key])
-
+        student_dict = make_dict(student_jobs)
 
         return {
             "pre_processing_env": pre_processing_dict,
             "post_processing_env": post_processing_dict,
-            "student_env": student_dict
+            "student_env": student_dict,
         }
+
 
 class GradingJobLogHandler(ClientAPIHandler):
     @authenticate_course_admin

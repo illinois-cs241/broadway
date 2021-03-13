@@ -6,7 +6,10 @@ from tornado_json import schema
 import broadway.api.daos as daos
 import broadway.api.definitions as definitions
 import broadway.api.models as models
-from broadway.api.decorators.auth import authenticate_course
+from broadway.api.decorators.auth import (
+    authenticate_course_admin,
+    authenticate_course_member_or_admin,
+)
 from broadway.api.handlers.base import BaseAPIHandler
 from broadway.api.utils.run import continue_grading_run
 from broadway.api.utils.time import get_time
@@ -23,7 +26,7 @@ class ClientAPIHandler(BaseAPIHandler):
 
 
 class GradingConfigHandler(ClientAPIHandler):
-    @authenticate_course
+    @authenticate_course_admin
     @schema.validate(input_schema=definitions.grading_config)
     def post(self, *args, **kwargs):
         assignment_id = self.get_assignment_id(**kwargs)
@@ -34,7 +37,7 @@ class GradingConfigHandler(ClientAPIHandler):
         config_dao.delete_by_id(assignment_id)
         config_dao.insert(config)
 
-    @authenticate_course
+    @authenticate_course_admin
     @schema.validate(on_empty_404=True, output_schema=definitions.grading_config)
     def get(self, *args, **kwargs):
         assignment_id = self.get_assignment_id(**kwargs)
@@ -49,7 +52,7 @@ class GradingConfigHandler(ClientAPIHandler):
 
 
 class GradingRunHandler(ClientAPIHandler):
-    @authenticate_course
+    @authenticate_course_admin
     @schema.validate(
         input_schema={
             "type": "object",
@@ -131,7 +134,7 @@ class GradingRunHandler(ClientAPIHandler):
 
 
 class GradingRunStatusHandler(ClientAPIHandler):
-    @authenticate_course
+    @authenticate_course_member_or_admin
     @schema.validate(
         output_schema={
             "type": "object",
@@ -265,7 +268,7 @@ class GradingRunEnvHandler(ClientAPIHandler):
         }
 
 class GradingJobLogHandler(ClientAPIHandler):
-    @authenticate_course
+    @authenticate_course_admin
     @schema.validate(
         output_schema={
             "type": "object",
@@ -294,7 +297,7 @@ class GradingJobLogHandler(ClientAPIHandler):
 
 
 class CourseWorkerNodeHandler(ClientAPIHandler):
-    @authenticate_course
+    @authenticate_course_admin
     @schema.validate(
         output_schema={
             "type": "object",
@@ -345,7 +348,7 @@ class CourseWorkerNodeHandler(ClientAPIHandler):
 
 
 class CourseQueueLengthHandler(ClientAPIHandler):
-    @authenticate_course
+    @authenticate_course_admin
     @schema.validate(
         output_schema={
             "type": "object",
@@ -367,7 +370,7 @@ class CourseQueueLengthHandler(ClientAPIHandler):
 
 
 class GradingJobQueuePositionHandler(ClientAPIHandler):
-    @authenticate_course
+    @authenticate_course_member_or_admin
     @schema.validate(
         output_schema={
             "type": "object",

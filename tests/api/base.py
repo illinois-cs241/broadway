@@ -25,6 +25,8 @@ MOCK_COURSE2 = "mock_course2"
 MOCK_CLIENT_TOKEN1 = "12345"
 MOCK_CLIENT_TOKEN2 = "67890"
 
+MOCK_CLIENT_QUERY_TOKEN = "C4OWEM2XHD"
+
 
 class AsyncHTTPMixin(AsyncHTTPTestCase):
     def __init__(self, *args, **kwargs):
@@ -54,8 +56,14 @@ class AsyncHTTPMixin(AsyncHTTPTestCase):
         database_utils.initialize_db(
             self.app.settings,
             {
-                MOCK_COURSE1: [MOCK_CLIENT_TOKEN1],
-                MOCK_COURSE2: [MOCK_CLIENT_TOKEN1, MOCK_CLIENT_TOKEN2],
+                MOCK_COURSE1: {
+                    "tokens": [MOCK_CLIENT_TOKEN1],
+                    "query_tokens": [MOCK_CLIENT_QUERY_TOKEN],
+                },
+                MOCK_COURSE2: {
+                    "tokens": [MOCK_CLIENT_TOKEN1, MOCK_CLIENT_TOKEN2],
+                    "query_tokens": [],
+                },
             },
         )
 
@@ -80,6 +88,9 @@ class ClientMixin(AsyncHTTPMixin):
         super().__init__(*args, **kwargs)
         self.client_header1 = {"Authorization": "Bearer " + MOCK_CLIENT_TOKEN1}
         self.client_header2 = {"Authorization": "Bearer " + MOCK_CLIENT_TOKEN2}
+        self.client_header_query_token = {
+            "Authorization": "Bearer " + MOCK_CLIENT_QUERY_TOKEN
+        }
         self.course1 = MOCK_COURSE1
         self.course2 = MOCK_COURSE2
 

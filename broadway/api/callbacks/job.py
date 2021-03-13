@@ -2,6 +2,7 @@ import logging
 
 import broadway.api.daos as daos
 from broadway.api.models.grading_job import GradingJobType
+from broadway.api.models.grading_run import GradingRunState
 from broadway.api.utils.run import continue_grading_run, fail_grading_run
 
 logger = logging.getLogger(__name__)
@@ -28,6 +29,13 @@ def job_update_callback(settings, grading_job_id, grading_run_id):
             "cannot update run with ID '{}' (already finished)".format(grading_run_id)
         )
         return
+
+    stream_queue = settings["STREAM_QUEUE"]
+    if job.success:
+        stream_queue.update_job_state(job.id, GradingRunState.FINISHED.name)
+    else:
+        stream_queue.update_job_state(job.id, GradingRunState.FAILED.name)
+    stream_queue.send_close_event(job.id)
 
     if job.type == GradingJobType.PRE_PROCESSING:
         if job.success:

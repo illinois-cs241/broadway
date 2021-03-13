@@ -28,7 +28,10 @@ class TestClusterTokenUtils(BaseTest):
 
 class TestCourseTokenUtils(BaseTest):
     def test_init_tokens(self):
-        course_tokens = {"cs225": ["token1"], "cs241": ["token1", "token2"]}
+        course_tokens = {
+            "cs225": {"tokens": ["token1"]},
+            "cs241": {"tokens": ["token1"], "query_tokens": ["token2"]},
+        }
 
         with mock.patch(
             "builtins.open", mock.mock_open(read_data=json.dumps(course_tokens))
@@ -44,8 +47,11 @@ class TestCourseTokenUtils(BaseTest):
 
         self.assertIn("token1", cs225.tokens)
         self.assertNotIn("token2", cs225.tokens)
+        self.assertNotIn("token1", cs225.query_tokens)
         self.assertIn("token1", cs241.tokens)
-        self.assertIn("token2", cs241.tokens)
+        self.assertNotIn("token1", cs241.query_tokens)
+        self.assertIn("token2", cs241.query_tokens)
+        self.assertNotIn("token2", cs241.tokens)
 
 
 class TestMultiQueue(BaseTest):

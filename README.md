@@ -27,7 +27,7 @@ Python 3.6 is the minimum supported interpreter version. Python 3.7 should also 
 To install the dependencies (with venv)
 
     python3 -m venv venv
-    sourcce venv/bin/activate
+    source venv/bin/activate
     pip3 install -r requirements.txt
 
 ## Configuration

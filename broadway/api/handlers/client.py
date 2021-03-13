@@ -190,7 +190,79 @@ class GradingRunStatusHandler(ClientAPIHandler):
             ),
             "student_jobs_state": get_job_id_to_state_map(student_jobs),
         }
+# *********NEW METHOD**********
+class GradingRunEnvHandler(ClientAPIHandler):
+    @authenticate_course
+    @schema.validate(
+        output_schema={
+            "type": "object",
+            "properties": {
+                "pre_processing_env": {"type": ["null", "object"]},
+                "post_processing_env": {"type": ["null", "object"]},
+                "student_env": {"type": "object"},
+            },
+            "required": [],
+            "additionalProperties": False,
+        },
+        on_empty_404=True,
+    )
+    def get(self, *args, **kwargs):
+        grading_run_id = kwargs.get("run_id")
 
+        grading_run_dao = daos.GradingRunDao(self.settings)
+        grading_run = grading_run_dao.find_by_id(grading_run_id)
+        if grading_run is None:
+            self.abort({"message": "grading run with the given ID not found"})
+            return
+
+        grading_job_dao = daos.GradingJobDao(self.settings)
+        grading_jobs = grading_job_dao.find_by_run_id(grading_run_id)
+
+        # Make sure pre_processing_env exists
+        if grading_run.pre_processing_env is None:
+            pre_processing_dict = None
+        else:
+            pre_processing_dict = {}
+
+        # Loop through the dict, adding every env variable to a dict of sets
+        for dict in grading_run.pre_processing_env:
+            for key in dict:
+                pre_processing_dict[key] = pre_processing_dict.get(key, set()).add(dict[key])
+        # Convert each set into a list for JSON
+        for key in pre_processing_dict:
+            pre_processing_dict[key] = list(pre_processing_dict[key])
+
+        # Make sure pre_processing_env exists
+        if grading_run.post_processing_env is None:
+            post_processing_dict = None
+        else:
+            post_processing_dict = {}
+
+        # Loop through the dict, adding every env variable to a dict of sets
+        for dict in grading_run.post_processing_env:
+            for key in dict:
+                post_processing_dict[key] = post_processing_dict.get(key, set()).add(dict[key])
+        # Convert each set into a list for JSON
+        for key in post_processing_dict:
+            post_processing_dict[key] = list(post_processing_dict[key])
+
+        # We are guaranteed that this dict exists in the run, so no need to check
+        student_dict = {}
+
+        # Loop through the dict, adding every env variable to a dict of sets
+        for dict in grading_run.student_env:
+            for key in dict:
+                student_dict[key] = student_dict.get(key, set()).add(dict[key])
+        # Convert the sets to list for JSON
+        for key in student_dict:
+            student_dict[key] = list(student_dict[key])
+
+
+        return {
+            "pre_processing_env": pre_processing_dict,
+            "post_processing_env": post_processing_dict,
+            "student_env": student_dict
+        }
 
 class GradingJobLogHandler(ClientAPIHandler):
     @authenticate_course

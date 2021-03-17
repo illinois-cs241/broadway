@@ -300,10 +300,8 @@ class GradingRunEnvEndpointTest(BaseTest):
 
         self.assertEqual(
             list(read_value["student_env"].values())[0]["netid"],
-            [
-                "test net id"
-            ],  # since the test doesnt have access to job-ids we take the values as a list and check the first value
-        )
+            ["test net id"],  # since the test doesnt have access to job-ids
+        )  # we take the values as a list and check the first value
 
     def test_two_students(self):
         self.upload_grading_config(

@@ -175,7 +175,6 @@ class ClientMixin(AsyncHTTPMixin):
             method="GET",
             headers=header,
         )
-        print(response.body.decode("utf-8"))
 
         self.assertEqual(response.code, 200)
 

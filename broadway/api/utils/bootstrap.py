@@ -169,6 +169,12 @@ def initialize_app(
                 client_handlers.GradingRunStatusHandler,
             ),
             (
+                r"/api/v1/grading_run_env/{}/{}".format(
+                    id_regex.format("course_id"), id_regex.format("run_id")
+                ),
+                client_handlers.GradingRunEnvHandler,
+            ),
+            (
                 r"/api/v1/grading_job_log/{}/{}".format(
                     id_regex.format("course_id"), id_regex.format("job_id")
                 ),

@@ -195,6 +195,90 @@ class GradingRunStatusHandler(ClientAPIHandler):
         }
 
 
+class GradingRunEnvHandler(ClientAPIHandler):
+    @authenticate_course_admin
+    @schema.validate(
+        output_schema={
+            "type": "object",
+            "properties": {
+                "pre_processing_env": {"type": ["null", "object"]},
+                "post_processing_env": {"type": ["null", "object"]},
+                "student_env": {"type": "object"},
+            },
+            "required": ["student_env"],
+            "additionalProperties": False,
+        },
+        on_empty_404=True,
+    )
+    def get(self, *args, **kwargs):
+        grading_run_id = kwargs.get("run_id")
+
+        grading_run_dao = daos.GradingRunDao(self.settings)
+        grading_run = grading_run_dao.find_by_id(grading_run_id)
+        if grading_run is None:
+            self.abort({"message": "grading run with the given ID not found"})
+            return
+
+        grading_job_dao = daos.GradingJobDao(self.settings)
+        grading_jobs = grading_job_dao.find_by_run_id(grading_run_id)
+
+        # Helper method for making a dictionary from the grading_run
+        def get_job_id_to_env_map(jobs):
+            job_id_to_env_map = {}
+            for job in jobs:
+                env_dict = {}
+                for stage in job.stages:
+                    env = stage["env"]
+                    for key in env:
+                        env_dict[key] = env_dict.get(key, set())
+                        env_dict[key].add(env[key])
+                # Convert each set into a list for JSON
+                for key in env_dict:
+                    env_values = list(env_dict[key])
+                    env_dict[key] = env_values
+
+                job_id_to_env_map[job.id] = env_dict
+
+            return job_id_to_env_map
+
+        pre_processing_job = next(
+            filter(
+                lambda j: j.type == models.GradingJobType.PRE_PROCESSING, grading_jobs
+            ),
+            None,
+        )
+        post_processing_job = next(
+            filter(
+                lambda j: j.type == models.GradingJobType.POST_PROCESSING, grading_jobs
+            ),
+            None,
+        )
+        student_jobs = filter(
+            lambda j: j.type == models.GradingJobType.STUDENT, grading_jobs
+        )
+
+        # Make sure pre_processing_env exists
+        if pre_processing_job is None:
+            pre_processing_dict = None
+        else:
+            pre_processing_dict = get_job_id_to_env_map([pre_processing_job])
+
+        # Make sure post_processing_env exists
+        if post_processing_job is None:
+            post_processing_dict = None
+        else:
+            post_processing_dict = get_job_id_to_env_map([post_processing_job])
+
+        # We are guaranteed that this dict exists in the run, so no need to check
+        student_dict = get_job_id_to_env_map(student_jobs)
+
+        return {
+            "pre_processing_env": pre_processing_dict,
+            "post_processing_env": post_processing_dict,
+            "student_env": student_dict,
+        }
+
+
 class GradingJobLogHandler(ClientAPIHandler):
     @authenticate_course_admin
     @schema.validate(

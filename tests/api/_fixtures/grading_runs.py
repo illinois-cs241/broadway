@@ -13,6 +13,10 @@ one_student_and_both = {
     "post_processing_env": {"type": "post"},
 }
 
+two_student_job = {
+    "students_env": [{"netid": "student id 1"}, {"netid": "student id 2"}]
+}
+
 
 def generate_n_student_jobs(n):
     return {"students_env": [{"netid": "test net id"}] * n}

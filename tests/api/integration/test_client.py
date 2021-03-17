@@ -276,6 +276,61 @@ class GradingRunEndpointsTest(BaseTest):
         )
 
 
+class GradingRunEnvEndpointTest(BaseTest):
+    def test_one_student(self):
+        self.upload_grading_config(
+            self.course1,
+            "assignment1",
+            self.client_header1,
+            grading_configs.only_student_config,
+            200,
+        )
+
+        run_id = self.start_grading_run(
+            self.course1,
+            "assignment1",
+            self.client_header1,
+            grading_runs.one_student_job,
+            200,
+        )
+        read_value = self.get_grading_run_env(self.course1, run_id, self.client_header1)
+
+        self.assertEqual(read_value["pre_processing_env"], None)
+        self.assertEqual(read_value["post_processing_env"], None)
+
+        self.assertEqual(
+            list(read_value["student_env"].values())[0]["netid"],
+            ["test net id"],  # since the test doesnt have access to job-ids
+        )  # we take the values as a list and check the first value
+
+    def test_two_students(self):
+        self.upload_grading_config(
+            self.course1,
+            "assignment1",
+            self.client_header1,
+            grading_configs.only_student_config,
+            200,
+        )
+
+        run_id = self.start_grading_run(
+            self.course1,
+            "assignment1",
+            self.client_header1,
+            grading_runs.two_student_job,
+            200,
+        )
+        read_value = self.get_grading_run_env(self.course1, run_id, self.client_header1)
+
+        self.assertEqual(read_value["pre_processing_env"], None)
+        self.assertEqual(read_value["post_processing_env"], None)
+        netids = []
+        for dict in read_value["student_env"].values():
+            netids.append(dict["netid"][0])
+
+        self.assertIn("student id 1", netids)
+        self.assertIn("student id 2", netids)
+
+
 class GradingJobLogEndpointTest(BaseTest):
     def test_no_token(self):
         self.get_grading_job_log(self.course1, "weird", None, 401)

@@ -167,6 +167,20 @@ class ClientMixin(AsyncHTTPMixin):
             response_body = json.loads(response.body.decode("utf-8"))
             self.assertEqual(response_body["data"].get("state"), expected_state)
 
+    def get_grading_run_env(self, course_id, grading_run_id, header):
+        response = self.fetch(
+            self.get_url(
+                "/api/v1/grading_run_env/{}/{}".format(course_id, grading_run_id)
+            ),
+            method="GET",
+            headers=header,
+        )
+
+        self.assertEqual(response.code, 200)
+
+        response_body = json.loads(response.body.decode("utf-8"))
+        return response_body["data"]
+
     def get_grading_job_log(self, course_id, job_id, header, expected_code):
         response = self.fetch(
             self.get_url("/api/v1/grading_job_log/{}/{}".format(course_id, job_id)),

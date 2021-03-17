@@ -299,7 +299,7 @@ class GradingRunEnvEndpointTest(BaseTest):
         self.assertEqual(read_value["post_processing_env"], None)
 
         self.assertEqual(
-            list(read_value["student_env"].values())[0]["netid"], "test net id"
+            list(read_value["student_env"].values())[0]["netid"][0], "test net id"
         )
 
     def test_two_students(self):
@@ -324,7 +324,7 @@ class GradingRunEnvEndpointTest(BaseTest):
         self.assertEqual(read_value["post_processing_env"], None)
         netids = []
         for dict in read_value["student_env"].values():
-            netids.append(dict["netid"])
+            netids.append(dict["netid"][0])
 
         self.assertIn("student id 1", netids)
         self.assertIn("student id 2", netids)

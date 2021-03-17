@@ -235,10 +235,7 @@ class GradingRunEnvHandler(ClientAPIHandler):
                 # Convert each set into a list for JSON
                 for key in env_dict:
                     env_values = list(env_dict[key])
-                    if len(env_values) == 1:
-                        env_dict[key] = env_values[0]
-                    else:
-                        env_dict[key] = env_values
+                    env_dict[key] = env_values
 
                 job_id_to_env_map[job.id] = env_dict
 

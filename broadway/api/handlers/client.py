@@ -223,26 +223,26 @@ class GradingRunEnvHandler(ClientAPIHandler):
         grading_jobs = grading_job_dao.find_by_run_id(grading_run_id)
 
         # Helper method for making a dictionary from the grading_run
-        def make_dict(jobs):
-            return_dict = {}
+        def get_job_id_to_env_map(jobs):
+            job_id_to_env_map = {}
             for job in jobs:
-                new_dict = {}
+                env_dict = {}
                 for stage in job.stages:
                     env = stage["env"]
                     for key in env:
-                        new_dict[key] = new_dict.get(key, set())
-                        new_dict[key].add(env[key])
+                        env_dict[key] = env_dict.get(key, set())
+                        env_dict[key].add(env[key])
                 # Convert each set into a list for JSON
-                for key in new_dict:
-                    new_list = list(new_dict[key])
-                    if len(new_list) == 1:
-                        new_dict[key] = new_list[0]
+                for key in env_dict:
+                    env_values = list(env_dict[key])
+                    if len(env_values) == 1:
+                        env_dict[key] = env_values[0]
                     else:
-                        new_dict[key] = new_list
+                        env_dict[key] = env_values
 
-                return_dict[job.id] = new_dict
+                job_id_to_env_map[job.id] = env_dict
 
-            return return_dict
+            return job_id_to_env_map
 
         pre_processing_job = next(
             filter(
@@ -264,16 +264,16 @@ class GradingRunEnvHandler(ClientAPIHandler):
         if pre_processing_job is None:
             pre_processing_dict = None
         else:
-            pre_processing_dict = make_dict([pre_processing_job])
+            pre_processing_dict = get_job_id_to_env_map([pre_processing_job])
 
         # Make sure post_processing_env exists
         if post_processing_job is None:
             post_processing_dict = None
         else:
-            post_processing_dict = make_dict([post_processing_job])
+            post_processing_dict = get_job_id_to_env_map([post_processing_job])
 
         # We are guaranteed that this dict exists in the run, so no need to check
-        student_dict = make_dict(student_jobs)
+        student_dict = get_job_id_to_env_map(student_jobs)
 
         return {
             "pre_processing_env": pre_processing_dict,

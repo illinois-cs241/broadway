@@ -16,6 +16,10 @@ class GradingJobStreamHandler(BaseAPIHandler):
         self.set_header("Content-Type", "text/event-stream")
         self.set_header("Cache-Control", "no-cache")
 
+        # No need to register stream or callback when it's a preflight request
+        if self.request.method == "OPTIONS":
+            return
+
         self._id = id(self)
         self._callback = PeriodicCallback(
             callback=self._heartbeat, callback_time=HEARTBEAT_TIME_MILLI

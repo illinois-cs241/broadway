@@ -16,6 +16,10 @@ class GradingJobStreamHandler(BaseAPIHandler):
         self.set_header("Content-Type", "text/event-stream")
         self.set_header("Cache-Control", "no-cache")
 
+        # Needed for SSEs to work with nginx.
+        # See https://serverfault.com/a/801629
+        self.set_header("X-Accel-Buffering", "no")
+
         # No need to register stream or callback when it's a preflight request
         if self.request.method == "OPTIONS":
             return

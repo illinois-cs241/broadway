@@ -21,6 +21,7 @@ grading_stage = {
         "privileged": {"type": "boolean"},
         "hostname": {"type": "string"},
         "timeout": {"type": "number"},
+        "cpuset_cpus": {"type": "string"},
         "memory": {"type": "string"},
         "logs": {"type": "boolean"},
     },

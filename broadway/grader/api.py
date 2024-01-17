@@ -31,6 +31,7 @@ GRADING_STAGE_DEF = {
         "hostname": {"type": "string"},
         "timeout": {"type": "number"},
         "memory": {"type": "string"},
+        "cpuset_cpus": {"type": "string"},
     },
     "required": ["image"],
     "additionalProperties": False,

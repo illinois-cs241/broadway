@@ -29,6 +29,7 @@ import broadway.api.handlers.client as client_handlers
 import broadway.api.handlers.worker as worker_handlers
 import broadway.api.handlers.stream as stream_handlers
 import broadway.api.handlers.worker_ws as worker_ws_handlers
+import broadway.api.handlers.webhook as webhook_handlers
 
 logger = logging.getLogger(__name__)
 
@@ -221,8 +222,15 @@ def initialize_app(
                     id_regex.format("course_id"), id_regex.format("job_id")
                 ),
                 stream_handlers.GradingJobStreamHandler,
-            )
+            ),
             # ----------------------------------
+            # -------- Webhook Endpoints --------
+            (
+                r"/api/v1/webhook/grading_run/{}/{}".format(
+                    id_regex.format("course_id"), id_regex.format("assignment_name")
+                ),
+                webhook_handlers.WebhookStartGradingHandler,
+            ),
         ],
         **settings
     )

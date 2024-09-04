@@ -49,3 +49,21 @@ ws_api_msg = {
     "required": ["type", "args"],
     "additionalProperties": False,
 }
+
+grading_run_in = {
+    "type": "object",
+    "properties": {
+        "pre_processing_env": {"type": "object"},
+        "students_env": {"type": "array", "items": {"type": "object"}},
+        "post_processing_env": {"type": "object"},
+    },
+    "required": ["students_env"],
+    "additionalProperties": False,
+}
+
+grading_run_out = {
+    "type": "object",
+    "properties": {"grading_run_id": {"type": "string"}},
+    "required": ["grading_run_id"],
+    "additionalProperties": False,
+}

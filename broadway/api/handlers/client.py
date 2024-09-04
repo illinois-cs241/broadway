@@ -50,28 +50,7 @@ class GradingConfigHandler(ClientAPIHandler):
 
         return config.to_dict()
 
-
-class GradingRunHandler(ClientAPIHandler):
-    @authenticate_course_admin
-    @schema.validate(
-        input_schema={
-            "type": "object",
-            "properties": {
-                "pre_processing_env": {"type": "object"},
-                "students_env": {"type": "array", "items": {"type": "object"}},
-                "post_processing_env": {"type": "object"},
-            },
-            "required": ["students_env"],
-            "additionalProperties": False,
-        },
-        output_schema={
-            "type": "object",
-            "properties": {"grading_run_id": {"type": "string"}},
-            "required": ["grading_run_id"],
-            "additionalProperties": False,
-        },
-        on_empty_404=True,
-    )
+class GradingRunRawHandler(ClientAPIHandler):
     def post(self, *args, **kwargs):
         assignment_id = self.get_assignment_id(**kwargs)
 
@@ -131,6 +110,17 @@ class GradingRunHandler(ClientAPIHandler):
             )
             return False
         return True
+
+
+class GradingRunHandler(GradingRunRawHandler):
+    @authenticate_course_admin
+    @schema.validate(
+        input_schema=definitions.grading_run_in,
+        output_schema=definitions.grading_run_out,
+        on_empty_404=True,
+    )
+    def post(self, *args, **kwargs):
+        return super().post(*args, **kwargs)
 
 
 class GradingRunStatusHandler(ClientAPIHandler):

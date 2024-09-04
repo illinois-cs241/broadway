@@ -30,7 +30,6 @@ def authenticate_worker(func):
 
     return wrapper
 
-
 def validate_assignment(func):
     def wrapper(*args, **kwargs):
         handler = args[0]
@@ -46,7 +45,20 @@ def validate_assignment(func):
 
     return wrapper
 
+def authenticate_webhook(func):
+    def wrapper(*args, **kwargs):
+        handler = args[0]
+        expected_token = handler.get_webhook_token()
+        request_token = handler.request.headers.get("Authorization")
+        if not _is_token_valid(request_token):
+            handler.abort({"message": "invalid token format"}, status=401)
+            return
+        elif expected_token != request_token.split(" ")[1]:
+            handler.abort({"message": "invalid token"}, status=401)
+            return
+        return func(*args, **kwargs)
 
+    return wrapper
 def authenticate_cluster_token(func):
     def wrapper(*args, **kwargs):
         handler = args[0]
@@ -127,4 +139,5 @@ __all__ = [
     "authenticate_course_admin",
     "authenticate_worker",
     "validate_assignment",
+    "authenticate_webhook"
 ]

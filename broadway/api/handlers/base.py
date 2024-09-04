@@ -35,6 +35,9 @@ class BaseAPIHandler(APIHandler):
 
     def get_token(self):
         return self.settings["FLAGS"]["token"]
+    
+    def get_webhook_token(self):
+        return self.settings["FLAGS"]['webhook_token']
 
     def get_queue(self):
         return self.settings["QUEUE"]

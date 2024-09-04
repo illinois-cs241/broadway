@@ -108,3 +108,4 @@ logs/
 
 # PyCharm specific folder
 .idea/
+.mise.toml

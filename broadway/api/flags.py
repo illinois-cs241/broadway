@@ -17,6 +17,13 @@ app_flags = FlagSet(
             config_name="token",
             help="access token for communication between workers and api",
         ),
+        "webhook_token": Flag(
+            str,
+            cmdline_name="--webhook-token",
+            env_name="BROADWAY_WEBHOOK_TOKEN",
+            config_name="webhook_token",
+            help="access token for communication from external webhook",
+        ),
         "heartbeat_interval": Flag(
             int,
             default=10,
